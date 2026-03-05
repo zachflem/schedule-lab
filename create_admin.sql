@@ -42,7 +42,7 @@ BEGIN
 
         -- We DO NOT need to insert into public.user_roles manually because
         -- the trigger `on_auth_user_created` created in `patch_rbac_new2.sql`
-        -- will automatically fire and insert the role as 'Administrator'
+        -- will automatically fire and insert the role as 'ADMIN'
         -- since they are the first user created!
 
         RAISE NOTICE 'Admin user created successfully.';
