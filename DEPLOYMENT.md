@@ -43,8 +43,9 @@ It is a security best practice to avoid operating as `root`. Create a new user w
 ```bash
 sudo adduser <your_username>
 sudo usermod -aG sudo <your_username>
+sudo usermod -aG docker <your_username>
 ```
-Now, log out and log back in as your new user before continuing.
+Now, log out and log back in as your new user before continuing. This allows you to run Docker commands without `sudo`.
 
 ### 5. SSH Hardening (Recommendation)
 Edit `/etc/ssh/sshd_config` to disable root login while retaining password access for your new user:
