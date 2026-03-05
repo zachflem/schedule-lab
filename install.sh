@@ -20,6 +20,27 @@ echo "[1/4] Updating system packages & installing prerequisites..."
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y curl vim git apt-transport-https ca-certificates software-properties-common jq openssl
 
+# Optional: Server Hardening
+echo ""
+read -p "    Apply basic Debian hardening (UFW, Fail2Ban, Unattended Upgrades)? [y/N]: " APPLY_HARDENING
+if [[ "$APPLY_HARDENING" =~ ^[Yy]$ ]]; then
+    echo "    Hardening server..."
+    # UFW
+    sudo ufw default deny incoming
+    sudo ufw default allow outgoing
+    sudo ufw allow ssh
+    sudo ufw allow http
+    sudo ufw allow https
+    sudo ufw allow 8000
+    echo "y" | sudo ufw enable
+    
+    # Fail2Ban & Updates
+    sudo apt install -y fail2ban unattended-upgrades
+    sudo systemctl enable fail2ban
+    sudo systemctl start fail2ban
+    echo "    Hardening complete."
+fi
+
 # 2. Install Docker & Docker Compose if not present
 if ! command -v docker &> /dev/null; then
     echo "[2/4] Installing Docker..."

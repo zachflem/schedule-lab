@@ -6,7 +6,43 @@ This guide explains how to deploy ScheduleLab to a standalone production server 
 - A fresh Ubuntu Linux server with root or sudo access.
 - At least 2GB of RAM (4GB+ recommended) for running the full Next.js and Supabase ecosystem.
 - A domain name pointing to your server's IP address (optional, but requested for production SSL).
-- **Ports 80, 443, 3000, 5432, 6543, and 8000** must be open on your VPS firewall.
+- **Ports 80, 443, 8000** must be open on your VPS firewall.
+
+## Security & Hardening (Debian/Ubuntu)
+If this VPS is dedicated solely to ScheduleLab, it is highly recommended to apply these basic hardening steps before proceeding with the installation.
+
+### 1. Firewall (UFW)
+Restrict all incoming traffic except for essential services:
+```bash
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow ssh          # Port 22
+sudo ufw allow http         # Port 80
+sudo ufw allow https        # Port 443
+sudo ufw allow 8000         # Supabase Studio (Optional: restrict to your IP)
+sudo ufw enable
+```
+
+### 2. Intrusion Prevention (Fail2Ban)
+Protect against brute-force attacks by installing Fail2Ban:
+```bash
+sudo apt install -y fail2ban
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+```
+
+### 3. Automatic Security Updates
+Ensure your system stays patched against OS-level vulnerabilities:
+```bash
+sudo apt install -y unattended-upgrades
+sudo dpkg-reconfigure --priority=low unattended-upgrades
+```
+
+### 4. SSH Hardening (Recommendation)
+Edit `/etc/ssh/sshd_config` to disable root login and password-based authentication once you have established SSH keys:
+- `PermitRootLogin no`
+- `PasswordAuthentication no`
+Then run `sudo systemctl restart ssh`.
 
 ## Architecture
 The system is deployed using **Docker Compose** encompassing the full Supabase backend stack and an NGINX reverse proxy.
