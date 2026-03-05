@@ -38,10 +38,19 @@ sudo apt install -y unattended-upgrades
 sudo dpkg-reconfigure --priority=low unattended-upgrades
 ```
 
-### 4. SSH Hardening (Recommendation)
-Edit `/etc/ssh/sshd_config` to disable root login and password-based authentication once you have established SSH keys:
+### 4. Create Non-Root User
+It is a security best practice to avoid operating as `root`. Create a new user with sudo privileges:
+```bash
+sudo adduser <your_username>
+sudo usermod -aG sudo <your_username>
+```
+Now, log out and log back in as your new user before continuing.
+
+### 5. SSH Hardening (Recommendation)
+Edit `/etc/ssh/sshd_config` to disable root login while retaining password access for your new user:
 - `PermitRootLogin no`
-- `PasswordAuthentication no`
+- `PasswordAuthentication yes` (Ensure this remains 'yes' for password access)
+
 Then run `sudo systemctl restart ssh`.
 
 ## Architecture
