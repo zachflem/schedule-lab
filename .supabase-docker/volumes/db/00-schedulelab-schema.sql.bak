@@ -1,0 +1,138 @@
+-- ScheduleLab PostgreSQL Schema (Supabase)
+
+-- 1. EXTENSIONS
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- 2. CUSTOMERS (Contacts)
+CREATE TABLE IF NOT EXISTS public.customers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    contact_details JSONB,
+    accounting_uid VARCHAR(255) UNIQUE, -- Phase 3 Xero/MYOB mapping
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 3. PERSONNEL (Users/Role Management)
+CREATE TYPE user_role AS ENUM ('Admin', 'Scheduler', 'Sales', 'Operator');
+
+CREATE TABLE IF NOT EXISTS public.personnel (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), -- Linked to auth.users in Supabase
+    name VARCHAR(255) NOT NULL,
+    role user_role[] DEFAULT '{Operator}', -- Array to support multiple roles
+    active_role user_role DEFAULT 'Operator',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 4. LICENSES (Compliance Engine - Personnel)
+CREATE TABLE IF NOT EXISTS public.licenses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    personnel_id UUID REFERENCES public.personnel(id) ON DELETE CASCADE,
+    license_type VARCHAR(100) NOT NULL, -- e.g. HRWL, White Card, Medical
+    expiry_date DATE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 5. CRANES (Assets)
+CREATE TABLE IF NOT EXISTS public.cranes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    category VARCHAR(100),
+    total_hours_run NUMERIC(10, 2) DEFAULT 0, -- Used for 450hr alerts (Phase 3)
+    cranesafe_expiry DATE,
+    rego_expiry DATE,
+    insurance_expiry DATE,
+    tracking_category_id VARCHAR(255), -- Phase 3 Xero tracking
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 6. JOBS ("The Growing Form")
+CREATE TYPE job_status AS ENUM (
+    'Enquiry', 'Quote', 'Quote Sent', 'Quote Accepted', 
+    'Job Booked', 'Job Scheduled', 'Allocated', 
+    'Site Docket', 'Completed', 'Invoiced'
+);
+
+CREATE TYPE job_type AS ENUM ('General Hire', 'Project Hire');
+CREATE TYPE docket_completion_model AS ENUM ('Individual', 'Supervisor');
+
+CREATE TABLE IF NOT EXISTS public.jobs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    customer_id UUID REFERENCES public.customers(id),
+    status_id job_status DEFAULT 'Enquiry',
+    job_type job_type DEFAULT 'General Hire',
+    docket_completion_model docket_completion_model DEFAULT 'Individual',
+    
+    -- Form Fields (Enquiry)
+    location TEXT,
+    crane_size VARCHAR(100),
+    job_brief TEXT,
+    max_weight NUMERIC(10, 2),
+    hazards TEXT,
+    site_access TEXT,
+    
+    -- Quote Fields
+    pricing NUMERIC(12, 2),
+    quote_url TEXT,
+    
+    -- Acceptance Fields
+    tc_accepted BOOLEAN DEFAULT FALSE,
+    approver_name VARCHAR(255),
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 7. ALLOCATIONS (Dynamic Gantt Chart)
+CREATE TABLE IF NOT EXISTS public.allocations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE,
+    crane_id UUID REFERENCES public.cranes(id), -- Required for Job Scheduled
+    personnel_id UUID REFERENCES public.personnel(id), -- Required for Allocated
+    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    end_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Check constraints could be added here or in application logic
+    CONSTRAINT valid_time_range CHECK (start_time < end_time)
+);
+
+-- 8. SITE DOCKETS (MVP Mobile View)
+CREATE TABLE IF NOT EXISTS public.site_dockets (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    machine_hours NUMERIC(8, 2) DEFAULT 0,
+    operator_hours NUMERIC(8, 2) DEFAULT 0,
+    fuel NUMERIC(8, 2) DEFAULT 0,
+    customer_signature_blob TEXT, -- Base64 or Blob URL representing PNG/SVG
+    is_locked BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 9. INVOICES (Phase 3 Financial API)
+CREATE TABLE IF NOT EXISTS public.invoices (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    job_id UUID REFERENCES public.jobs(id),
+    draft_status BOOLEAN DEFAULT TRUE,
+    xero_invoice_id VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 10. AUDIT TRAIL (Security)
+CREATE TABLE IF NOT EXISTS public.audit_trail (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    entity_type VARCHAR(100) NOT NULL, -- e.g. 'Site Docket'
+    entity_id UUID NOT NULL,
+    admin_user_id UUID REFERENCES public.personnel(id),
+    old_value JSONB,
+    new_value JSONB,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ROW LEVEL SECURITY (RLS) POLICIES Setup
+-- We'll enable basic RLS on Site Dockets to ensure locked dockets are not editable by standard users/operators.
+ALTER TABLE public.site_dockets ENABLE ROW LEVEL SECURITY;
+
+-- Note: Proper RLS implementation mapped to Supabase auth.uid() will be designed once Supabase Auth binds to public.personnel.

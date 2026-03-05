@@ -1,0 +1,39 @@
+version: '3.8'
+
+# Include the official Supabase stack
+include:
+  - .supabase-docker/docker-compose.yml
+
+services:
+  # Next.js Application Production Build
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: schedulelab-web
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@db:5432/postgres
+      # Internal routing for server-side Next.js fetches
+      - SUPABASE_INTERNAL_URL=http://kong:8000
+    depends_on:
+      - kong
+      - db
+
+  # NGINX Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: schedulelab-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web
+      - kong
