@@ -5,6 +5,12 @@
 
 set -e
 
+# --- 0. Early Environment Detection ---
+# Detect Docker socket before everything else
+DOCKER_SOCKET="/var/run/docker.sock"
+if [ ! -S "$DOCKER_SOCKET" ] && [ -S "/run/docker.sock" ]; then DOCKER_SOCKET="/run/docker.sock"; fi
+export DOCKER_SOCKET_LOCATION="$DOCKER_SOCKET"
+
 echo "========================================================="
 echo "    ScheduleLab Robust Production Installer             "
 echo "========================================================="
@@ -17,8 +23,9 @@ echo ""
 read -p "    [CLEAN SLATE] Would you like to factory reset (DELETE ALL VOLUMES/DATA)? [y/N]: " NUKE_IT
 if [[ "$NUKE_IT" =~ ^[Yy]$ ]]; then
     echo "    Wiping all persistent data..."
+    # We keep .env for a second so docker-compose doesn't error out on missing vars
     docker compose -f docker-compose.prod.yml down -v --remove-orphans || true
-    rm -rf .env
+    rm -f .env
     echo "    Cleanup complete."
 fi
 
@@ -30,7 +37,6 @@ if [ -z "$SERVER_URL" ]; then
     echo "    ERROR: Server URL is required for remote deployment."
     exit 1
 fi
-# Clean protocol if user entered it
 SERVER_URL=$(echo "$SERVER_URL" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
 
 echo ""
@@ -100,11 +106,7 @@ EOF
     sed -i "s|^PG_META_CRYPTO_KEY=.*|PG_META_CRYPTO_KEY=$NEW_PG_META_CRYPTO|" .env
     sed -i "s|^S3_PROTOCOL_ACCESS_KEY_ID=.*|S3_PROTOCOL_ACCESS_KEY_ID=$NEW_S3_ID|" .env
     sed -i "s|^S3_PROTOCOL_ACCESS_KEY_SECRET=.*|S3_PROTOCOL_ACCESS_KEY_SECRET=$NEW_S3_SECRET|" .env
-    
-    # Detect Docker socket
-    DOCKER_SOCKET="/var/run/docker.sock"
-    if [ ! -S "$DOCKER_SOCKET" ] && [ -S "/run/docker.sock" ]; then DOCKER_SOCKET="/run/docker.sock"; fi
-    sed -i "s|^DOCKER_SOCKET_LOCATION=.*|DOCKER_SOCKET_LOCATION=$DOCKER_SOCKET|" .env
+    sed -i "s|^DOCKER_SOCKET_LOCATION=.*|DOCKER_SOCKET_LOCATION=$DOCKER_SOCKET_LOCATION|" .env
 
     # Custom variables
     echo "NEXT_PUBLIC_SUPABASE_URL=http://$SERVER_URL:8000" >> .env
@@ -143,13 +145,14 @@ if [ -d ".supabase-docker/volumes/logs/vector.yml" ]; then rm -rf ".supabase-doc
 chmod +x compile_schema.sh && ./compile_schema.sh
 
 echo ""
-echo "    Starting Docker Stack..."
-docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+echo "    Starting Core Database & Vector Service..."
+# PHASE 1: Start DB and Vector ONLY
+docker compose -f docker-compose.prod.yml up -d db vector --build --remove-orphans
 
 # 5. Bootstrap
 echo ""
 echo "[5/5] Finalizing Database..."
-MAX_RETRIES=30
+MAX_RETRIES=45
 COUNT=0
 until docker exec supabase-db pg_isready -U postgres >/dev/null 2>&1 || [ $COUNT -eq $MAX_RETRIES ]; do
     echo "    Waiting for DB ($((COUNT+1))/$MAX_RETRIES)..."
@@ -158,7 +161,7 @@ until docker exec supabase-db pg_isready -U postgres >/dev/null 2>&1 || [ $COUNT
 done
 
 if [ $COUNT -eq $MAX_RETRIES ]; then
-    echo "    ERROR: DB timed out."
+    echo "    ERROR: DB timed out. Check 'docker logs supabase-db'."
 else
     # Sync passwords and bootstrap schemas
     SYNC_PASS=$(grep "^POSTGRES_PASSWORD=" .env | cut -d'=' -f2)
@@ -192,6 +195,11 @@ END \$\$;
 EOF
 )
     docker exec supabase-db psql -U postgres -c "$ADMIN_SQL" >/dev/null 2>&1 || true
+
+    # PHASE 2: Start the rest of the stack
+    echo ""
+    echo "    Starting Full Application Stack..."
+    docker compose -f docker-compose.prod.yml up -d
 fi
 
 echo ""
