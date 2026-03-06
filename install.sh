@@ -86,14 +86,14 @@ if [ ! -f .env ]; then
 import sys, hmac, hashlib, base64, json, time
 secret = sys.argv[1].encode('utf-8')
 role = sys.argv[2]
-header = base64.urlsafe_bencode(json.dumps({"alg": "HS256", "typ": "JWT"}).encode('utf-8')).decode('utf-8').rstrip("=")
-payload = base64.urlsafe_bencode(json.dumps({
+header = base64.urlsafe_b64encode(json.dumps({"alg": "HS256", "typ": "JWT"}).encode('utf-8')).decode('utf-8').rstrip("=")
+payload = base64.urlsafe_b64encode(json.dumps({
     "role": role,
     "iss": "supabase",
     "iat": int(time.time()),
     "exp": int(time.time()) + 315360000  # 10 years
 }).encode('utf-8')).decode('utf-8').rstrip("=")
-signature = base64.urlsafe_bencode(hmac.new(secret, f"{header}.{payload}".encode('utf-8'), hashlib.sha256).digest()).decode('utf-8').rstrip("=")
+signature = base64.urlsafe_b64encode(hmac.new(secret, f"{header}.{payload}".encode('utf-8'), hashlib.sha256).digest()).decode('utf-8').rstrip("=")
 print(f"{header}.{payload}.{signature}")
 EOF
 
