@@ -147,6 +147,13 @@ fi
 
 # 4. Starting Services
 echo "[4/4] Starting Full Docker Stack..."
+
+# Fix Vector config if it was created as a directory by Docker
+if [ -d ".supabase-docker/volumes/logs/vector.yml" ]; then
+    echo "    Fixing Vector config (removing directory shadowing file)..."
+    rm -rf ".supabase-docker/volumes/logs/vector.yml"
+fi
+
 # Build the schema file into the volume location
 echo "    Compiling Schema..."
 chmod +x compile_schema.sh && ./compile_schema.sh
