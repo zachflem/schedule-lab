@@ -181,12 +181,23 @@ done
 if [ $COUNT -eq $MAX_RETRIES ]; then
     echo "    ERROR: Database failed to start in time. Check 'docker logs supabase-db'."
 else
+    # Get password from .env for syncing
+    SYNC_PASS=$(grep "^POSTGRES_PASSWORD=" .env | cut -d'=' -f2)
+
+    echo "    Syncing Database passwords..."
+    # Update roles to match .env to prevent authentication failures on re-runs
+    for db_user in postgres supabase_admin authenticator pgbouncer supabase_auth_admin supabase_functions_admin supabase_storage_admin; do
+        docker exec supabase-db psql -U postgres -c "ALTER ROLE $db_user WITH PASSWORD '$SYNC_PASS';" >/dev/null 2>&1 || true
+    done
+
     echo "    Creating _supabase internal database..."
     docker exec supabase-db psql -U postgres -c "SELECT 1 FROM pg_database WHERE datname = '_supabase'" | grep -q 1 || \
     docker exec supabase-db psql -U postgres -c "CREATE DATABASE _supabase;"
     
-    echo "    Ensuring _supabase permissions..."
-    docker exec supabase-db psql -U postgres -d _supabase -c "GRANT ALL ON SCHEMA public TO supabase_admin;" 2>/dev/null || true
+    echo "    Initializing internal schemas..."
+    docker exec supabase-db psql -U postgres -d _supabase -c "CREATE SCHEMA IF NOT EXISTS _analytics;" >/dev/null 2>&1 || true
+    docker exec supabase-db psql -U postgres -d _supabase -c "GRANT ALL ON SCHEMA _analytics TO supabase_admin;" >/dev/null 2>&1 || true
+    docker exec supabase-db psql -U postgres -d _supabase -c "GRANT ALL ON SCHEMA public TO supabase_admin;" >/dev/null 2>&1 || true
     
     echo "    Deploying Full Stack..."
     docker compose -f docker-compose.prod.yml up -d
