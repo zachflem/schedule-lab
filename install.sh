@@ -115,6 +115,7 @@ EOF
 
     # Replace generated variables in .env
     sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$NEW_PG_PASS|" .env
+    sed -i "s|^POSTGRES_USER=.*|POSTGRES_USER=postgres|" .env
     sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$NEW_JWT_SECRET|" .env
     sed -i "s|^ANON_KEY=.*|ANON_KEY=$NEW_ANON_KEY|" .env
     sed -i "s|^SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$NEW_SERVICE_ROLE_KEY|" .env
@@ -160,7 +161,28 @@ chmod +x compile_schema.sh && ./compile_schema.sh
 
 # Run docker-compose pointing to the production file
 echo "    Deploying containers..."
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+
+# 5. Bootstrapping Database (Ensuring _supabase exists for Analytics)
+echo "[5/5] Bootstrapping Database..."
+# Wait for DB to be ready
+MAX_RETRIES=30
+COUNT=0
+until docker exec supabase-db pg_isready -U postgres >/dev/null 2>&1 || [ $COUNT -eq $MAX_RETRIES ]; do
+    echo "    Waiting for Database to be ready ($((COUNT+1))/$MAX_RETRIES)..."
+    sleep 2
+    COUNT=$((COUNT+1))
+done
+
+if [ $COUNT -eq $MAX_RETRIES ]; then
+    echo "    ERROR: Database failed to start in time. Check 'docker logs supabase-db'."
+else
+    echo "    Creating _supabase database..."
+    docker exec supabase-db psql -U postgres -c "SELECT 1 FROM pg_database WHERE datname = '_supabase'" | grep -q 1 || \
+    docker exec supabase-db psql -U postgres -c "CREATE DATABASE _supabase;"
+    echo "    Restarting analytics to pick up the new database..."
+    docker restart supabase-analytics
+fi
 
 echo "========================================================="
 echo "    Installation Complete!                               "
