@@ -6,7 +6,7 @@
 set -e
 
 # --- 0. Early Environment Detection ---
-# Detect Docker socket before everything else
+# Detect Docker socket for early cleanup
 DOCKER_SOCKET="/var/run/docker.sock"
 if [ ! -S "$DOCKER_SOCKET" ] && [ -S "/run/docker.sock" ]; then DOCKER_SOCKET="/run/docker.sock"; fi
 export DOCKER_SOCKET_LOCATION="$DOCKER_SOCKET"
@@ -23,8 +23,10 @@ echo ""
 read -p "    [CLEAN SLATE] Would you like to factory reset (DELETE ALL VOLUMES/DATA)? [y/N]: " NUKE_IT
 if [[ "$NUKE_IT" =~ ^[Yy]$ ]]; then
     echo "    Wiping all persistent data..."
-    # We keep .env for a second so docker-compose doesn't error out on missing vars
-    docker compose -f docker-compose.prod.yml down -v --remove-orphans || true
+    # Suppress warnings and handle errors gracefully during cleanup
+    COMPOSE_IGNORE_ORPHANS=true \
+    COMPOSE_PROJECT_NAME=supabase \
+    docker compose -f docker-compose.prod.yml --log-level ERROR down -v --remove-orphans || true
     rm -f .env
     echo "    Cleanup complete."
 fi
