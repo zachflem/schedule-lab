@@ -71,7 +71,16 @@ if [ ! -f .env ]; then
 
     NEW_PG_PASS=$(openssl rand -base64 24 | tr -d '\n\r/' | cut -c 1-20)
     NEW_JWT_SECRET=$(generate_jwt_secret)
-    NEW_DASH_PASS=$(openssl rand -base64 16 | tr -d '\n\r/')
+    
+    echo "    Setting up Supabase Studio Dashboard Credentials..."
+    read -p "    Enter Dashboard Username [default: supabase]: " NEW_DASH_USER
+    NEW_DASH_USER=${NEW_DASH_USER:-supabase}
+    
+    read -p "    Enter Dashboard Password (leave blank to autogenerate): " NEW_DASH_PASS
+    if [ -z "$NEW_DASH_PASS" ]; then
+        NEW_DASH_PASS=$(openssl rand -base64 16 | tr -d '\n\r/' | cut -c 1-20)
+        echo "    Generated secure password: $NEW_DASH_PASS"
+    fi
     NEW_LOGFLARE_PUB=$(openssl rand -hex 16)
     NEW_LOGFLARE_PRIV=$(openssl rand -hex 16)
     NEW_SECRET_KEY_BASE=$(openssl rand -base64 48 | tr -d '\n\r')
@@ -123,10 +132,15 @@ EOF
     sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$NEW_JWT_SECRET|" .env
     sed -i "s|^ANON_KEY=.*|ANON_KEY=$NEW_ANON_KEY|" .env
     sed -i "s|^SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$NEW_SERVICE_ROLE_KEY|" .env
-    if ! grep -q "^DASHBOARD_USERNAME=" .env; then
-        echo "DASHBOARD_USERNAME=supabase" >> .env
+    
+    # Update Dashboard User/Pass
+    if grep -q "^DASHBOARD_USERNAME=" .env; then
+        sed -i "s|^DASHBOARD_USERNAME=.*|DASHBOARD_USERNAME=$NEW_DASH_USER|" .env
+    else
+        echo "DASHBOARD_USERNAME=$NEW_DASH_USER" >> .env
     fi
     sed -i "s|^DASHBOARD_PASSWORD=.*|DASHBOARD_PASSWORD=$NEW_DASH_PASS|" .env
+    
     sed -i "s|^LOGFLARE_PUBLIC_ACCESS_TOKEN=.*|LOGFLARE_PUBLIC_ACCESS_TOKEN=$NEW_LOGFLARE_PUB|" .env
     sed -i "s|^LOGFLARE_PRIVATE_ACCESS_TOKEN=.*|LOGFLARE_PRIVATE_ACCESS_TOKEN=$NEW_LOGFLARE_PRIV|" .env
     sed -i "s|^SECRET_KEY_BASE=.*|SECRET_KEY_BASE=$NEW_SECRET_KEY_BASE|" .env
@@ -252,7 +266,12 @@ echo "    minutes for the database to fully initialize and    "
 echo "    run the schema scripts for the first time.          "
 echo "                                                         "
 echo "    Access the platform:   http://localhost:3000         "
+echo "    Admin Account:         admin@schedulelab.com         "
+echo "    Admin Password:        ScheduleLabAdmin2026!         "
+echo "                                                         "
 echo "    Access Supabase Studio: http://localhost:8000        "
+echo "    Dashboard User:         $(grep DASHBOARD_USERNAME .env | cut -d'=' -f2)"
+echo "    Dashboard Password:     $(grep DASHBOARD_PASSWORD .env | cut -d'=' -f2)"
 echo "                                                         "
 echo "    Check status with: docker compose ps                 "
 echo "========================================================="
