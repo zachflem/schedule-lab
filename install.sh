@@ -115,7 +115,11 @@ EOF
 
     # Replace generated variables in .env
     sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$NEW_PG_PASS|" .env
-    sed -i "s|^POSTGRES_USER=.*|POSTGRES_USER=postgres|" .env
+    if grep -q "^POSTGRES_USER=" .env; then
+        sed -i "s|^POSTGRES_USER=.*|POSTGRES_USER=postgres|" .env
+    else
+        echo "POSTGRES_USER=postgres" >> .env
+    fi
     sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$NEW_JWT_SECRET|" .env
     sed -i "s|^ANON_KEY=.*|ANON_KEY=$NEW_ANON_KEY|" .env
     sed -i "s|^SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$NEW_SERVICE_ROLE_KEY|" .env
@@ -160,8 +164,8 @@ echo "    Compiling Schema..."
 chmod +x compile_schema.sh && ./compile_schema.sh
 
 # Run docker-compose pointing to the production file
-echo "    Deploying containers..."
-docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+echo "    Deploying Core Database..."
+docker compose -f docker-compose.prod.yml up -d db vector --build --remove-orphans
 
 # 5. Bootstrapping Database (Ensuring _supabase exists for Analytics)
 echo "[5/5] Bootstrapping Database..."
@@ -177,11 +181,15 @@ done
 if [ $COUNT -eq $MAX_RETRIES ]; then
     echo "    ERROR: Database failed to start in time. Check 'docker logs supabase-db'."
 else
-    echo "    Creating _supabase database..."
+    echo "    Creating _supabase internal database..."
     docker exec supabase-db psql -U postgres -c "SELECT 1 FROM pg_database WHERE datname = '_supabase'" | grep -q 1 || \
     docker exec supabase-db psql -U postgres -c "CREATE DATABASE _supabase;"
-    echo "    Restarting analytics to pick up the new database..."
-    docker restart supabase-analytics
+    
+    echo "    Ensuring _supabase permissions..."
+    docker exec supabase-db psql -U postgres -d _supabase -c "GRANT ALL ON SCHEMA public TO supabase_admin;" 2>/dev/null || true
+    
+    echo "    Deploying Full Stack..."
+    docker compose -f docker-compose.prod.yml up -d
 fi
 
 echo "========================================================="
