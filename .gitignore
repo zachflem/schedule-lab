@@ -39,7 +39,8 @@ next-env.d.ts
 # Supabase Local Data
 .supabase-docker/volumes/db/data/
 .supabase-docker/volumes/storage/
-.supabase-docker/volumes/logs/
+.supabase-docker/volumes/logs/*
+!.supabase-docker/volumes/logs/vector.yml
 .supabase-docker/.env
 
 # ScheduleLab Local Test Files
