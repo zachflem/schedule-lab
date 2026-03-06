@@ -198,6 +198,45 @@ else
     docker exec supabase-db psql -U postgres -d _supabase -c "CREATE SCHEMA IF NOT EXISTS _analytics;" >/dev/null 2>&1 || true
     docker exec supabase-db psql -U postgres -d _supabase -c "GRANT ALL ON SCHEMA _analytics TO supabase_admin;" >/dev/null 2>&1 || true
     docker exec supabase-db psql -U postgres -d _supabase -c "GRANT ALL ON SCHEMA public TO supabase_admin;" >/dev/null 2>&1 || true
+
+    echo "    Ensuring Admin Account..."
+    # Explicitly create or update the admin user to ensure login works
+    ADMIN_SQL=$(cat <<EOF
+DO \$\$
+DECLARE
+    new_user_id UUID;
+BEGIN
+    -- Check if user exists
+    SELECT id INTO new_user_id FROM auth.users WHERE email = 'admin@schedulelab.com';
+
+    IF new_user_id IS NULL THEN
+        -- Create user
+        INSERT INTO auth.users (
+            instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+            raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+            confirmation_token, email_change, email_change_token_new, recovery_token
+        ) VALUES (
+            '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
+            'admin@schedulelab.com', crypt('ScheduleLabAdmin2026!', gen_salt('bf')), now(),
+            '{"provider":"email","providers":["email"]}', '{}', now(), now(), '', '', '', ''
+        ) RETURNING id INTO new_user_id;
+    ELSE
+        -- Update password to ensure it matches
+        UPDATE auth.users 
+        SET encrypted_password = crypt('ScheduleLabAdmin2026!', gen_salt('bf')),
+            updated_at = now()
+        WHERE id = new_user_id;
+    END IF;
+
+    -- Ensure ADMIN role in user_roles table
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (new_user_id, 'ADMIN')
+    ON CONFLICT (user_id) DO UPDATE SET role = 'ADMIN';
+
+END \$\$;
+EOF
+)
+    docker exec supabase-db psql -U postgres -c "$ADMIN_SQL" >/dev/null 2>&1 || true
     
     echo "    Deploying Full Stack..."
     docker compose -f docker-compose.prod.yml up -d
