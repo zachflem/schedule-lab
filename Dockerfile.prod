@@ -19,8 +19,14 @@ COPY . .
 # Next.js telemetry is disabled
 ENV NEXT_TELEMETRY_DISABLED 1
 
-# Note: The database connection URL and Supabase Anon Key should be passed at build-time if needed
-# but we are doing a standard build, it shouldn't need a live DB connection if we're not statically generating pages fetching from DB.
+# Build-time environment variables for Next.js
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+# Note: The database connection URL and Supabase Anon Key are required at build-time for prerendering
 RUN npm run build
 
 # Production image, copy all the files and run next
