@@ -69,10 +69,22 @@ if [ ! -f .env ]; then
     echo "    Creating new .env from templates..."
     cp .supabase-docker/.env.example .env
 
-    # Generate core secrets
     NEW_PG_PASS=$(openssl rand -base64 24 | tr -d '\n\r/' | cut -c 1-20)
     NEW_JWT_SECRET=$(generate_jwt_secret)
     NEW_DASH_PASS=$(openssl rand -base64 16 | tr -d '\n\r/')
+    NEW_LOGFLARE_PUB=$(openssl rand -hex 16)
+    NEW_LOGFLARE_PRIV=$(openssl rand -hex 16)
+    NEW_SECRET_KEY_BASE=$(openssl rand -base64 48 | tr -d '\n\r')
+    NEW_VAULT_ENC_KEY=$(openssl rand -hex 16)
+    NEW_PG_META_CRYPTO=$(openssl rand -hex 16)
+    NEW_S3_ID=$(openssl rand -hex 16)
+    NEW_S3_SECRET=$(openssl rand -hex 32)
+    
+    # Detect Docker socket location
+    DOCKER_SOCKET="/var/run/docker.sock"
+    if [ ! -S "$DOCKER_SOCKET" ] && [ -S "/run/docker.sock" ]; then
+        DOCKER_SOCKET="/run/docker.sock"
+    fi
     
     # Using Supabase's provided way to generate valid JWTs for Anon/Service from a secret
     # If the user doesn't have local Node.js or signing capability, we can construct standard ones here
@@ -102,11 +114,19 @@ EOF
     rm generate_jwt.py
 
     # Replace generated variables in .env
-    sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$NEW_PG_PASS/" .env
-    sed -i "s/^JWT_SECRET=.*/JWT_SECRET=$NEW_JWT_SECRET/" .env
-    sed -i "s/^ANON_KEY=.*/ANON_KEY=$NEW_ANON_KEY/" .env
-    sed -i "s/^SERVICE_ROLE_KEY=.*/SERVICE_ROLE_KEY=$NEW_SERVICE_ROLE_KEY/" .env
-    sed -i "s/^DASHBOARD_PASSWORD=.*/DASHBOARD_PASSWORD=$NEW_DASH_PASS/" .env
+    sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$NEW_PG_PASS|" .env
+    sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$NEW_JWT_SECRET|" .env
+    sed -i "s|^ANON_KEY=.*|ANON_KEY=$NEW_ANON_KEY|" .env
+    sed -i "s|^SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$NEW_SERVICE_ROLE_KEY|" .env
+    sed -i "s|^DASHBOARD_PASSWORD=.*|DASHBOARD_PASSWORD=$NEW_DASH_PASS|" .env
+    sed -i "s|^LOGFLARE_PUBLIC_ACCESS_TOKEN=.*|LOGFLARE_PUBLIC_ACCESS_TOKEN=$NEW_LOGFLARE_PUB|" .env
+    sed -i "s|^LOGFLARE_PRIVATE_ACCESS_TOKEN=.*|LOGFLARE_PRIVATE_ACCESS_TOKEN=$NEW_LOGFLARE_PRIV|" .env
+    sed -i "s|^SECRET_KEY_BASE=.*|SECRET_KEY_BASE=$NEW_SECRET_KEY_BASE|" .env
+    sed -i "s|^VAULT_ENC_KEY=.*|VAULT_ENC_KEY=$NEW_VAULT_ENC_KEY|" .env
+    sed -i "s|^PG_META_CRYPTO_KEY=.*|PG_META_CRYPTO_KEY=$NEW_PG_META_CRYPTO|" .env
+    sed -i "s|^S3_PROTOCOL_ACCESS_KEY_ID=.*|S3_PROTOCOL_ACCESS_KEY_ID=$NEW_S3_ID|" .env
+    sed -i "s|^S3_PROTOCOL_ACCESS_KEY_SECRET=.*|S3_PROTOCOL_ACCESS_KEY_SECRET=$NEW_S3_SECRET|" .env
+    sed -i "s|^DOCKER_SOCKET_LOCATION=.*|DOCKER_SOCKET_LOCATION=$DOCKER_SOCKET|" .env
     
     # Append Custom Next.js & Proxy variables
     echo "" >> .env
