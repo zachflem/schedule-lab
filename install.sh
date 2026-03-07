@@ -123,34 +123,9 @@ else
     NEW_DASH_PASS=$(grep DASHBOARD_PASSWORD .env | cut -d'=' -f2)
 fi
 
-# 4. Safe Configuration Injection (Kong)
+# 4. Compiling schemas and fixing configs
 echo ""
-echo "[4/4] Injecting credentials into services..."
-cat << 'EOF' > inject_configs.py
-import sys, os
-def replace_in_file(path, search, replace):
-    if not os.path.exists(path): return
-    with open(path, 'r') as f: content = f.read()
-    content = content.replace(search, str(replace))
-    with open(path, 'w') as f: f.write(content)
-
-user = sys.argv[1]
-pw = sys.argv[2]
-anon = sys.argv[3]
-service = sys.argv[4]
-
-replace_in_file('.supabase-docker/volumes/api/kong.yml', '{{DASHBOARD_USERNAME}}', user)
-replace_in_file('.supabase-docker/volumes/api/kong.yml', '{{DASHBOARD_PASSWORD}}', pw)
-replace_in_file('.supabase-docker/volumes/api/kong.yml', '{{ANON_KEY}}', anon)
-replace_in_file('.supabase-docker/volumes/api/kong.yml', '{{SERVICE_ROLE_KEY}}', service)
-EOF
-
-# Fetch generated keys from .env if we just created them, or use whatever is in .env
-NEW_ANON=$(grep ANON_KEY .env | head -n 1 | cut -d'=' -f2)
-NEW_SERVICE=$(grep SERVICE_ROLE_KEY .env | head -n 1 | cut -d'=' -f2)
-
-python3 inject_configs.py "$NEW_DASH_USER" "$NEW_DASH_PASS" "$NEW_ANON" "$NEW_SERVICE"
-rm inject_configs.py
+echo "[4/4] Compiling schemas and fixing configs..."
 
 # Fix Vector config
 if [ -d ".supabase-docker/volumes/logs/vector.yml" ]; then rm -rf ".supabase-docker/volumes/logs/vector.yml"; fi
