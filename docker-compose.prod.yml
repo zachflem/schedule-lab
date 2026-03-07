@@ -25,8 +25,10 @@ services:
       # Internal routing for server-side Next.js fetches
       - SUPABASE_INTERNAL_URL=${SUPABASE_INTERNAL_URL:-http://kong:8000}
     depends_on:
-      - kong
-      - db
+      kong:
+        condition: service_healthy
+      db:
+        condition: service_healthy
 
   # NGINX Reverse Proxy
   nginx:
