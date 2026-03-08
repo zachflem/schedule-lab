@@ -9,12 +9,9 @@ set -e
 # Standard Docker socket path
 export DOCKER_SOCKET_LOCATION="/var/run/docker.sock"
 
-echo "========================================================="
 echo "    ScheduleLab Robust Production Installer             "
-echo "========================================================="
 echo "WARNING: This script will configure your production stack."
 echo "Ensure ports 80, 443, 3000, 5432, 6543, and 8000 are open."
-echo "========================================================="
 
 # 0. Clean Slate Option
 echo ""
@@ -192,9 +189,7 @@ EOF
 fi
 
 echo ""
-echo "========================================================="
 echo "    DEPLOYMENT COMPLETE"
-echo "========================================================="
 echo "    ScheduleLab:     http://$SERVER_URL:3000"
 echo "    Admin Email:     admin@schedulelab.com"
 echo "    Admin Pass:      ScheduleLabAdmin2026!"
@@ -202,4 +197,3 @@ echo ""
 echo "    Supabase Studio: http://$SERVER_URL:8000"
 echo "    Studio User:     $NEW_DASH_USER"
 echo "    Studio Pass:     $NEW_DASH_PASS"
-echo "========================================================="
