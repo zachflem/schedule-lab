@@ -9,12 +9,9 @@ set -e
 # Standard Docker socket path
 export DOCKER_SOCKET_LOCATION="/var/run/docker.sock"
 
-echo "========================================================="
 echo "    ScheduleLab Robust Production Installer             "
-echo "========================================================="
 echo "WARNING: This script will configure your production stack."
 echo "Ensure ports 80, 443, 3000, 5432, 6543, and 8000 are open."
-echo "========================================================="
 
 # 0. Clean Slate Option
 echo ""
@@ -125,33 +122,9 @@ else
     NEW_DASH_PASS=$(grep DASHBOARD_PASSWORD .env | head -n 1 | cut -d'=' -f2)
 fi
 
-# 4. Safe Configuration Injection (Kong)
+# 4. Compiling schemas and fixing configs
 echo ""
-echo "[4/4] Injecting credentials into services..."
-cat << 'EOF' > inject_configs.py
-import sys, os
-def replace_in_file(path, search, replace):
-    if not os.path.exists(path): return
-    with open(path, 'r') as f: content = f.read()
-    content = content.replace(search, str(replace))
-    with open(path, 'w') as f: f.write(content)
-
-user = sys.argv[1]
-pw = sys.argv[2]
-anon = sys.argv[3]
-service = sys.argv[4]
-
-replace_in_file('.supabase-docker/volumes/api/kong.yml', '{{DASHBOARD_USERNAME}}', user)
-replace_in_file('.supabase-docker/volumes/api/kong.yml', '{{DASHBOARD_PASSWORD}}', pw)
-replace_in_file('.supabase-docker/volumes/api/kong.yml', '{{ANON_KEY}}', anon)
-replace_in_file('.supabase-docker/volumes/api/kong.yml', '{{SERVICE_ROLE_KEY}}', service)
-EOF
-
-NEW_ANON=$(grep ANON_KEY .env | head -n 1 | cut -d'=' -f2)
-NEW_SERVICE=$(grep SERVICE_ROLE_KEY .env | head -n 1 | cut -d'=' -f2)
-
-python3 inject_configs.py "$NEW_DASH_USER" "$NEW_DASH_PASS" "$NEW_ANON" "$NEW_SERVICE"
-rm inject_configs.py
+echo "[4/4] Compiling schemas and fixing configs..."
 
 # Fix Vector config shadowing
 if [ -d ".supabase-docker/volumes/logs/vector.yml" ]; then rm -rf ".supabase-docker/volumes/logs/vector.yml"; fi
@@ -216,9 +189,7 @@ EOF
 fi
 
 echo ""
-echo "========================================================="
 echo "    DEPLOYMENT COMPLETE"
-echo "========================================================="
 echo "    ScheduleLab:     http://$SERVER_URL:3000"
 echo "    Admin Email:     admin@schedulelab.com"
 echo "    Admin Pass:      ScheduleLabAdmin2026!"
@@ -226,4 +197,3 @@ echo ""
 echo "    Supabase Studio: http://$SERVER_URL:8000"
 echo "    Studio User:     $NEW_DASH_USER"
 echo "    Studio Pass:     $NEW_DASH_PASS"
-echo "========================================================="
