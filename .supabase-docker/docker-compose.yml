@@ -83,9 +83,12 @@ services:
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
       DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
-    # https://unix.stackexchange.com/a/294837
-    # Note: Use envsubst if available, else eval echo. We quote keys in kong.yml so eval handles them securely.
     entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
+    healthcheck:
+      test: [ "CMD", "kong", "health" ]
+      timeout: 10s
+      interval: 5s
+      retries: 5
 
   auth:
     container_name: supabase-auth

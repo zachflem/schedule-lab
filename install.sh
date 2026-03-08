@@ -1,15 +1,13 @@
 #!/bin/bash
 # install.sh
-# Overhauled Robust Production Installer for ScheduleLab
-# Handles remote IPs, interactive credentials, and safe configuration injection.
+# Definitive Production Installer for ScheduleLab
+# Handles remote IPs, interactive credentials, and ultimate configuration stability.
 
 set -e
 
 # --- 0. Early Environment Detection ---
-# Detect Docker socket for early cleanup
-DOCKER_SOCKET="/var/run/docker.sock"
-if [ ! -S "$DOCKER_SOCKET" ] && [ -S "/run/docker.sock" ]; then DOCKER_SOCKET="/run/docker.sock"; fi
-export DOCKER_SOCKET_LOCATION="$DOCKER_SOCKET"
+# Standard Docker socket path
+export DOCKER_SOCKET_LOCATION="/var/run/docker.sock"
 
 echo "========================================================="
 echo "    ScheduleLab Robust Production Installer             "
@@ -23,9 +21,11 @@ echo ""
 read -p "    [CLEAN SLATE] Would you like to factory reset (DELETE ALL VOLUMES/DATA)? [y/N]: " NUKE_IT
 if [[ "$NUKE_IT" =~ ^[Yy]$ ]]; then
     echo "    Wiping all persistent data..."
-    # Suppress warnings and handle errors gracefully during cleanup
+    # Ensure variables have fallbacks for 'down'
     COMPOSE_IGNORE_ORPHANS=true \
-    COMPOSE_PROJECT_NAME=supabase \
+    NEXT_PUBLIC_SUPABASE_URL=none \
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=none \
+    POSTGRES_PASSWORD=none \
     docker compose -f docker-compose.prod.yml --log-level ERROR down -v --remove-orphans || true
     rm -f .env
     echo "    Cleanup complete."
@@ -116,18 +116,20 @@ EOF
     echo "NEXT_PUBLIC_SITE_URL=http://$SERVER_URL:3000" >> .env
     echo "POSTGRES_USER=postgres" >> .env
     echo "DATABASE_URL=postgres://postgres:$NEW_PG_PASS@db:5432/postgres" >> .env
+    echo "PORT=3000" >> .env
+    echo "NODE_ENV=production" >> .env
     echo "    Environment variables configured for $SERVER_URL."
 else
     echo "    .env exists. Using existing configuration."
-    NEW_DASH_USER=$(grep DASHBOARD_USERNAME .env | cut -d'=' -f2)
-    NEW_DASH_PASS=$(grep DASHBOARD_PASSWORD .env | cut -d'=' -f2)
+    NEW_DASH_USER=$(grep DASHBOARD_USERNAME .env | head -n 1 | cut -d'=' -f2)
+    NEW_DASH_PASS=$(grep DASHBOARD_PASSWORD .env | head -n 1 | cut -d'=' -f2)
 fi
 
 # 4. Compiling schemas and fixing configs
 echo ""
 echo "[4/4] Compiling schemas and fixing configs..."
 
-# Fix Vector config
+# Fix Vector config shadowing
 if [ -d ".supabase-docker/volumes/logs/vector.yml" ]; then rm -rf ".supabase-docker/volumes/logs/vector.yml"; fi
 chmod +x compile_schema.sh && ./compile_schema.sh
 
