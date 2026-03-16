@@ -12,8 +12,6 @@ export function CustomerFormPage() {
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Customer>>({
     name: '',
-    email: '',
-    phone: '',
     billing_address: '',
     site_contact_name: '',
     site_contact_phone: '',
@@ -92,30 +90,14 @@ export function CustomerFormPage() {
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
-            <div className="form-group">
-              <label className="form-label">Primary Email</label>
-              <input
-                type="email"
-                className="form-input"
-                value={formData.email || ''}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Primary Phone</label>
-              <input
-                className="form-input"
-                value={formData.phone || ''}
-                onChange={e => setFormData({ ...formData, phone: e.target.value })}
-              />
-            </div>
           </div>
           <div className="form-group" style={{ marginTop: 'var(--space-3)' }}>
-            <label className="form-label">Billing Address</label>
+            <label className="form-label">Customer Address</label>
             <textarea
               className="form-input"
               rows={3}
               value={formData.billing_address || ''}
+              placeholder="Full postal or physical address"
               onChange={e => setFormData({ ...formData, billing_address: e.target.value })}
             />
           </div>

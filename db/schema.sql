@@ -17,8 +17,6 @@ CREATE TABLE IF NOT EXISTS platform_settings (
 CREATE TABLE IF NOT EXISTS customers (
   id                    TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   name                  TEXT NOT NULL,
-  email                 TEXT,
-  phone                 TEXT,
   billing_address       TEXT,
   -- Site Contact
   site_contact_name     TEXT,

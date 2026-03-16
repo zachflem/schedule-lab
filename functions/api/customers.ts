@@ -21,14 +21,14 @@ export const onRequest = methodRouter({
 
     await db.prepare(`
       INSERT INTO customers (
-        id, name, email, phone, billing_address, 
+        id, name, billing_address, 
         site_contact_name, site_contact_phone, site_contact_email,
         billing_contact_name, billing_contact_phone, billing_contact_email,
         created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
-      id, c.name, c.email ?? null, c.phone ?? null, c.billing_address ?? null,
+      id, c.name, c.billing_address ?? null,
       c.site_contact_name ?? null, c.site_contact_phone ?? null, c.site_contact_email ?? null,
       c.billing_contact_name ?? null, c.billing_contact_phone ?? null, c.billing_contact_email ?? null,
       timestamp, timestamp
@@ -50,13 +50,13 @@ export const onRequest = methodRouter({
 
     await db.prepare(`
       UPDATE customers SET 
-        name = ?, email = ?, phone = ?, billing_address = ?,
+        name = ?, billing_address = ?,
         site_contact_name = ?, site_contact_phone = ?, site_contact_email = ?,
         billing_contact_name = ?, billing_contact_phone = ?, billing_contact_email = ?,
         updated_at = ?
       WHERE id = ?
     `).bind(
-      c.name, c.email ?? null, c.phone ?? null, c.billing_address ?? null,
+      c.name, c.billing_address ?? null,
       c.site_contact_name ?? null, c.site_contact_phone ?? null, c.site_contact_email ?? null,
       c.billing_contact_name ?? null, c.billing_contact_phone ?? null, c.billing_contact_email ?? null,
       timestamp, id

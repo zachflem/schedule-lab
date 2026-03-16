@@ -43,7 +43,6 @@ export function CustomerListPage() {
           <thead>
             <tr style={{ background: 'var(--color-gray-50)', borderBottom: '1px solid var(--color-gray-200)' }}>
               <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Name</th>
-              <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Email</th>
               <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Site Contact</th>
               <th style={{ textAlign: 'right', padding: 'var(--space-3)' }}>Actions</th>
             </tr>
@@ -52,7 +51,6 @@ export function CustomerListPage() {
             {customers.map(customer => (
               <tr key={customer.id} style={{ borderBottom: '1px solid var(--color-gray-100)' }}>
                 <td style={{ padding: 'var(--space-3)', fontWeight: 600 }}>{customer.name}</td>
-                <td style={{ padding: 'var(--space-3)', color: 'var(--color-gray-600)' }}>{customer.email || '-'}</td>
                 <td style={{ padding: 'var(--space-3)', color: 'var(--color-gray-600)' }}>
                   {customer.site_contact_name ? (
                     <div>

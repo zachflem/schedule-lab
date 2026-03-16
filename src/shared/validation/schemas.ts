@@ -105,8 +105,6 @@ export type SiteDocket = z.infer<typeof SiteDocketSchema>;
 export const CustomerSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, 'Customer name is required'),
-  email: z.string().email().optional().nullable(),
-  phone: z.string().optional().nullable(),
   billing_address: z.string().optional().nullable(),
   
   // Site Contact
