@@ -1,0 +1,8 @@
+name = "schedule-lab"
+compatibility_date = "2025-01-01"
+pages_build_output_dir = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "schedule-lab-db"
+database_id = "eaffd1ae-d80e-4f4d-8ee5-a62fa2ef63aa"

@@ -1,0 +1,5 @@
+# Project Rules
+
+- **Deployment**: Deploy changes to Cloudflare Pages using `npm run deploy`.
+- **Testing**: Do NOT test deployments automatically. Wait for user confirmation.
+- **Layout**: Ensure the main form container is properly centered on the screen.

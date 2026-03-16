@@ -1,0 +1,284 @@
+-- ============================================
+-- SCHEDULELAB D1 SCHEMA v2 (SQLite / Cloudflare D1)
+-- Reverse-Chain: Docket-First Design
+-- ============================================
+
+-- TENANT / PLATFORM
+CREATE TABLE IF NOT EXISTS platform_settings (
+  id            TEXT PRIMARY KEY DEFAULT 'global',
+  company_name  TEXT NOT NULL DEFAULT 'ScheduleLab',
+  logo_url      TEXT,
+  primary_color TEXT DEFAULT '#2563eb',
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- CUSTOMERS
+CREATE TABLE IF NOT EXISTS customers (
+  id              TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  name            TEXT NOT NULL,
+  email           TEXT,
+  phone           TEXT,
+  billing_address TEXT,
+  contact_details TEXT,  -- JSON: { name, phone, email }
+  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ASSET TYPES
+CREATE TABLE IF NOT EXISTS asset_types (
+  id                  TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  name                TEXT NOT NULL UNIQUE,
+  checklist_questions TEXT,  -- JSON: ["Is PPE worn?", ...]
+  created_at          TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ASSET TYPE EXTENSION SCHEMAS (configurable per-type extension definitions)
+CREATE TABLE IF NOT EXISTS asset_type_extension_schemas (
+  id            TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  asset_type_id TEXT NOT NULL UNIQUE REFERENCES asset_types(id) ON DELETE CASCADE,
+  schema        TEXT NOT NULL,  -- JSON: [{ key, label, type, required?, options? }]
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- QUALIFICATIONS
+CREATE TABLE IF NOT EXISTS qualifications (
+  id               TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  name             TEXT NOT NULL UNIQUE,
+  rate_hourly      REAL DEFAULT 0,
+  rate_after_hours REAL DEFAULT 0,
+  created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ASSETS (Base — generic fields common to all asset types)
+CREATE TABLE IF NOT EXISTS assets (
+  id                         TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  name                       TEXT NOT NULL,
+  asset_type_id              TEXT NOT NULL REFERENCES asset_types(id),
+  category                   TEXT,
+  required_qualification_id  TEXT REFERENCES qualifications(id),
+  -- Pricing
+  rate_hourly                REAL,
+  rate_after_hours           REAL,
+  rate_dry_hire              REAL,
+  required_operators         INTEGER DEFAULT 1,
+  -- Compliance
+  cranesafe_expiry           TEXT,
+  rego_expiry                TEXT,
+  insurance_expiry           TEXT,
+  -- Telemetry
+  current_machine_hours      REAL DEFAULT 0,
+  current_odometer           REAL DEFAULT 0,
+  service_interval_type      TEXT DEFAULT 'hours' CHECK(service_interval_type IN ('hours','odometer')),
+  service_interval_value     REAL DEFAULT 250,
+  last_service_meter_reading REAL DEFAULT 0,
+  -- Timestamps
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ASSET EXTENSIONS (type-specific data per asset instance)
+CREATE TABLE IF NOT EXISTS asset_extensions (
+  id         TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  asset_id   TEXT NOT NULL UNIQUE REFERENCES assets(id) ON DELETE CASCADE,
+  data       TEXT NOT NULL,  -- JSON: values matching the type's extension schema
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- PERSONNEL
+CREATE TABLE IF NOT EXISTS personnel (
+  id              TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  name            TEXT NOT NULL,
+  email           TEXT,
+  phone           TEXT,
+  can_login       INTEGER DEFAULT 0,
+  auth_id         TEXT,
+  last_login_date TEXT,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_personnel_email
+  ON personnel(email) WHERE email IS NOT NULL AND can_login = 1;
+
+-- PERSONNEL QUALIFICATIONS
+CREATE TABLE IF NOT EXISTS personnel_qualifications (
+  id               TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  personnel_id     TEXT NOT NULL REFERENCES personnel(id) ON DELETE CASCADE,
+  qualification_id TEXT NOT NULL REFERENCES qualifications(id) ON DELETE CASCADE,
+  expiry_date      TEXT,
+  created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(personnel_id, qualification_id)
+);
+
+-- ENQUIRIES (public intake — can become a Job OR a Project)
+CREATE TABLE IF NOT EXISTS enquiries (
+  id                       TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  enquiry_type             TEXT NOT NULL DEFAULT 'Job' CHECK(enquiry_type IN ('Job','Project')),
+  customer_name            TEXT NOT NULL,
+  contact_email            TEXT NOT NULL,
+  contact_phone            TEXT,
+  job_details              TEXT,
+  location                 TEXT,
+  -- Single job: preferred_date. Project: start/end range.
+  preferred_date           TEXT,
+  project_start_date       TEXT,
+  project_end_date         TEXT,
+  status                   TEXT NOT NULL DEFAULT 'New'
+    CHECK(status IN ('New','Reviewed','Clarification Requested','Converted')),
+  dispatcher_notes         TEXT,
+  is_trashed               INTEGER DEFAULT 0,
+  anticipated_hours        REAL,
+  site_inspection_required INTEGER DEFAULT 0,
+  asset_type_id            TEXT REFERENCES asset_types(id),
+  asset_requirement        TEXT,
+  po_number                TEXT,
+  created_at               TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at               TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- PROJECTS (container for multi-job engagements)
+CREATE TABLE IF NOT EXISTS projects (
+  id           TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  customer_id  TEXT NOT NULL REFERENCES customers(id),
+  enquiry_id   TEXT REFERENCES enquiries(id),
+  name         TEXT NOT NULL,
+  description  TEXT,
+  status       TEXT NOT NULL DEFAULT 'Active'
+    CHECK(status IN ('Active','On Hold','Completed','Cancelled')),
+  start_date   TEXT NOT NULL,
+  end_date     TEXT NOT NULL,
+  po_number    TEXT,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- JOBS (core entity — standalone or within a project)
+CREATE TABLE IF NOT EXISTS jobs (
+  id                     TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  customer_id            TEXT NOT NULL REFERENCES customers(id),
+  project_id             TEXT REFERENCES projects(id),
+  status_id              TEXT NOT NULL DEFAULT 'Enquiry'
+    CHECK(status_id IN ('Enquiry','Quote','Quote Sent','Quote Accepted',
+                         'Job Booked','Job Scheduled','Allocated',
+                         'Site Docket','Completed','Invoiced','Cancelled')),
+  job_type               TEXT,
+  location               TEXT,
+  asset_requirement      TEXT,
+  po_number              TEXT,
+  job_brief              TEXT,
+  max_weight             REAL,
+  hazards                TEXT,
+  site_access            TEXT,
+  pricing                REAL,
+  tc_accepted            INTEGER DEFAULT 0,
+  approver_name          TEXT,
+  task_description       TEXT,
+  inclusions             TEXT,
+  exclusions             TEXT,
+  include_standard_terms INTEGER DEFAULT 1,
+  created_at             TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at             TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- JOB RESOURCES
+CREATE TABLE IF NOT EXISTS job_resources (
+  id               TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  job_id           TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+  resource_type    TEXT NOT NULL CHECK(resource_type IN ('Asset','Personnel')),
+  asset_id         TEXT REFERENCES assets(id),
+  personnel_id     TEXT REFERENCES personnel(id),
+  qualification_id TEXT REFERENCES qualifications(id),
+  rate_type        TEXT,
+  rate_amount      REAL DEFAULT 0,
+  qty              REAL DEFAULT 1,
+  total            REAL DEFAULT 0,
+  created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ALLOCATIONS
+CREATE TABLE IF NOT EXISTS allocations (
+  id           TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  job_id       TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+  asset_id     TEXT REFERENCES assets(id),
+  personnel_id TEXT REFERENCES personnel(id),
+  start_time   TEXT NOT NULL,
+  end_time     TEXT NOT NULL,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- JOB SCHEDULES
+CREATE TABLE IF NOT EXISTS job_schedules (
+  id         TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  job_id     TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+  start_time TEXT NOT NULL,
+  end_time   TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ============================================
+-- END-STATE: SITE DOCKETS
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS site_dockets (
+  id                     TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  job_id                 TEXT NOT NULL REFERENCES jobs(id),
+  date                   TEXT NOT NULL,
+  -- Yard-to-yard timestamps
+  time_leave_yard        TEXT,
+  time_arrive_site       TEXT,
+  time_leave_site        TEXT,
+  time_return_yard       TEXT,
+  -- Calculated
+  operator_hours         REAL DEFAULT 0,
+  machine_hours          REAL DEFAULT 0,
+  break_duration_minutes INTEGER DEFAULT 0,
+  -- Structured JSON
+  pre_start_safety_check TEXT,
+  hazards                TEXT,
+  asset_metrics          TEXT,
+  -- Job completion
+  job_description_actual TEXT,
+  -- Signatures (audit trail)
+  signatures             TEXT,
+  -- Record locking
+  is_locked              INTEGER DEFAULT 0,
+  locked_at              TEXT,
+  locked_by              TEXT,
+  -- Telemetry sync
+  end_machine_hours      REAL,
+  end_odometer           REAL,
+  -- Timestamps
+  created_at             TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at             TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- DOCKET LINE ITEMS
+CREATE TABLE IF NOT EXISTS docket_line_items (
+  id             TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  docket_id      TEXT NOT NULL REFERENCES site_dockets(id) ON DELETE CASCADE,
+  asset_id       TEXT REFERENCES assets(id),
+  personnel_id   TEXT REFERENCES personnel(id),
+  description    TEXT NOT NULL,
+  inventory_code TEXT NOT NULL DEFAULT 'AD-HOC',
+  quantity       REAL NOT NULL DEFAULT 0,
+  unit_rate      REAL NOT NULL DEFAULT 0,
+  is_taxable     INTEGER DEFAULT 1,
+  created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ============================================
+-- INDEXES
+-- ============================================
+CREATE INDEX IF NOT EXISTS idx_jobs_customer     ON jobs(customer_id);
+CREATE INDEX IF NOT EXISTS idx_jobs_project      ON jobs(project_id);
+CREATE INDEX IF NOT EXISTS idx_jobs_status       ON jobs(status_id);
+CREATE INDEX IF NOT EXISTS idx_projects_customer ON projects(customer_id);
+CREATE INDEX IF NOT EXISTS idx_dockets_job       ON site_dockets(job_id);
+CREATE INDEX IF NOT EXISTS idx_dockets_date      ON site_dockets(date);
+CREATE INDEX IF NOT EXISTS idx_alloc_job         ON allocations(job_id);
+CREATE INDEX IF NOT EXISTS idx_alloc_time        ON allocations(start_time, end_time);
+CREATE INDEX IF NOT EXISTS idx_job_res_job       ON job_resources(job_id);
+CREATE INDEX IF NOT EXISTS idx_line_items_docket ON docket_line_items(docket_id);
+CREATE INDEX IF NOT EXISTS idx_assets_type       ON assets(asset_type_id);
