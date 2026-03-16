@@ -108,6 +108,18 @@ export const CustomerSchema = z.object({
   email: z.string().email().optional().nullable(),
   phone: z.string().optional().nullable(),
   billing_address: z.string().optional().nullable(),
+  
+  // Site Contact
+  site_contact_name: z.string().optional().nullable(),
+  site_contact_phone: z.string().optional().nullable(),
+  site_contact_email: z.string().optional().nullable(),
+  
+  // Billing Contact
+  billing_contact_name: z.string().optional().nullable(),
+  billing_contact_phone: z.string().optional().nullable(),
+  billing_contact_email: z.string().optional().nullable(),
+
+  // Legacy (can be phased out or used for catch-all)
   contact_details: z.object({
     name: z.string().optional(),
     phone: z.string().optional(),

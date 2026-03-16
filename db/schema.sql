@@ -15,14 +15,22 @@ CREATE TABLE IF NOT EXISTS platform_settings (
 
 -- CUSTOMERS
 CREATE TABLE IF NOT EXISTS customers (
-  id              TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-  name            TEXT NOT NULL,
-  email           TEXT,
-  phone           TEXT,
-  billing_address TEXT,
-  contact_details TEXT,  -- JSON: { name, phone, email }
-  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  id                    TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  name                  TEXT NOT NULL,
+  email                 TEXT,
+  phone                 TEXT,
+  billing_address       TEXT,
+  -- Site Contact
+  site_contact_name     TEXT,
+  site_contact_phone    TEXT,
+  site_contact_email    TEXT,
+  -- Billing Contact
+  billing_contact_name  TEXT,
+  billing_contact_phone TEXT,
+  billing_contact_email TEXT,
+  
+  created_at            TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at            TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- ASSET TYPES
