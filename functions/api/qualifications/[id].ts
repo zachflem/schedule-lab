@@ -22,15 +22,16 @@ export const onRequest = methodRouter({
     const db = getDb(context);
     const parsed = await parseBody(context.request, QualificationSchema);
     if ('error' in parsed) return parsed.error;
+    const p = parsed.data;
 
     await db.prepare(`
       UPDATE qualifications 
       SET name = ?, rate_hourly = ?, rate_after_hours = ?
       WHERE id = ?
     `).bind(
-      parsed.name,
-      parsed.rate_hourly,
-      parsed.rate_after_hours,
+      p.name,
+      p.rate_hourly,
+      p.rate_after_hours,
       id
     ).run();
 

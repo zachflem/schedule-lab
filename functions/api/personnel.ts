@@ -5,14 +5,29 @@ export const onRequest = methodRouter({
   async GET(context) {
     const db = getDb(context);
     const { results } = await db.prepare(`
-      SELECT p.*, GROUP_CONCAT(q.name) as qualification_names
+      SELECT p.*, (
+        SELECT json_group_array(
+          json_object(
+            'id', q.id,
+            'name', q.name,
+            'expiry_date', pq.expiry_date
+          )
+        )
+        FROM personnel_qualifications pq
+        JOIN qualifications q ON pq.qualification_id = q.id
+        WHERE pq.personnel_id = p.id
+      ) as qualifications_json
       FROM personnel p
-      LEFT JOIN personnel_qualifications pq ON p.id = pq.personnel_id
-      LEFT JOIN qualifications q ON pq.qualification_id = q.id
-      GROUP BY p.id
       ORDER BY p.name
     `).all();
-    return jsonResponse(results);
+
+    // Parse JSON string from SQLite
+    const formatted = results.map(r => ({
+      ...r,
+      qualifications: JSON.parse((r as any).qualifications_json || '[]')
+    }));
+
+    return jsonResponse(formatted);
   },
 
   async POST(context) {

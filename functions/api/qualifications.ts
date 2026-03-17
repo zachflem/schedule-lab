@@ -20,6 +20,7 @@ export const onRequest = methodRouter({
     const db = getDb(context);
     const parsed = await parseBody(context.request, QualificationSchema);
     if ('error' in parsed) return parsed.error;
+    const p = parsed.data;
 
     const id = generateId();
     await db.prepare(`
@@ -27,9 +28,9 @@ export const onRequest = methodRouter({
       VALUES (?, ?, ?, ?, ?)
     `).bind(
       id, 
-      parsed.name, 
-      parsed.rate_hourly, 
-      parsed.rate_after_hours, 
+      p.name, 
+      p.rate_hourly, 
+      p.rate_after_hours, 
       now()
     ).run();
 

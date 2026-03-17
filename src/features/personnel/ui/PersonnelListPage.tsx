@@ -72,14 +72,14 @@ export function PersonnelListPage() {
                           if (diffDays <= 30) {
                             color = { bg: 'var(--color-danger-50)', text: 'var(--color-danger-700)' };
                           } else if (diffDays <= 90) {
-                            color = { bg: 'var(--color-warning-50)', text: 'var(--color-warning-700)' };
+                            color = { bg: 'var(--color-warning-50)', text: 'var(--color-warning-600)' };
                           } else {
                             color = { bg: 'var(--color-success-50)', text: 'var(--color-success-700)' };
                           }
                         }
 
                         return (
-                          <span key={q.id} style={{ 
+                          <span key={q.id} title={expiry ? `Expires: ${expiry.toLocaleDateString()}` : undefined} style={{ 
                             padding: '2px 6px', 
                             background: color.bg, 
                             color: color.text, 
@@ -88,7 +88,8 @@ export function PersonnelListPage() {
                             fontWeight: 600,
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '2px'
+                            gap: '2px',
+                            border: `1px solid ${color.text}20`
                           }}>
                             {q.name}
                             {expiry && <span style={{ opacity: 0.6, fontSize: '8px' }}>({q.expiry_date})</span>}
@@ -96,20 +97,7 @@ export function PersonnelListPage() {
                         );
                       })
                     ) : (
-                      (person as any).qualification_names ? (
-                        (person as any).qualification_names.split(',').map((name: string, i: number) => (
-                          <span key={i} style={{ 
-                            padding: '2px 6px', 
-                            background: 'var(--color-blue-50)', 
-                            color: 'var(--color-blue-700)', 
-                            borderRadius: '4px',
-                            fontSize: '10px',
-                            fontWeight: 600
-                          }}>
-                            {name}
-                          </span>
-                        ))
-                      ) : <span style={{ color: 'var(--color-gray-300)' }}>No qualifications</span>
+                      <span style={{ color: 'var(--color-gray-300)' }}>No qualifications</span>
                     )}
                   </div>
                 </td>

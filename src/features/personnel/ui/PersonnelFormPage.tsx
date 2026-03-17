@@ -178,18 +178,51 @@ export function PersonnelFormPage() {
                   Set Expiry Dates
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {formData.qualifications.map(q => (
-                    <div key={q.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-gray-50)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-md)' }}>
-                      <span style={{ fontWeight: 500 }}>{q.name}</span>
-                      <input
-                        type="date"
-                        className="form-input"
-                        style={{ width: '150px', padding: 'var(--space-1) var(--space-2)' }}
-                        value={q.expiry_date || ''}
-                        onChange={e => handleExpiryChange(q.id!, e.target.value)}
-                      />
-                    </div>
-                  ))}
+                  {formData.qualifications.map(q => {
+                    const expiry = q.expiry_date ? new Date(q.expiry_date) : null;
+                    const today = new Date();
+                    const diffDays = expiry ? Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
+
+                    let color = { bg: 'var(--color-gray-50)', text: 'var(--color-gray-600)' };
+                    if (diffDays !== null) {
+                      if (diffDays <= 30) {
+                        color = { bg: 'var(--color-danger-50)', text: 'var(--color-danger-700)' };
+                      } else if (diffDays <= 90) {
+                        color = { bg: 'var(--color-warning-50)', text: 'var(--color-warning-600)' };
+                      } else {
+                        color = { bg: 'var(--color-success-50)', text: 'var(--color-success-700)' };
+                      }
+                    }
+
+                    return (
+                      <div key={q.id} style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        background: color.bg, 
+                        color: color.text,
+                        padding: 'var(--space-2) var(--space-3)', 
+                        borderRadius: 'var(--radius-md)',
+                        border: diffDays !== null ? `1px solid ${color.text}30` : '1px solid transparent'
+                      }}>
+                        <span style={{ fontWeight: 600 }}>{q.name}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                          {diffDays !== null && (
+                            <span style={{ fontSize: '10px', fontWeight: 700 }}>
+                              {diffDays <= 0 ? 'EXPIRED' : `${diffDays} days left`}
+                            </span>
+                          )}
+                          <input
+                            type="date"
+                            className="form-input"
+                            style={{ width: '150px', padding: 'var(--space-1) var(--space-2)', border: '1px solid var(--color-gray-200)' }}
+                            value={q.expiry_date || ''}
+                            onChange={e => handleExpiryChange(q.id!, e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
