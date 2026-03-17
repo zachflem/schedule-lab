@@ -123,6 +123,10 @@ export const CustomerSchema = z.object({
     phone: z.string().optional(),
     email: z.string().optional(),
   }).optional().nullable(),
+  
+  // Job Summaries (populated via join/subquery in API)
+  active_jobs: z.number().optional(),
+  closed_jobs: z.number().optional(),
 });
 export type Customer = z.infer<typeof CustomerSchema>;
 
