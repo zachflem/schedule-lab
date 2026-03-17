@@ -1,0 +1,208 @@
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router';
+import { api } from '@/shared/lib/api';
+import { PersonnelSchema, type Personnel, type Qualification } from '@/shared/validation/schemas';
+import { Spinner } from '@/shared/ui';
+
+export function PersonnelFormPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(!!(id && id !== 'new'));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [allQualifications, setAllQualifications] = useState<Qualification[]>([]);
+  const [formData, setFormData] = useState<Partial<Personnel>>({
+    name: '',
+    email: '',
+    phone: '',
+    can_login: false,
+    qualifications: [],
+  });
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Fetch all available qualifications
+        const qualifications = await api.get<Qualification[]>('/qualifications');
+        setAllQualifications(qualifications);
+
+        if (id && id !== 'new') {
+          const person = await api.get<Personnel>(`/personnel/${id}`);
+          setFormData(person);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch data');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [id]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+
+    try {
+      const validated = PersonnelSchema.parse(formData);
+      if (id && id !== 'new') {
+        await api.put(`/personnel/${id}`, validated);
+      } else {
+        await api.post('/personnel', validated);
+      }
+      navigate('/personnel');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save personnel');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleQualification = (qual: Qualification) => {
+    const current = formData.qualifications || [];
+    const exists = current.find(q => q.id === qual.id);
+    
+    if (exists) {
+      setFormData({
+        ...formData,
+        qualifications: current.filter(q => q.id !== qual.id)
+      });
+    } else {
+      setFormData({
+        ...formData,
+        qualifications: [...current, qual]
+      });
+    }
+  };
+
+  const handleExpiryChange = (qualId: string, date: string) => {
+    const current = formData.qualifications || [];
+    setFormData({
+      ...formData,
+      qualifications: current.map(q => q.id === qualId ? { ...q, expiry_date: date } : q)
+    });
+  };
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div className="container" style={{ padding: 'var(--space-8)', maxWidth: '800px' }}>
+      <div style={{ marginBottom: 'var(--space-6)' }}>
+        <h1 className="docket-page__title">{id === 'new' ? 'Add Person' : 'Edit Personnel'}</h1>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex-col gap-6" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+        {error && (
+          <div style={{ padding: 'var(--space-4)', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', borderRadius: 'var(--radius-md)' }}>
+            {error}
+          </div>
+        )}
+
+        {/* Basic Details */}
+        <div className="card" style={{ padding: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 'var(--space-4)' }}>Contact Details</h2>
+          <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
+            <div className="form-group">
+              <label className="form-label">Full Name *</label>
+              <input
+                required
+                className="form-input"
+                value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Email Address</label>
+              <input
+                type="email"
+                className="form-input"
+                value={formData.email || ''}
+                onChange={e => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Phone Number</label>
+              <input
+                className="form-input"
+                value={formData.phone || ''}
+                onChange={e => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
+            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginTop: '24px' }}>
+              <input
+                type="checkbox"
+                id="can_login"
+                checked={formData.can_login}
+                onChange={e => setFormData({ ...formData, can_login: e.target.checked })}
+              />
+              <label htmlFor="can_login" className="form-label" style={{ marginBottom: 0 }}>Can login to system</label>
+            </div>
+          </div>
+        </div>
+
+        {/* Qualifications / Tickets */}
+        <div className="card" style={{ padding: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 'var(--space-4)' }}>Qualifications & Licenses</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+              {allQualifications.map(q => {
+                const isSelected = formData.qualifications?.some(sq => sq.id === q.id);
+                return (
+                  <button
+                    key={q.id}
+                    type="button"
+                    onClick={() => toggleQualification(q)}
+                    style={{
+                      padding: 'var(--space-2) var(--space-4)',
+                      borderRadius: 'var(--radius-full)',
+                      border: '1px solid',
+                      borderColor: isSelected ? 'var(--color-primary-500)' : 'var(--color-gray-200)',
+                      background: isSelected ? 'var(--color-primary-50)' : 'var(--color-white)',
+                      color: isSelected ? 'var(--color-primary-700)' : 'var(--color-gray-600)',
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {q.name}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Selected Qualifications detail (Expiries) */}
+            {formData.qualifications && formData.qualifications.length > 0 && (
+              <div style={{ marginTop: 'var(--space-4)', borderTop: '1px solid var(--color-gray-100)', paddingTop: 'var(--space-4)' }}>
+                <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-gray-500)', marginBottom: 'var(--space-3)' }}>
+                  Set Expiry Dates
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {formData.qualifications.map(q => (
+                    <div key={q.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-gray-50)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-md)' }}>
+                      <span style={{ fontWeight: 500 }}>{q.name}</span>
+                      <input
+                        type="date"
+                        className="form-input"
+                        style={{ width: '150px', padding: 'var(--space-1) var(--space-2)' }}
+                        value={q.expiry_date || ''}
+                        onChange={e => handleExpiryChange(q.id!, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+          <button type="button" className="btn btn--secondary" onClick={() => navigate('/personnel')}>Cancel</button>
+          <button type="submit" className="btn btn--primary" disabled={saving}>
+            {saving ? 'Saving...' : 'Save Personnel'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

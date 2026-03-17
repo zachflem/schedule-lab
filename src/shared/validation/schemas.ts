@@ -131,6 +131,16 @@ export const CustomerSchema = z.object({
 });
 export type Customer = z.infer<typeof CustomerSchema>;
 
+// ── Qualification ───────────────────────────────────────
+export const QualificationSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, 'Qualification name is required'),
+  rate_hourly: z.number().default(0),
+  rate_after_hours: z.number().default(0),
+  expiry_date: isoDate.optional().nullable(),
+});
+export type Qualification = z.infer<typeof QualificationSchema>;
+
 // ── Asset Type ─────────────────────────────────────────
 export const AssetTypeSchema = z.object({
   id: z.string().optional(),
@@ -193,6 +203,7 @@ export const PersonnelSchema = z.object({
   email: z.string().email().optional().nullable(),
   phone: z.string().optional().nullable(),
   can_login: z.boolean().default(false),
+  qualifications: z.array(QualificationSchema).optional(),
 });
 export type Personnel = z.infer<typeof PersonnelSchema>;
 

@@ -32,6 +32,17 @@ export const onRequest = methodRouter({
       p.can_login ? 1 : 0, timestamp, timestamp
     ).run();
 
+    // Handle qualifications if provided
+    if (p.qualifications && p.qualifications.length > 0) {
+      for (const q of p.qualifications) {
+        if (!q.id) continue;
+        await db.prepare(`
+          INSERT INTO personnel_qualifications (id, personnel_id, qualification_id, expiry_date, created_at)
+          VALUES (?, ?, ?, ?, ?)
+        `).bind(generateId(), id, q.id, q.expiry_date ?? null, timestamp).run();
+      }
+    }
+
     return jsonResponse({ id }, 201);
   },
 });
