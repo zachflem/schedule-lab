@@ -1,2 +1,1 @@
-// FSD: Widgets barrel — composite UI blocks
-export {};
+export * from './layout/Layout';
