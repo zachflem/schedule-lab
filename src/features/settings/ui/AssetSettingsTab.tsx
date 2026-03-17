@@ -162,7 +162,48 @@ export function AssetSettingsTab() {
                 <label className="form-label">Type Name</label>
                 <input required className="form-input" value={editingType.name || ''} onChange={e => setEditingType({...editingType, name: e.target.value})} />
               </div>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+
+              <div className="form-group">
+                <label className="form-label">Checklist Questions</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  {(editingType.checklist_questions || []).map((q, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                      <input 
+                        className="form-input" 
+                        value={q} 
+                        onChange={e => {
+                          const updated = [...(editingType.checklist_questions || [])];
+                          updated[i] = e.target.value;
+                          setEditingType({ ...editingType, checklist_questions: updated });
+                        }} 
+                      />
+                      <button 
+                        type="button" 
+                        className="btn btn--danger btn--icon btn--sm" 
+                        onClick={() => {
+                          const updated = (editingType.checklist_questions || []).filter((_, idx) => idx !== i);
+                          setEditingType({ ...editingType, checklist_questions: updated });
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  <button 
+                    type="button" 
+                    className="btn btn--secondary btn--sm" 
+                    style={{ alignSelf: 'flex-start', marginTop: 'var(--space-1)' }}
+                    onClick={() => setEditingType({ 
+                      ...editingType, 
+                      checklist_questions: [...(editingType.checklist_questions || []), ''] 
+                    })}
+                  >
+                    + Add Question
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
                 <button type="button" className="btn btn--secondary" onClick={() => setEditingType(null)}>Cancel</button>
                 <button type="submit" className="btn btn--primary">Save</button>
               </div>
