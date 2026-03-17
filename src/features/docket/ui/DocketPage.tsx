@@ -71,6 +71,9 @@ export function DocketPage() {
               customerName={state.job?.customer_name || ''}
               customerEmail={state.job?.customer_email}
               customerPhone={state.job?.customer_phone}
+              siteContactName={state.job?.site_contact_name}
+              siteContactEmail={state.job?.site_contact_email}
+              siteContactPhone={state.job?.site_contact_phone}
               location={state.job?.location}
               jobBrief={state.job?.job_brief}
               assetRequirement={state.job?.asset_requirement}

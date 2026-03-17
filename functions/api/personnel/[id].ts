@@ -1,4 +1,4 @@
-import { getDb, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../../lib/db';
+import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../../lib/db';
 import { PersonnelSchema } from '../../../src/shared/validation/schemas';
 
 interface Context {
@@ -53,7 +53,7 @@ export const onRequest = methodRouter({
         await db.prepare(`
           INSERT INTO personnel_qualifications (id, personnel_id, qualification_id, expiry_date, created_at)
           VALUES (?, ?, ?, ?, ?)
-        `).bind(crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2), id, q.id, q.expiry_date ?? null, timestamp).run();
+        `).bind(generateId(), id, q.id, q.expiry_date ?? null, timestamp).run();
       }
     }
 

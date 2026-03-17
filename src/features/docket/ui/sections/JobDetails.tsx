@@ -4,6 +4,9 @@ interface JobDetailsProps {
   customerName: string;
   customerEmail?: string;
   customerPhone?: string;
+  siteContactName?: string;
+  siteContactEmail?: string;
+  siteContactPhone?: string;
   location?: string;
   jobBrief?: string;
   assetRequirement?: string;
@@ -15,6 +18,7 @@ interface JobDetailsProps {
 
 export function JobDetails({
   customerName, customerEmail, customerPhone,
+  siteContactName, siteContactEmail, siteContactPhone,
   location, jobBrief, assetRequirement, projectName,
   date, onDateChange, disabled,
 }: JobDetailsProps) {
@@ -37,17 +41,32 @@ export function JobDetails({
         </div>
       </div>
 
+      <div className="form-grid">
+        <div className="form-group">
+          <label className="form-label">Site Contact</label>
+          <input className="form-input form-input--readonly" value={siteContactName || '—'} readOnly />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Site Email</label>
+          <input className="form-input form-input--readonly" value={siteContactEmail || '—'} readOnly />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Site Phone</label>
+          <input className="form-input form-input--readonly" value={siteContactPhone || '—'} readOnly />
+        </div>
+      </div>
+
       {(customerEmail || customerPhone) && (
         <div className="form-grid">
           {customerEmail && (
             <div className="form-group">
-              <label className="form-label">Email</label>
+              <label className="form-label">Billing Email</label>
               <input className="form-input form-input--readonly" value={customerEmail} readOnly />
             </div>
           )}
           {customerPhone && (
             <div className="form-group">
-              <label className="form-label">Phone</label>
+              <label className="form-label">Billing Phone</label>
               <input className="form-input form-input--readonly" value={customerPhone} readOnly />
             </div>
           )}

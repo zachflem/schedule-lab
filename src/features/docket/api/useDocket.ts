@@ -9,6 +9,9 @@ interface JobData {
   customer_name: string;
   customer_email?: string;
   customer_phone?: string;
+  site_contact_name?: string;
+  site_contact_email?: string;
+  site_contact_phone?: string;
   project_name?: string;
   status_id: string;
   location?: string;

@@ -39,14 +39,16 @@ export const onRequest = methodRouter({
 
     await db.prepare(`
       INSERT INTO jobs (id, customer_id, project_id, status_id, job_type,
-        location, asset_requirement, po_number, job_brief, max_weight,
+        location, site_contact_name, site_contact_email, site_contact_phone,
+        asset_requirement, po_number, job_brief, max_weight,
         hazards, site_access, pricing, tc_accepted, approver_name,
         task_description, inclusions, exclusions, include_standard_terms,
         created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id, j.customer_id, j.project_id ?? null, j.status_id, j.job_type ?? null,
-      j.location ?? null, j.asset_requirement ?? null, j.po_number ?? null,
+      j.location ?? null, j.site_contact_name ?? null, j.site_contact_email ?? null, j.site_contact_phone ?? null,
+      j.asset_requirement ?? null, j.po_number ?? null,
       j.job_brief ?? null, j.max_weight ?? null, j.hazards ?? null,
       j.site_access ?? null, j.pricing ?? null, j.tc_accepted ? 1 : 0,
       j.approver_name ?? null, j.task_description ?? null,

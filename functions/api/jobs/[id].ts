@@ -7,8 +7,7 @@ export const onRequest = methodRouter({
     const id = context.params.id as string;
 
     const job = await db.prepare(`
-      SELECT j.*, c.name as customer_name, c.site_contact_email as customer_email,
-             c.site_contact_phone as customer_phone, p.name as project_name
+      SELECT j.*, c.name as customer_name, p.name as project_name
       FROM jobs j
       JOIN customers c ON j.customer_id = c.id
       LEFT JOIN projects p ON j.project_id = p.id
@@ -45,14 +44,16 @@ export const onRequest = methodRouter({
 
     await db.prepare(`
       UPDATE jobs SET customer_id = ?, project_id = ?, status_id = ?, job_type = ?,
-        location = ?, asset_requirement = ?, po_number = ?, job_brief = ?,
+        location = ?, site_contact_name = ?, site_contact_email = ?, site_contact_phone = ?,
+        asset_requirement = ?, po_number = ?, job_brief = ?,
         max_weight = ?, hazards = ?, site_access = ?, pricing = ?,
         tc_accepted = ?, approver_name = ?, task_description = ?,
         inclusions = ?, exclusions = ?, include_standard_terms = ?, updated_at = ?
       WHERE id = ?
     `).bind(
       j.customer_id, j.project_id ?? null, j.status_id, j.job_type ?? null,
-      j.location ?? null, j.asset_requirement ?? null, j.po_number ?? null,
+      j.location ?? null, j.site_contact_name ?? null, j.site_contact_email ?? null, j.site_contact_phone ?? null,
+      j.asset_requirement ?? null, j.po_number ?? null,
       j.job_brief ?? null, j.max_weight ?? null, j.hazards ?? null,
       j.site_access ?? null, j.pricing ?? null, j.tc_accepted ? 1 : 0,
       j.approver_name ?? null, j.task_description ?? null,
