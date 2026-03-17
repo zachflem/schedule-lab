@@ -165,6 +165,9 @@ export function AssetSettingsTab() {
 
               <div className="form-group">
                 <label className="form-label">Checklist Questions</label>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)', fontStyle: 'italic', marginBottom: 'var(--space-2)' }}>
+                  Ensure your questions result in a YES or N/A answer to progress. NO answers will halt docket progress.
+                </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                   {(editingType.checklist_questions || []).map((q, i) => (
                     <div key={i} style={{ display: 'flex', gap: 'var(--space-2)' }}>
