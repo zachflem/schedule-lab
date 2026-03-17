@@ -1,5 +1,5 @@
-import { getDb, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../lib/db';
-import { PersonnelSchema } from '../../src/shared/validation/schemas';
+import { getDb, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../../lib/db';
+import { PersonnelSchema } from '../../../src/shared/validation/schemas';
 
 interface Context {
   params: Record<string, string>;
