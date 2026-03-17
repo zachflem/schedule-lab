@@ -1,38 +1,46 @@
-import { getDb, jsonResponse, errorResponse, methodRouter, now } from '../../lib/db';
+import { getDb, jsonResponse, errorResponse, parseBody, methodRouter } from '../../lib/db';
+import { QualificationSchema } from '../../../src/shared/validation/schemas';
+
+interface Context {
+  params: Record<string, string>;
+  request: Request;
+  env: any;
+}
 
 export const onRequest = methodRouter({
-  async GET(context) {
+  async GET(context: Context) {
+    const id = context.params.id;
     const db = getDb(context);
-    const id = context.params.id as string;
-
-    const qual = await db.prepare(
-      'SELECT * FROM qualifications WHERE id = ?'
-    ).bind(id).first();
-
-    if (!qual) return errorResponse('Qualification not found', 404);
-
-    return jsonResponse(qual);
+    const qualification = await db.prepare('SELECT * FROM qualifications WHERE id = ?').bind(id).first();
+    
+    if (!qualification) return errorResponse('Qualification not found', 404);
+    return jsonResponse(qualification);
   },
 
-  async PUT(context) {
+  async PUT(context: Context) {
+    const id = context.params.id;
     const db = getDb(context);
-    const id = context.params.id as string;
-    const body = await context.request.json() as any;
+    const parsed = await parseBody(context.request, QualificationSchema);
+    if ('error' in parsed) return parsed.error;
 
     await db.prepare(`
-      UPDATE qualifications SET name = ?, rate_hourly = ?, rate_after_hours = ?
+      UPDATE qualifications 
+      SET name = ?, rate_hourly = ?, rate_after_hours = ?
       WHERE id = ?
-    `).bind(body.name, body.rate_hourly ?? 0, body.rate_after_hours ?? 0, id).run();
+    `).bind(
+      parsed.name,
+      parsed.rate_hourly,
+      parsed.rate_after_hours,
+      id
+    ).run();
 
-    return jsonResponse({ id });
+    return jsonResponse({ success: true });
   },
 
-  async DELETE(context) {
+  async DELETE(context: Context) {
+    const id = context.params.id;
     const db = getDb(context);
-    const id = context.params.id as string;
-
     await db.prepare('DELETE FROM qualifications WHERE id = ?').bind(id).run();
-
-    return jsonResponse({ deleted: true });
-  },
+    return jsonResponse({ success: true });
+  }
 });

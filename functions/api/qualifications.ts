@@ -1,7 +1,14 @@
-import { getDb, generateId, jsonResponse, errorResponse, methodRouter, now } from '../lib/db';
+import { getDb, generateId, jsonResponse, parseBody, methodRouter, now } from '../lib/db';
+import { QualificationSchema } from '../../src/shared/validation/schemas';
+
+interface Context {
+  params: Record<string, string>;
+  request: Request;
+  env: any;
+}
 
 export const onRequest = methodRouter({
-  async GET(context) {
+  async GET(context: Context) {
     const db = getDb(context);
     const { results } = await db.prepare(
       'SELECT * FROM qualifications ORDER BY name'
@@ -9,18 +16,23 @@ export const onRequest = methodRouter({
     return jsonResponse(results);
   },
 
-  async POST(context) {
+  async POST(context: Context) {
     const db = getDb(context);
-    const body = await context.request.json() as { name: string; rate_hourly?: number; rate_after_hours?: number };
-
-    if (!body.name) return errorResponse('Name is required', 422);
+    const parsed = await parseBody(context.request, QualificationSchema);
+    if ('error' in parsed) return parsed.error;
 
     const id = generateId();
     await db.prepare(`
       INSERT INTO qualifications (id, name, rate_hourly, rate_after_hours, created_at)
       VALUES (?, ?, ?, ?, ?)
-    `).bind(id, body.name, body.rate_hourly ?? 0, body.rate_after_hours ?? 0, now()).run();
+    `).bind(
+      id, 
+      parsed.name, 
+      parsed.rate_hourly, 
+      parsed.rate_after_hours, 
+      now()
+    ).run();
 
     return jsonResponse({ id }, 201);
-  },
+  }
 });

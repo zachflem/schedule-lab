@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { GeneralTab } from './GeneralTab';
 import { AssetSettingsTab } from './AssetSettingsTab';
 import { CustomerSettingsTab } from './CustomerSettingsTab';
+import { QualificationSettingsTab } from './QualificationSettingsTab';
 
-type TabId = 'general' | 'assets' | 'customers';
+type TabId = 'general' | 'assets' | 'customers' | 'qualifications';
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>('general');
@@ -27,6 +28,12 @@ export function SettingsPage() {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}>
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
         <circle cx="9" cy="7" r="4" />
+      </svg>
+    )},
+    { id: 'qualifications', label: 'Qualifications', icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}>
+        <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+        <path d="M6 12v5c3 3 9 3 12 0v-5" />
       </svg>
     )},
   ];
@@ -68,6 +75,7 @@ export function SettingsPage() {
         {activeTab === 'general' && <GeneralTab />}
         {activeTab === 'assets' && <AssetSettingsTab />}
         {activeTab === 'customers' && <CustomerSettingsTab />}
+        {activeTab === 'qualifications' && <QualificationSettingsTab />}
       </div>
     </div>
   );

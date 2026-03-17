@@ -60,40 +60,58 @@ export function PersonnelListPage() {
                 </td>
 
                 <td style={{ padding: 'var(--space-3)', color: 'var(--color-gray-600)', fontSize: 'var(--text-sm)' }}>
-                  {person.qualifications && person.qualifications.length > 0 ? (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {person.qualifications.map((q: any) => (
-                        <span key={q.id} style={{ 
-                          padding: '2px 6px', 
-                          background: 'var(--color-blue-50)', 
-                          color: 'var(--color-blue-700)', 
-                          borderRadius: '4px',
-                          fontSize: '10px',
-                          fontWeight: 600
-                        }}>
-                          {q.name}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                   /* Handle qualification_names from the initial list view query if qualifications array is not yet present */
-                   (person as any).qualification_names ? (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {(person as any).qualification_names.split(',').map((name: string, i: number) => (
-                        <span key={i} style={{ 
-                          padding: '2px 6px', 
-                          background: 'var(--color-blue-50)', 
-                          color: 'var(--color-blue-700)', 
-                          borderRadius: '4px',
-                          fontSize: '10px',
-                          fontWeight: 600
-                        }}>
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                   ) : <span style={{ color: 'var(--color-gray-300)' }}>No qualifications</span>
-                  )}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                    {person.qualifications && person.qualifications.length > 0 ? (
+                      person.qualifications.map((q: any) => {
+                        const expiry = q.expiry_date ? new Date(q.expiry_date) : null;
+                        const today = new Date();
+                        const diffDays = expiry ? Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
+
+                        let color = { bg: 'var(--color-blue-50)', text: 'var(--color-blue-700)' };
+                        if (diffDays !== null) {
+                          if (diffDays <= 30) {
+                            color = { bg: 'var(--color-danger-50)', text: 'var(--color-danger-700)' };
+                          } else if (diffDays <= 90) {
+                            color = { bg: 'var(--color-warning-50)', text: 'var(--color-warning-700)' };
+                          } else {
+                            color = { bg: 'var(--color-success-50)', text: 'var(--color-success-700)' };
+                          }
+                        }
+
+                        return (
+                          <span key={q.id} style={{ 
+                            padding: '2px 6px', 
+                            background: color.bg, 
+                            color: color.text, 
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '2px'
+                          }}>
+                            {q.name}
+                            {expiry && <span style={{ opacity: 0.6, fontSize: '8px' }}>({q.expiry_date})</span>}
+                          </span>
+                        );
+                      })
+                    ) : (
+                      (person as any).qualification_names ? (
+                        (person as any).qualification_names.split(',').map((name: string, i: number) => (
+                          <span key={i} style={{ 
+                            padding: '2px 6px', 
+                            background: 'var(--color-blue-50)', 
+                            color: 'var(--color-blue-700)', 
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            fontWeight: 600
+                          }}>
+                            {name}
+                          </span>
+                        ))
+                      ) : <span style={{ color: 'var(--color-gray-300)' }}>No qualifications</span>
+                    )}
+                  </div>
                 </td>
 
                 <td style={{ padding: 'var(--space-3)', textAlign: 'center' }}>
