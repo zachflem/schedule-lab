@@ -77,25 +77,41 @@ export function CustomerListPage() {
                 {/* Jobs Summary */}
                 <td style={{ padding: 'var(--space-3)', textAlign: 'center' }}>
                   <div style={{ display: 'inline-flex', gap: 'var(--space-2)' }}>
-                    <span title="Active Jobs" style={{ 
-                      padding: '2px 6px', 
+                    <span title="Enquiry/Quote" style={{ 
+                      minWidth: '24px',
+                      padding: '2px 4px', 
                       borderRadius: '4px', 
-                      background: 'var(--color-blue-50)', 
-                      color: 'var(--color-blue-700)',
+                      background: 'var(--color-red-50, #fef2f2)', 
+                      color: 'var(--color-red-700, #b91c1c)',
                       fontSize: 'var(--text-xs)',
-                      fontWeight: 600
+                      fontWeight: 700,
+                      border: '1px solid var(--color-red-100, #fee2e2)'
                     }}>
-                      {customer.active_jobs || 0}A
+                      {customer.enquiry_jobs || 0}
+                    </span>
+                    <span title="Active Jobs" style={{ 
+                      minWidth: '24px',
+                      padding: '2px 4px', 
+                      borderRadius: '4px', 
+                      background: 'var(--color-orange-50, #fff7ed)', 
+                      color: 'var(--color-orange-700, #c2410c)',
+                      fontSize: 'var(--text-xs)',
+                      fontWeight: 700,
+                      border: '1px solid var(--color-orange-100, #ffedd5)'
+                    }}>
+                      {customer.active_jobs || 0}
                     </span>
                     <span title="Closed Jobs" style={{ 
-                      padding: '2px 6px', 
+                      minWidth: '24px',
+                      padding: '2px 4px', 
                       borderRadius: '4px', 
-                      background: 'var(--color-gray-50)', 
-                      color: 'var(--color-gray-600)',
+                      background: 'var(--color-green-50, #f0fdf4)', 
+                      color: 'var(--color-green-700, #15803d)',
                       fontSize: 'var(--text-xs)',
-                      fontWeight: 600
+                      fontWeight: 700,
+                      border: '1px solid var(--color-green-100, #dcfce7)'
                     }}>
-                      {customer.closed_jobs || 0}C
+                      {customer.closed_jobs || 0}
                     </span>
                   </div>
                 </td>

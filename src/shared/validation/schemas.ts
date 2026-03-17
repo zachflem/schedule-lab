@@ -125,6 +125,7 @@ export const CustomerSchema = z.object({
   }).optional().nullable(),
   
   // Job Summaries (populated via join/subquery in API)
+  enquiry_jobs: z.number().optional(),
   active_jobs: z.number().optional(),
   closed_jobs: z.number().optional(),
 });

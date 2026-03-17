@@ -7,7 +7,8 @@ export const onRequest = methodRouter({
     const { results } = await db.prepare(`
       SELECT 
         c.*,
-        (SELECT COUNT(*) FROM jobs j WHERE j.customer_id = c.id AND j.status_id NOT IN ('Completed', 'Invoiced', 'Cancelled')) as active_jobs,
+        (SELECT COUNT(*) FROM jobs j WHERE j.customer_id = c.id AND j.status_id IN ('Enquiry', 'Quote', 'Quote Sent', 'Quote Accepted')) as enquiry_jobs,
+        (SELECT COUNT(*) FROM jobs j WHERE j.customer_id = c.id AND j.status_id IN ('Job Booked', 'Job Scheduled', 'Allocated', 'Site Docket')) as active_jobs,
         (SELECT COUNT(*) FROM jobs j WHERE j.customer_id = c.id AND j.status_id IN ('Completed', 'Invoiced')) as closed_jobs
       FROM customers c
       ORDER BY c.name
