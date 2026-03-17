@@ -4,6 +4,7 @@ import { CustomerListPage } from '@/features/customers/ui/CustomerListPage';
 import { CustomerFormPage } from '@/features/customers/ui/CustomerFormPage';
 import { AssetListPage } from '@/features/assets/ui/AssetListPage';
 import { AssetFormPage } from '@/features/assets/ui/AssetFormPage';
+import { SettingsPage } from '@/features/settings/ui/SettingsPage';
 import { Layout } from '@/widgets';
 
 export function AppRouter() {
@@ -16,6 +17,7 @@ export function AppRouter() {
           <Route path="/customers/:id" element={<CustomerFormPage />} />
           <Route path="/assets" element={<AssetListPage />} />
           <Route path="/assets/:id" element={<AssetFormPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/" element={<Navigate to="/docket?jobId=j01" replace />} />
           <Route path="*" element={<Navigate to="/docket?jobId=j01" replace />} />
         </Route>
