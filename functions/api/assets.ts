@@ -28,23 +28,32 @@ export const onRequest = methodRouter({
     const db = getDb(context);
     const id = generateId();
     const a = parsed.data;
+    const body = await context.request.clone().json() as { extension_data?: any };
     const timestamp = now();
 
-    await db.prepare(`
-      INSERT INTO assets (id, name, asset_type_id, category, required_qualification_id,
-        rate_hourly, rate_after_hours, rate_dry_hire, required_operators,
-        cranesafe_expiry, rego_expiry, insurance_expiry,
-        current_machine_hours, current_odometer, service_interval_type,
-        service_interval_value, last_service_meter_reading, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      id, a.name, a.asset_type_id, a.category ?? null,
-      a.required_qualification_id ?? null, a.rate_hourly ?? null,
-      a.rate_after_hours ?? null, a.rate_dry_hire ?? null, a.required_operators,
-      a.cranesafe_expiry ?? null, a.rego_expiry ?? null, a.insurance_expiry ?? null,
-      a.current_machine_hours, a.current_odometer, a.service_interval_type,
-      a.service_interval_value, a.last_service_meter_reading, timestamp, timestamp
-    ).run();
+    await db.batch([
+      db.prepare(`
+        INSERT INTO assets (id, name, asset_type_id, category, required_qualification_id,
+          rate_hourly, rate_after_hours, rate_dry_hire, required_operators,
+          cranesafe_expiry, rego_expiry, insurance_expiry,
+          current_machine_hours, current_odometer, service_interval_type,
+          service_interval_value, last_service_meter_reading, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        id, a.name, a.asset_type_id, a.category ?? null,
+        a.required_qualification_id ?? null, a.rate_hourly ?? null,
+        a.rate_after_hours ?? null, a.rate_dry_hire ?? null, a.required_operators,
+        a.cranesafe_expiry ?? null, a.rego_expiry ?? null, a.insurance_expiry ?? null,
+        a.current_machine_hours, a.current_odometer, a.service_interval_type,
+        a.service_interval_value, a.last_service_meter_reading, timestamp, timestamp
+      ),
+      ...(body.extension_data ? [
+        db.prepare(`
+          INSERT INTO asset_extensions (id, asset_id, data, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?)
+        `).bind(generateId(), id, JSON.stringify(body.extension_data), timestamp, timestamp)
+      ] : [])
+    ]);
 
     return jsonResponse({ id }, 201);
   },
