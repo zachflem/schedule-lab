@@ -44,6 +44,8 @@ export function CustomerListPage() {
             <tr style={{ background: 'var(--color-gray-50)', borderBottom: '1px solid var(--color-gray-200)' }}>
               <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Name</th>
               <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Site Contact</th>
+              <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Billing Contact</th>
+              <th style={{ textAlign: 'center', padding: 'var(--space-3)' }}>Jobs</th>
               <th style={{ textAlign: 'right', padding: 'var(--space-3)' }}>Actions</th>
             </tr>
           </thead>
@@ -51,22 +53,63 @@ export function CustomerListPage() {
             {customers.map(customer => (
               <tr key={customer.id} style={{ borderBottom: '1px solid var(--color-gray-100)' }}>
                 <td style={{ padding: 'var(--space-3)', fontWeight: 600 }}>{customer.name}</td>
-                <td style={{ padding: 'var(--space-3)', color: 'var(--color-gray-600)' }}>
+                
+                {/* Site Contact */}
+                <td style={{ padding: 'var(--space-3)', color: 'var(--color-gray-600)', fontSize: 'var(--text-sm)' }}>
                   {customer.site_contact_name ? (
                     <div>
-                      <div>{customer.site_contact_name}</div>
-                      <div style={{ fontSize: 'var(--text-xs)' }}>{customer.site_contact_phone}</div>
+                      <div style={{ fontWeight: 500, color: 'var(--color-gray-900)' }}>{customer.site_contact_name}</div>
+                      <div>{customer.site_contact_email}</div>
                     </div>
-                  ) : '-'}
+                  ) : <span style={{ color: 'var(--color-gray-300)' }}>-</span>}
                 </td>
+
+                {/* Billing Contact */}
+                <td style={{ padding: 'var(--space-3)', color: 'var(--color-gray-600)', fontSize: 'var(--text-sm)' }}>
+                  {customer.billing_contact_name ? (
+                    <div>
+                      <div style={{ fontWeight: 500, color: 'var(--color-gray-900)' }}>{customer.billing_contact_name}</div>
+                      <div>{customer.billing_contact_email}</div>
+                    </div>
+                  ) : <span style={{ color: 'var(--color-gray-300)' }}>-</span>}
+                </td>
+
+                {/* Jobs Summary */}
+                <td style={{ padding: 'var(--space-3)', textAlign: 'center' }}>
+                  <div style={{ display: 'inline-flex', gap: 'var(--space-2)' }}>
+                    <span title="Active Jobs" style={{ 
+                      padding: '2px 6px', 
+                      borderRadius: '4px', 
+                      background: 'var(--color-blue-50)', 
+                      color: 'var(--color-blue-700)',
+                      fontSize: 'var(--text-xs)',
+                      fontWeight: 600
+                    }}>
+                      {customer.active_jobs || 0}A
+                    </span>
+                    <span title="Closed Jobs" style={{ 
+                      padding: '2px 6px', 
+                      borderRadius: '4px', 
+                      background: 'var(--color-gray-50)', 
+                      color: 'var(--color-gray-600)',
+                      fontSize: 'var(--text-xs)',
+                      fontWeight: 600
+                    }}>
+                      {customer.closed_jobs || 0}C
+                    </span>
+                  </div>
+                </td>
+
                 <td style={{ padding: 'var(--space-3)', textAlign: 'right' }}>
-                  <Link to={`/customers/${customer.id}`} className="btn btn--secondary btn--sm">Edit</Link>
+                  <Link to={`/customers/${customer.id}`} className="button button-sm" style={{ background: 'var(--color-white)', border: '1px solid var(--color-gray-200)' }}>
+                    Edit
+                  </Link>
                 </td>
               </tr>
             ))}
             {customers.length === 0 && !loading && (
               <tr>
-                <td colSpan={4} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-gray-400)' }}>
+                <td colSpan={5} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-gray-400)' }}>
                   No customers found.
                 </td>
               </tr>

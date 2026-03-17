@@ -4,9 +4,14 @@ import { CustomerSchema } from '../../src/shared/validation/schemas';
 export const onRequest = methodRouter({
   async GET(context) {
     const db = getDb(context);
-    const { results } = await db.prepare(
-      'SELECT * FROM customers ORDER BY name'
-    ).all();
+    const { results } = await db.prepare(`
+      SELECT 
+        c.*,
+        (SELECT COUNT(*) FROM jobs j WHERE j.customer_id = c.id AND j.status_id NOT IN ('Completed', 'Invoiced', 'Cancelled')) as active_jobs,
+        (SELECT COUNT(*) FROM jobs j WHERE j.customer_id = c.id AND j.status_id IN ('Completed', 'Invoiced')) as closed_jobs
+      FROM customers c
+      ORDER BY c.name
+    `).all();
     return jsonResponse(results);
   },
 

@@ -9,9 +9,21 @@ VALUES ('global', 'Fleming Crane Hire', NULL, '#2563eb')
 ON CONFLICT(id) DO NOTHING;
 
 -- CUSTOMERS
-INSERT INTO customers (id, name, email, phone, billing_address, contact_details) VALUES
-  ('c001', 'Acme Construction', 'accounts@acme.com.au', '07 3000 1111', '42 Builder St, Brisbane QLD 4000', '{"name":"Tom Smith","phone":"0412 111 222","email":"tom@acme.com.au"}'),
-  ('c002', 'Pacific Developments', 'admin@pacdev.com.au', '07 3000 2222', '88 Harbour Dr, Gold Coast QLD 4217', '{"name":"Sarah Chen","phone":"0412 333 444","email":"sarah@pacdev.com.au"}')
+INSERT INTO customers (
+  id, name, billing_address, 
+  site_contact_name, site_contact_phone, site_contact_email,
+  billing_contact_name, billing_contact_phone, billing_contact_email
+) VALUES
+  (
+    'c001', 'Acme Construction', '42 Builder St, Brisbane QLD 4000',
+    'Tom Smith', '0412 111 222', 'tom@acme.com.au',
+    'Accounts Payable', '07 3000 1111', 'accounts@acme.com.au'
+  ),
+  (
+    'c002', 'Pacific Developments', '88 Harbour Dr, Gold Coast QLD 4217',
+    'Sarah Chen', '0412 333 444', 'sarah@pacdev.com.au',
+    'Billing Admin', '07 3000 2222', 'admin@pacdev.com.au'
+  )
 ON CONFLICT(id) DO NOTHING;
 
 -- ASSET TYPES
