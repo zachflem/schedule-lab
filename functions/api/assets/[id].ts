@@ -31,11 +31,11 @@ export const onRequest = methodRouter({
     const existing = await db.prepare('SELECT id FROM assets WHERE id = ?').bind(id).first();
     if (!existing) return errorResponse('Asset not found', 404);
 
-    const parsed = await parseBody(context.request, AssetSchema);
-    if ('error' in parsed) return parsed.error;
+    const rawBody = await context.request.json() as any;
+    const result = AssetSchema.safeParse(rawBody);
+    if (!result.success) return errorResponse(result.error.message, 422);
 
-    const a = parsed.data;
-    const body = await context.request.clone().json() as { extension_data?: any };
+    const a = result.data;
     const timestamp = now();
 
     await db.batch([
@@ -55,12 +55,12 @@ export const onRequest = methodRouter({
         a.current_machine_hours, a.current_odometer, a.service_interval_type,
         a.service_interval_value, a.last_service_meter_reading, timestamp, id
       ),
-      ...(body.extension_data ? [
+      ...(rawBody.extension_data ? [
         db.prepare(`
           INSERT INTO asset_extensions (id, asset_id, data, created_at, updated_at)
           VALUES (?, ?, ?, ?, ?)
           ON CONFLICT(asset_id) DO UPDATE SET data = EXCLUDED.data, updated_at = EXCLUDED.updated_at
-        `).bind(generateId(), id, JSON.stringify(body.extension_data), timestamp, timestamp)
+        `).bind(generateId(), id, JSON.stringify(rawBody.extension_data), timestamp, timestamp)
       ] : [])
     ]);
 

@@ -22,13 +22,13 @@ export const onRequest = methodRouter({
   },
 
   async POST(context) {
-    const parsed = await parseBody(context.request, AssetSchema);
-    if ('error' in parsed) return parsed.error;
+    const rawBody = await context.request.json() as any;
+    const result = AssetSchema.safeParse(rawBody);
+    if (!result.success) return errorResponse(result.error.message, 422);
 
     const db = getDb(context);
     const id = generateId();
-    const a = parsed.data;
-    const body = await context.request.clone().json() as { extension_data?: any };
+    const a = result.data;
     const timestamp = now();
 
     await db.batch([
@@ -47,11 +47,11 @@ export const onRequest = methodRouter({
         a.current_machine_hours, a.current_odometer, a.service_interval_type,
         a.service_interval_value, a.last_service_meter_reading, timestamp, timestamp
       ),
-      ...(body.extension_data ? [
+      ...(rawBody.extension_data ? [
         db.prepare(`
           INSERT INTO asset_extensions (id, asset_id, data, created_at, updated_at)
           VALUES (?, ?, ?, ?, ?)
-        `).bind(generateId(), id, JSON.stringify(body.extension_data), timestamp, timestamp)
+        `).bind(generateId(), id, JSON.stringify(rawBody.extension_data), timestamp, timestamp)
       ] : [])
     ]);
 
