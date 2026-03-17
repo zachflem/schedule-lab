@@ -6,8 +6,6 @@ interface HeaderProps {
 export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
   return (
     <header className="header">
-      <div className="header-title">ScheduleLab</div>
-      
       <button 
         className="menu-trigger" 
         onClick={onMenuToggle}
@@ -38,6 +36,8 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
           )}
         </svg>
       </button>
+      
+      <div className="header-title">ScheduleLab</div>
     </header>
   );
 }
