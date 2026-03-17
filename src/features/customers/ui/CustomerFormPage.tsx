@@ -7,7 +7,7 @@ import { Spinner } from '@/shared/ui';
 export function CustomerFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(!!id);
+  const [loading, setLoading] = useState(!!(id && id !== 'new'));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Customer>>({
