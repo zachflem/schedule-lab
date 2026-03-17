@@ -7,8 +7,8 @@ export const onRequest = methodRouter({
     const id = context.params.id as string;
 
     const job = await db.prepare(`
-      SELECT j.*, c.name as customer_name, c.email as customer_email,
-             c.phone as customer_phone, p.name as project_name
+      SELECT j.*, c.name as customer_name, c.site_contact_email as customer_email,
+             c.site_contact_phone as customer_phone, p.name as project_name
       FROM jobs j
       JOIN customers c ON j.customer_id = c.id
       LEFT JOIN projects p ON j.project_id = p.id

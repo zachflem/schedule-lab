@@ -26,12 +26,16 @@ export const onRequest = methodRouter({
     const timestamp = now();
 
     await db.prepare(`
-      UPDATE customers SET name = ?, email = ?, phone = ?, billing_address = ?,
-        contact_details = ?, updated_at = ?
+      UPDATE customers SET 
+        name = ?, billing_address = ?,
+        site_contact_name = ?, site_contact_phone = ?, site_contact_email = ?,
+        billing_contact_name = ?, billing_contact_phone = ?, billing_contact_email = ?,
+        updated_at = ?
       WHERE id = ?
     `).bind(
-      c.name, c.email ?? null, c.phone ?? null,
-      c.billing_address ?? null, JSON.stringify(c.contact_details ?? null),
+      c.name, c.billing_address ?? null,
+      c.site_contact_name ?? null, c.site_contact_phone ?? null, c.site_contact_email ?? null,
+      c.billing_contact_name ?? null, c.billing_contact_phone ?? null, c.billing_contact_email ?? null,
       timestamp, id
     ).run();
 
