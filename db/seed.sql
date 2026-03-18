@@ -81,7 +81,7 @@ INSERT INTO personnel_qualifications (id, personnel_id, qualification_id, expiry
 ON CONFLICT(id) DO NOTHING;
 
 -- ENQUIRIES
-INSERT INTO enquiries (id, enquiry_type, customer_name, contact_email, contact_phone, job_details, location, preferred_date, status, anticipated_hours, asset_type_id, asset_requirement) VALUES
+INSERT INTO enquiries (id, enquiry_type, customer_name, contact_email, contact_phone, job_brief, location, preferred_date, status, anticipated_hours, asset_type_id, asset_requirement) VALUES
   ('e01', 'Job', 'New Builder Co', 'info@newbuilder.com.au', '07 3111 5555', 'Need a 20T crane for steel erection, single day job.', '15 Main St, Southport QLD', '2026-04-10', 'New', 8, 'at01', '20T Franna or similar'),
   ('e02', 'Project', 'Pacific Developments', 'sarah@pacdev.com.au', '0412 333 444', 'Multi-story apartment build. Crane and excavation over 6-month project.', '200 Esplanade, Surfers Paradise QLD', NULL, 'Reviewed', NULL, NULL, '50T+ mobile crane, 20T excavator')
 ON CONFLICT(id) DO NOTHING;

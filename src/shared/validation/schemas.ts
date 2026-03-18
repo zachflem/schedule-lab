@@ -242,6 +242,7 @@ export const JobSchema = z.object({
   id: z.string().optional(),
   customer_id: z.string().min(1, 'Customer is required'),
   project_id: z.string().optional().nullable(),
+  enquiry_id: z.string().optional().nullable(),
   status_id: JobStatusEnum.default('Enquiry'),
   job_type: z.string().optional().nullable(),
   location: z.string().optional().nullable(),

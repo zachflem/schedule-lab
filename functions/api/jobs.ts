@@ -10,9 +10,10 @@ export const onRequest = methodRouter({
     const projectId = url.searchParams.get('project_id');
 
     let query = `
-      SELECT j.*, c.name as customer_name
+      SELECT j.*, c.name as customer_name, js.start_time, js.end_time
       FROM jobs j
       JOIN customers c ON j.customer_id = c.id
+      LEFT JOIN job_schedules js ON j.id = js.job_id
     `;
     const conditions: string[] = [];
     const params: unknown[] = [];
@@ -24,8 +25,24 @@ export const onRequest = methodRouter({
     if (conditions.length) query += ' WHERE ' + conditions.join(' AND ');
     query += ' ORDER BY j.updated_at DESC';
 
-    const { results } = await db.prepare(query).bind(...params).all();
-    return jsonResponse(results);
+    const { results: jobs } = await db.prepare(query).bind(...params).all() as { results: any[] };
+
+    // If requested, fetch resources for each job (N+1 but small dataset, or batch)
+    // For Gantt chart we usually need resources to display on the correct lane
+    if (url.searchParams.get('include') === 'resources') {
+      for (const job of jobs) {
+        const { results: resources } = await db.prepare(`
+          SELECT jr.*, a.name as asset_name, per.name as personnel_name
+          FROM job_resources jr
+          LEFT JOIN assets a ON jr.asset_id = a.id
+          LEFT JOIN personnel per ON jr.personnel_id = per.id
+          WHERE jr.job_id = ?
+        `).bind(job.id).all();
+        job.resources = resources;
+      }
+    }
+
+    return jsonResponse(jobs);
   },
 
   async POST(context) {

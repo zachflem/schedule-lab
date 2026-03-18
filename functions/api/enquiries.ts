@@ -55,4 +55,38 @@ export const onRequest = methodRouter({
 
     return jsonResponse({ id }, 201);
   },
+
+  async PUT(context) {
+    const id = context.params.id as string;
+    if (!id) return errorResponse('Missing ID', 400);
+
+    const db = getDb(context);
+    const body = await context.request.json() as any;
+    const timestamp = now();
+
+    const allowedFields = ['status', 'dispatcher_notes', 'is_trashed'];
+    const updates: string[] = [];
+    const params: any[] = [];
+
+    for (const field of allowedFields) {
+      if (field in body) {
+        updates.push(`${field} = ?`);
+        params.push(field === 'is_trashed' ? (body[field] ? 1 : 0) : body[field]);
+      }
+    }
+
+    if (updates.length === 0) return errorResponse('No fields to update', 400);
+
+    updates.push('updated_at = ?');
+    params.push(timestamp);
+    params.push(id);
+
+    await db.prepare(`
+      UPDATE enquiries
+      SET ${updates.join(', ')}
+      WHERE id = ?
+    `).bind(...params).run();
+
+    return jsonResponse({ success: true });
+  },
 });

@@ -1,9 +1,12 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useEnquiries } from '../api/useEnquiries';
 import { Spinner } from '@/shared/ui';
+import { EnquiryDetailsModal } from './EnquiryDetailsModal';
+import type { Enquiry } from '@/shared/validation/schemas';
 
 export function EnquiriesPage() {
-  const { enquiries, loading, error, loadEnquiries, updateEnquiryStatus } = useEnquiries();
+  const { enquiries, loading, error, loadEnquiries, updateEnquiryStatus, convertToJob } = useEnquiries();
+  const [selectedEnquiry, setSelectedEnquiry] = useState<Enquiry | null>(null);
 
   useEffect(() => {
     loadEnquiries();
@@ -65,11 +68,19 @@ export function EnquiriesPage() {
                   <td className="text-sm truncate max-w-xs">{enquiry.job_brief}</td>
                   <td>
                     <div className="flex gap-2">
+                       <button 
+                        className="btn btn--secondary btn--sm"
+                        onClick={() => setSelectedEnquiry(enquiry)}
+                        disabled={enquiry.status === 'Converted'}
+                      >
+                        {enquiry.status === 'Converted' ? 'Processed' : 'Process'}
+                      </button>
                       <select
                         className="form-input text-xs"
                         style={{ width: 'auto', padding: 'var(--space-1) var(--space-2)' }}
                         value={enquiry.status}
                         onChange={(e) => enquiry.id && updateEnquiryStatus(enquiry.id, e.target.value)}
+                        disabled={enquiry.status === 'Converted'}
                       >
                         <option value="New">New</option>
                         <option value="Reviewed">Review</option>
@@ -84,6 +95,14 @@ export function EnquiriesPage() {
           </tbody>
         </table>
       </div>
+
+      {selectedEnquiry && (
+        <EnquiryDetailsModal 
+          enquiry={selectedEnquiry} 
+          onClose={() => setSelectedEnquiry(null)}
+          onConvert={convertToJob}
+        />
+      )}
     </div>
   );
 }

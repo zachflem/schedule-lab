@@ -31,19 +31,20 @@ class ApiClient {
     return res.json() as Promise<T>;
   }
 
-  get<T>(path: string): Promise<T> {
-    return this.request<T>('GET', path);
+  async get<T>(path: string, params?: Record<string, string>): Promise<T> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
+    return this.request<T>('GET', `${path}${queryString}`);
   }
 
-  post<T>(path: string, body: unknown): Promise<T> {
+  async post<T>(path: string, body: unknown): Promise<T> {
     return this.request<T>('POST', path, body);
   }
 
-  put<T>(path: string, body: unknown): Promise<T> {
+  async put<T>(path: string, body: unknown): Promise<T> {
     return this.request<T>('PUT', path, body);
   }
 
-  delete<T>(path: string): Promise<T> {
+  async delete<T>(path: string): Promise<T> {
     return this.request<T>('DELETE', path);
   }
 }

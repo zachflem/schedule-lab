@@ -166,6 +166,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   id                     TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   customer_id            TEXT NOT NULL REFERENCES customers(id),
   project_id             TEXT REFERENCES projects(id),
+  enquiry_id             TEXT REFERENCES enquiries(id),
   status_id              TEXT NOT NULL DEFAULT 'Enquiry'
     CHECK(status_id IN ('Enquiry','Quote','Quote Sent','Quote Accepted',
                          'Job Booked','Job Scheduled','Allocated',

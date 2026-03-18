@@ -46,11 +46,25 @@ export function useEnquiries() {
 
   const updateEnquiryStatus = async (id: string, status: string) => {
     try {
-      // Assuming a PUT endpoint exists or needs to be added
       await api.put(`/enquiries/${id}`, { status });
       setEnquiries(prev => prev.map(e => e.id === id ? { ...e, status: status as any } : e));
     } catch (err: any) {
       setError(err.message || 'Failed to update status');
+    }
+  };
+
+  const convertToJob = async (data: any) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await api.post('/jobs/convert', data);
+      await loadEnquiries(); // Refresh list to show 'Converted' status
+      return { success: true, data: resp };
+    } catch (err: any) {
+      setError(err.message || 'Failed to convert enquiry');
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,5 +77,6 @@ export function useEnquiries() {
     loadAssetTypes,
     submitEnquiry,
     updateEnquiryStatus,
+    convertToJob,
   };
 }
