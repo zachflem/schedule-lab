@@ -21,6 +21,8 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [selectedPersonnel, setSelectedPersonnel] = useState<string[]>([]);
   const [selectedAssetTypes, setSelectedAssetTypes] = useState<string[]>([]);
+  const [personnelSearch, setPersonnelSearch] = useState('');
+  const [selectedQualifications, setSelectedQualifications] = useState<string[]>([]);
   const [convertTo, setConvertTo] = useState<'Job' | 'Quote'>('Job');
   const [quoteRecipient, setQuoteRecipient] = useState<'site' | 'billing' | 'both'>('site');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,15 +65,37 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
     );
   };
 
+  const toggleQualification = (qual: string) => {
+    setSelectedQualifications(prev => 
+      prev.includes(qual) 
+        ? prev.filter(q => q !== qual) 
+        : [...prev, qual]
+    );
+  };
+
   const uniqueTypes = useMemo(() => {
     const types = assets.map(a => a.asset_type_name || 'Other');
     return Array.from(new Set(types)).sort();
   }, [assets]);
 
+  const uniqueQualifications = useMemo(() => {
+    const quals = personnel.flatMap(p => p.qualifications?.map(q => q.name) || []);
+    return Array.from(new Set(quals)).sort();
+  }, [personnel]);
+
   const filteredAssets = useMemo(() => {
     if (selectedAssetTypes.length === 0) return assets;
     return assets.filter(a => selectedAssetTypes.includes(a.asset_type_name || 'Other'));
   }, [assets, selectedAssetTypes]);
+
+  const filteredPersonnel = useMemo(() => {
+    return personnel.filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(personnelSearch.toLowerCase());
+      const matchesQual = selectedQualifications.length === 0 || 
+        p.qualifications?.some(q => selectedQualifications.includes(q.name));
+      return matchesSearch && matchesQual;
+    });
+  }, [personnel, personnelSearch, selectedQualifications]);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -250,8 +274,40 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
 
                 <div>
                   <h3>Assign Personnel</h3>
+                  
+                  <div className="filters mb-2">
+                    <input 
+                      type="text"
+                      placeholder="Search personnel..."
+                      className="form-input mb-3"
+                      style={{ fontSize: '12px', padding: '6px 10px' }}
+                      value={personnelSearch}
+                      onChange={(e) => setPersonnelSearch(e.target.value)}
+                    />
+                    
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      <button
+                        onClick={() => setSelectedQualifications([])}
+                        className={`btn btn--sm ${selectedQualifications.length === 0 ? 'btn--primary' : 'btn--secondary'}`}
+                        style={{ borderRadius: '20px', padding: '1px 10px', fontSize: '10px' }}
+                      >
+                        All
+                      </button>
+                      {uniqueQualifications.map(qual => (
+                        <button
+                          key={qual}
+                          onClick={() => toggleQualification(qual)}
+                          className={`btn btn--sm ${selectedQualifications.includes(qual) ? 'btn--primary' : 'btn--secondary'}`}
+                          style={{ borderRadius: '20px', padding: '1px 10px', fontSize: '10px' }}
+                        >
+                          {qual}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="resource-list" style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '4px' }}>
-                    {personnel.map(p => (
+                    {filteredPersonnel.map(p => (
                       <label key={p.id} className="flex items-center p-2 hover:bg-gray-50 cursor-pointer border-b last:border-0">
                         <input 
                           type="checkbox" 
@@ -267,6 +323,9 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
                         </div>
                       </label>
                     ))}
+                    {filteredPersonnel.length === 0 && (
+                      <div className="p-4 text-center text-gray-400 text-sm">No personnel found</div>
+                    )}
                   </div>
                 </div>
               </>
