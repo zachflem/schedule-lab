@@ -5,7 +5,7 @@ export const onRequest = methodRouter({
   async GET(context) {
     const db = getDb(context);
     const url = new URL(context.request.url);
-    const status = url.searchParams.get('status');
+    const statuses = url.searchParams.getAll('status');
     const trashed = url.searchParams.get('trashed');
 
     let query = `
@@ -16,7 +16,10 @@ export const onRequest = methodRouter({
     const conditions: string[] = [];
     const params: unknown[] = [];
 
-    if (status) { conditions.push('e.status = ?'); params.push(status); }
+    if (statuses.length > 0) {
+      conditions.push(`e.status IN (${statuses.map(() => '?').join(',')})`);
+      params.push(...statuses);
+    }
     if (trashed === 'true') { conditions.push('e.is_trashed = 1'); }
     else if (trashed !== 'all') { conditions.push('e.is_trashed = 0'); }
 

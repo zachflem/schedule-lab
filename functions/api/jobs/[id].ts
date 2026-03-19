@@ -36,30 +36,41 @@ export const onRequest = methodRouter({
     const existing = await db.prepare('SELECT id FROM jobs WHERE id = ?').bind(id).first();
     if (!existing) return errorResponse('Job not found', 404);
 
-    const parsed = await parseBody(context.request, JobSchema);
-    if ('error' in parsed) return parsed.error;
+    const body = await context.request.json() as any;
+    const result = JobSchema.partial().safeParse(body);
+    if (!result.success) return errorResponse(result.error.message, 422);
 
-    const j = parsed.data;
+    const updates: string[] = [];
+    const params: any[] = [];
     const timestamp = now();
 
+    const data = result.data as any;
+    const fields = [
+      'customer_id', 'project_id', 'status_id', 'job_type',
+      'location', 'site_contact_name', 'site_contact_email', 'site_contact_phone',
+      'asset_requirement', 'po_number', 'job_brief',
+      'max_weight', 'hazards', 'site_access', 'pricing',
+      'tc_accepted', 'approver_name', 'task_description',
+      'inclusions', 'exclusions', 'include_standard_terms'
+    ];
+
+    for (const field of fields) {
+      if (field in data) {
+        updates.push(`${field} = ?`);
+        params.push(data[field] ?? null);
+      }
+    }
+
+    if (updates.length === 0) return jsonResponse({ id, message: 'No changes' });
+
+    updates.push('updated_at = ?');
+    params.push(timestamp);
+    params.push(id);
+
     await db.prepare(`
-      UPDATE jobs SET customer_id = ?, project_id = ?, status_id = ?, job_type = ?,
-        location = ?, site_contact_name = ?, site_contact_email = ?, site_contact_phone = ?,
-        asset_requirement = ?, po_number = ?, job_brief = ?,
-        max_weight = ?, hazards = ?, site_access = ?, pricing = ?,
-        tc_accepted = ?, approver_name = ?, task_description = ?,
-        inclusions = ?, exclusions = ?, include_standard_terms = ?, updated_at = ?
+      UPDATE jobs SET ${updates.join(', ')}
       WHERE id = ?
-    `).bind(
-      j.customer_id, j.project_id ?? null, j.status_id, j.job_type ?? null,
-      j.location ?? null, j.site_contact_name ?? null, j.site_contact_email ?? null, j.site_contact_phone ?? null,
-      j.asset_requirement ?? null, j.po_number ?? null,
-      j.job_brief ?? null, j.max_weight ?? null, j.hazards ?? null,
-      j.site_access ?? null, j.pricing ?? null, j.tc_accepted ? 1 : 0,
-      j.approver_name ?? null, j.task_description ?? null,
-      j.inclusions ?? null, j.exclusions ?? null,
-      j.include_standard_terms ? 1 : 0, timestamp, id
-    ).run();
+    `).bind(...params).run();
 
     return jsonResponse({ id });
   },

@@ -226,6 +226,14 @@ export const JOB_ONLY_STATUSES: JobStatus[] = [
   'Site Docket', 'Completed', 'Invoiced',
 ];
 
+export const ENQUIRY_PAGE_JOB_STATUSES: JobStatus[] = [
+  'Enquiry', 'Quote', 'Quote Sent', 'Quote Accepted',
+];
+
+export const ENQUIRY_TABLE_STATUSES = [
+  'New', 'Reviewed', 'Clarification Requested', 'Converted'
+] as const;
+
 // ── Project ────────────────────────────────────────────
 export const ProjectStatusEnum = z.enum(['Active', 'On Hold', 'Completed', 'Cancelled']);
 
