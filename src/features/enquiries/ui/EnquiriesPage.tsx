@@ -1,47 +1,26 @@
 import { useState, useEffect } from 'react';
-import { useEnquiries, type Lead } from '../api/useEnquiries';
+import { useEnquiries } from '../api/useEnquiries';
 import { Spinner } from '@/shared/ui';
 import { EnquiryDetailsModal } from './EnquiryDetailsModal';
 import { formatRecordId } from '@/shared/lib/format';
-import { ENQUIRY_PAGE_JOB_STATUSES, ENQUIRY_TABLE_STATUSES, type JobStatus } from '@/shared/validation/schemas';
+import { ENQUIRY_TABLE_STATUSES } from '@/shared/validation/schemas';
 
 export function EnquiriesPage() {
-  const { leads, loading, error, loadLeads, updateEnquiryStatus, updateJobStatus, convertToJob } = useEnquiries();
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  
-  const [selectedEnquiryStatuses, setSelectedEnquiryStatuses] = useState<string[]>([...ENQUIRY_TABLE_STATUSES].filter(s => s !== 'Converted'));
-  const [selectedJobStatuses, setSelectedJobStatuses] = useState<JobStatus[]>([...ENQUIRY_PAGE_JOB_STATUSES]);
+  const { enquiries, loading, error, loadEnquiries, updateEnquiryStatus, convertToJob } = useEnquiries();
+  const [selectedEnquiry, setSelectedEnquiry] = useState<any>(null);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([...ENQUIRY_TABLE_STATUSES].filter(s => s !== 'Converted'));
 
   useEffect(() => {
-    loadLeads({ 
-      enquiryStatuses: selectedEnquiryStatuses, 
-      jobStatuses: selectedJobStatuses 
-    });
-  }, [loadLeads, selectedEnquiryStatuses, selectedJobStatuses]);
+    loadEnquiries({ status: selectedStatuses });
+  }, [loadEnquiries, selectedStatuses]);
 
-  const toggleEnquiryStatus = (status: string) => {
-    setSelectedEnquiryStatuses(prev => 
+  const toggleStatus = (status: string) => {
+    setSelectedStatuses(prev => 
       prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
     );
   };
 
-  const toggleJobStatus = (status: JobStatus) => {
-    setSelectedJobStatuses(prev => 
-      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
-    );
-  };
-
-  const getStatusBadge = (status: string, source: 'enquiry' | 'job') => {
-    if (source === 'job') {
-      const classes: Record<string, string> = {
-        'Enquiry': 'badge--active',
-        'Quote': 'badge--info',
-        'Quote Sent': 'badge--warning',
-        'Quote Accepted': 'badge--success',
-      };
-      return <span className={`badge ${classes[status] || ''}`}>{status}</span>;
-    }
-
+  const getStatusBadge = (status: string) => {
     const classes: Record<string, string> = {
       'New': 'badge--new',
       'Reviewed': 'badge--info',
@@ -51,23 +30,23 @@ export function EnquiriesPage() {
     return <span className={`badge ${classes[status] || ''}`}>{status}</span>;
   };
 
-  if (loading && !leads.length) return <Spinner />;
+  if (loading && !enquiries.length) return <Spinner />;
 
   return (
     <div className="container enquiries-page p-8">
       <div className="page-header mb-8">
-        <h1 className="text-2xl font-bold">Enquiries & Leads</h1>
-        <p className="text-gray-500 text-sm">Manage incoming enquiries and early-stage quotes.</p>
+        <h1 className="text-2xl font-bold">Enquiries</h1>
+        <p className="text-gray-500 text-sm">Manage incoming booking enquiries.</p>
       </div>
 
       <div className="filters mb-6 flex flex-wrap gap-4 items-center bg-gray-50 p-4 rounded-lg">
         <div className="flex flex-wrap gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 w-full mb-1">Enquiry Status:</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 w-full mb-1">Filter by Status:</span>
           {ENQUIRY_TABLE_STATUSES.map(status => (
             <button
               key={status}
-              onClick={() => toggleEnquiryStatus(status)}
-              className={`btn btn--sm ${selectedEnquiryStatuses.includes(status) ? 'btn--primary' : 'btn--secondary'}`}
+              onClick={() => toggleStatus(status)}
+              className={`btn btn--sm ${selectedStatuses.includes(status) ? 'btn--primary' : 'btn--secondary'}`}
               style={{ borderRadius: '20px', padding: '2px 12px', fontSize: '11px' }}
             >
               {status}
@@ -75,23 +54,9 @@ export function EnquiriesPage() {
           ))}
         </div>
         
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 w-full mb-1">Job/Quote Status:</span>
-          {ENQUIRY_PAGE_JOB_STATUSES.map(status => (
-            <button
-              key={status}
-              onClick={() => toggleJobStatus(status)}
-              className={`btn btn--sm ${selectedJobStatuses.includes(status) ? 'btn--primary' : 'btn--secondary'}`}
-              style={{ borderRadius: '20px', padding: '2px 12px', fontSize: '11px' }}
-            >
-              {status}
-            </button>
-          ))}
-        </div>
-
         <button 
           className="btn btn--secondary btn--sm ml-auto" 
-          onClick={() => loadLeads({ enquiryStatuses: selectedEnquiryStatuses, jobStatuses: selectedJobStatuses })}
+          onClick={() => loadEnquiries({ status: selectedStatuses })}
         >
           Refresh
         </button>
@@ -113,60 +78,47 @@ export function EnquiriesPage() {
             </tr>
           </thead>
           <tbody>
-            {leads.length === 0 ? (
+            {enquiries.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ textAlign: 'center', padding: 'var(--space-8)' }}>
-                  No enquiries or leads found matching the filters.
+                  No enquiries found matching the filters.
                 </td>
               </tr>
             ) : (
-              leads.map(lead => (
-                <tr key={`${lead.source}-${lead.id}`}>
+              enquiries.map(enquiry => (
+                <tr key={enquiry.id}>
                   <td className="font-mono text-xs text-secondary">
-                    {formatRecordId(lead.id, lead.status)}
+                    {formatRecordId(enquiry.id!, enquiry.status)}
                   </td>
                   <td>
-                    <div className="font-semibold">{lead.customer_name}</div>
-                    <div className="text-xs text-secondary">{lead.location || '—'}</div>
+                    <div className="font-semibold">{enquiry.customer_name}</div>
+                    <div className="text-xs text-secondary">{enquiry.location || '—'}</div>
                   </td>
-                  <td className="text-sm">{lead.preferred_date || '—'}</td>
+                  <td className="text-sm">{enquiry.preferred_date || '—'}</td>
                   <td>
-                    <div className="text-sm">{lead.site_contact_name}</div>
-                    <div className="text-xs text-secondary">{lead.contact_email}</div>
+                    <div className="text-sm">{enquiry.site_contact_name}</div>
+                    <div className="text-xs text-secondary">{enquiry.contact_email}</div>
                   </td>
-                  <td>{getStatusBadge(lead.status, lead.source)}</td>
-                  <td className="text-sm truncate max-w-xs">{lead.job_brief || '—'}</td>
+                  <td>{getStatusBadge(enquiry.status)}</td>
+                  <td className="text-sm truncate max-w-xs">{enquiry.job_brief || '—'}</td>
                   <td>
                     <div className="flex gap-2">
-                      {lead.source === 'enquiry' ? (
-                        <>
-                          <button 
-                            className="btn btn--secondary btn--sm"
-                            onClick={() => setSelectedLead(lead)}
-                            disabled={lead.status === 'Converted'}
-                          >
-                            {lead.status === 'Converted' ? 'Processed' : 'Process'}
-                          </button>
-                          <select
-                            className="form-input text-xs"
-                            style={{ width: 'auto', padding: 'var(--space-1) var(--space-2)' }}
-                            value={lead.status}
-                            onChange={(e) => updateEnquiryStatus(lead.id, e.target.value)}
-                            disabled={lead.status === 'Converted'}
-                          >
-                            {ENQUIRY_TABLE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                          </select>
-                        </>
-                      ) : (
-                        <select
-                          className="form-input text-xs"
-                          style={{ width: 'auto', padding: 'var(--space-1) var(--space-2)' }}
-                          value={lead.status}
-                          onChange={(e) => updateJobStatus(lead.id, e.target.value as JobStatus)}
-                        >
-                          {ENQUIRY_PAGE_JOB_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      )}
+                      <button 
+                        className="btn btn--secondary btn--sm"
+                        onClick={() => setSelectedEnquiry(enquiry)}
+                        disabled={enquiry.status === 'Converted'}
+                      >
+                        {enquiry.status === 'Converted' ? 'Processed' : 'Process'}
+                      </button>
+                      <select
+                        className="status-select text-xs"
+                        style={{ width: 'auto', padding: 'var(--space-1) var(--space-2)' }}
+                        value={enquiry.status}
+                        onChange={(e) => updateEnquiryStatus(enquiry.id!, e.target.value)}
+                        disabled={enquiry.status === 'Converted'}
+                      >
+                        {ENQUIRY_TABLE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
                     </div>
                   </td>
                 </tr>
@@ -176,14 +128,14 @@ export function EnquiriesPage() {
         </table>
       </div>
 
-      {selectedLead && selectedLead.source === 'enquiry' && (
+      {selectedEnquiry && (
         <EnquiryDetailsModal 
-          enquiry={selectedLead.raw as any} 
-          onClose={() => setSelectedLead(null)}
+          enquiry={selectedEnquiry} 
+          onClose={() => setSelectedEnquiry(null)}
           onConvert={async (data) => {
             const res = await convertToJob(data);
             if (res.success) {
-              loadLeads({ enquiryStatuses: selectedEnquiryStatuses, jobStatuses: selectedJobStatuses });
+              loadEnquiries({ status: selectedStatuses });
             }
             return res;
           }}
