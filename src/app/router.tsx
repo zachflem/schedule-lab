@@ -10,6 +10,7 @@ import { SettingsPage } from '@/features/settings/ui/SettingsPage';
 import { PublicEnquiryPage } from '@/features/enquiries/ui/PublicEnquiryPage';
 import { EnquiriesPage } from '@/features/enquiries/ui/EnquiriesPage';
 import { JobsPage } from '@/features/jobs/ui/JobsPage';
+import { DocsPage } from '@/features/docs/ui/DocsPage';
 import { Layout } from '@/widgets/layout/Layout';
 
 export function AppRouter() {
@@ -28,8 +29,9 @@ export function AppRouter() {
           <Route path="/enquiries" element={<EnquiriesPage />} />
           <Route path="/enquiry" element={<PublicEnquiryPage />} />
           <Route path="/jobs" element={<JobsPage />} />
-          <Route path="/" element={<Navigate to="/docket?jobId=j01" replace />} />
-          <Route path="*" element={<Navigate to="/docket?jobId=j01" replace />} />
+          <Route path="/docs" element={<DocsPage />} />
+          <Route path="/" element={<Navigate to="/docs" replace />} />
+          <Route path="*" element={<Navigate to="/docs" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>
