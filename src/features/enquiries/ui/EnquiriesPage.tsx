@@ -3,6 +3,7 @@ import { useEnquiries } from '../api/useEnquiries';
 import { Spinner } from '@/shared/ui';
 import { EnquiryDetailsModal } from './EnquiryDetailsModal';
 import type { Enquiry } from '@/shared/validation/schemas';
+import { formatRecordId } from '@/shared/lib/format';
 
 export function EnquiriesPage() {
   const { enquiries, loading, error, loadEnquiries, updateEnquiryStatus, convertToJob } = useEnquiries();
@@ -37,6 +38,7 @@ export function EnquiriesPage() {
         <table className="data-table">
           <thead>
             <tr>
+              <th>ID</th>
               <th>Customer</th>
               <th>Preferred Date</th>
               <th>Site Contact</th>
@@ -48,13 +50,14 @@ export function EnquiriesPage() {
           <tbody>
             {enquiries.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: 'var(--space-8)' }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: 'var(--space-8)' }}>
                   No enquiries found.
                 </td>
               </tr>
             ) : (
               enquiries.map(enquiry => (
                 <tr key={enquiry.id}>
+                  <td className="font-mono text-xs text-secondary">{formatRecordId(enquiry.id, 'Enquiry')}</td>
                   <td>
                     <div className="font-semibold">{enquiry.customer_name}</div>
                     <div className="text-xs text-secondary">{enquiry.location}</div>

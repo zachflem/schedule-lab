@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { JobWithResources } from '../api/useJobs';
+import { formatRecordId } from '@/shared/lib/format';
 
 interface GanttChartProps {
   jobs: JobWithResources[];
@@ -7,6 +8,7 @@ interface GanttChartProps {
 }
 
 export function GanttChart({ jobs, onScheduleUpdate }: GanttChartProps) {
+  // ... (lines 10-72)
   const scheduledJobs = jobs.filter(j => j.start_time && j.end_time);
   
   // Simple 7-day view starting from today
@@ -75,7 +77,10 @@ export function GanttChart({ jobs, onScheduleUpdate }: GanttChartProps) {
                 //   width: '90%'
                 }}
               >
-                <div className="text-xs font-bold text-primary-800">{job.customer_name}</div>
+                <div className="flex justify-between items-start gap-1">
+                  <div className="text-xs font-bold text-primary-800 truncate">{job.customer_name}</div>
+                  <div className="text-[9px] font-mono text-primary-600 flex-shrink-0">{formatRecordId(job.id, job.status_id)}</div>
+                </div>
                 <div className="text-[10px] truncate">{job.job_brief}</div>
                 <div className="text-[9px] text-primary-600 mt-1">
                   {new Date(job.start_time!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 

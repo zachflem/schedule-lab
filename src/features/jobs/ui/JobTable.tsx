@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router';
 import type { JobWithResources } from '../api/useJobs';
+import { formatRecordId } from '@/shared/lib/format';
 
 interface JobTableProps {
   jobs: JobWithResources[];
@@ -50,7 +51,7 @@ export function JobTable({ jobs, loading }: JobTableProps) {
           ) : (
             jobs.map(job => (
               <tr key={job.id}>
-                <td className="font-mono text-xs">{job.id}</td>
+                <td className="font-mono text-xs">{formatRecordId(job.id, job.status_id)}</td>
                 <td>
                   <div className="font-semibold">{job.customer_name}</div>
                   <div className="text-xs text-secondary">{job.project_name || 'No project'}</div>

@@ -1,4 +1,5 @@
 import type { JobWithResources } from '../api/useJobs';
+import { formatRecordId } from '@/shared/lib/format';
 
 interface UnscheduledBucketProps {
   jobs: JobWithResources[];
@@ -28,11 +29,14 @@ export function UnscheduledBucket({ jobs, onSelectJob }: UnscheduledBucketProps)
                 e.dataTransfer.setData('jobId', job.id!);
               }}
             >
-              <div className="text-xs font-bold text-primary-600 mb-1">{job.customer_name}</div>
+              <div className="flex justify-between items-start mb-1">
+                <div className="text-xs font-bold text-primary-600 truncate">{job.customer_name}</div>
+                <div className="text-[10px] font-mono text-gray-400">{formatRecordId(job.id, job.status_id)}</div>
+              </div>
               <div className="text-sm font-semibold truncate">{job.job_brief || 'Untitled Job'}</div>
               <div className="text-xs text-gray-500 mt-2 flex justify-between">
-                <span>{job.asset_requirement}</span>
-                <span className="badge badge--info text-[10px]">{job.status_id}</span>
+                <span className="truncate mr-2">{job.asset_requirement}</span>
+                <span className="badge badge--info text-[10px] flex-shrink-0">{job.status_id}</span>
               </div>
             </div>
           ))

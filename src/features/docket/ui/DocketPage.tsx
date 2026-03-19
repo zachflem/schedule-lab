@@ -11,6 +11,7 @@ import { SiteDocuments } from './sections/SiteDocuments';
 import { DocketSummary } from './sections/DocketSummary';
 import { SignatureCapture } from './sections/SignatureCapture';
 import { DocketSubmitBar } from './DocketSubmitBar';
+import { formatRecordId } from '@/shared/lib/format';
 
 export function DocketPage() {
   const [searchParams] = useSearchParams();
@@ -47,7 +48,9 @@ export function DocketPage() {
       <div className="container docket-page">
         <div className="docket-page__header">
           <div>
-            <h1 className="docket-page__title">Site Docket</h1>
+            <h1 className="docket-page__title">
+              Site Docket {state.job && <span className="font-mono text-secondary ml-2">{formatRecordId(state.job.id, 'Site Docket')}</span>}
+            </h1>
             {state.job && (
               <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', marginTop: 'var(--space-1)' }}>
                 {state.job.customer_name} — {state.job.location || 'No location'}
