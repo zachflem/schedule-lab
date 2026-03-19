@@ -201,41 +201,6 @@
   display: none; /* Hide in grid layout */
 }
 
-/* ── Lifecycle ── */
-.lifecycle-container {
-  background: white;
-  padding: var(--space-10);
-  border-radius: var(--radius-3xl);
-  border: 1px solid var(--color-gray-200);
-  box-shadow: var(--shadow-sm);
-}
-
-.lifecycle-diagram-wrapper {
-  background: var(--color-gray-50);
-  padding: var(--space-8);
-  border-radius: var(--radius-2xl);
-  border: 1px dashed var(--color-gray-300);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.lifecycle-diagram {
-  max-width: 100%;
-  height: auto;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  transition: transform 0.3s ease;
-}
-
-.lifecycle-diagram:hover {
-  transform: scale(1.02);
-}
-
-.lifecycle-card h4 {
-  color: var(--color-primary-600);
-}
-
 /* ── Modules ── */
 .modules-grid {
   display: grid;
