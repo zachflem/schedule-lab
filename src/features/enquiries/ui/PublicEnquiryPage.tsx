@@ -183,7 +183,7 @@ export function PublicEnquiryPage() {
                 required
               >
                 <option value="">Select Asset Type...</option>
-                {assetTypes.map(at => (
+                {assetTypes.map((at: any) => (
                   <option key={at.id} value={at.id}>{at.name}</option>
                 ))}
               </select>

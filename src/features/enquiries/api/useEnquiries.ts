@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/shared/lib/api';
-import type { Enquiry, JobStatus } from '@/shared/validation/schemas';
+import type { Enquiry, JobStatus, AssetType } from '@/shared/validation/schemas';
 import type { JobWithResources } from '../../jobs/api/useJobs';
 
 export interface Lead {
@@ -20,6 +20,7 @@ export interface Lead {
 
 export function useEnquiries() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,7 +81,6 @@ export function useEnquiries() {
       }));
 
       setLeads([...normalizedEnquiries, ...normalizedJobs].sort((a, b) => {
-        // Sort by created_at if available, or fallback
         const dateA = (a.raw as any).created_at || '';
         const dateB = (b.raw as any).created_at || '';
         return dateB.localeCompare(dateA);
@@ -91,6 +91,29 @@ export function useEnquiries() {
       setLoading(false);
     }
   }, []);
+
+  const loadAssetTypes = useCallback(async () => {
+    try {
+      const data = await api.get<AssetType[]>('/asset-types');
+      setAssetTypes(data);
+    } catch (err: any) {
+      console.error('Failed to load asset types', err);
+    }
+  }, []);
+
+  const submitEnquiry = async (data: Partial<Enquiry>) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.post('/enquiries', data);
+      return { success: true };
+    } catch (err: any) {
+      setError(err.message || 'Failed to submit enquiry');
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const updateEnquiryStatus = async (id: string, status: string) => {
     try {
@@ -130,9 +153,12 @@ export function useEnquiries() {
 
   return {
     leads,
+    assetTypes,
     loading,
     error,
     loadLeads,
+    loadAssetTypes,
+    submitEnquiry,
     updateEnquiryStatus,
     updateJobStatus,
     convertToJob,
