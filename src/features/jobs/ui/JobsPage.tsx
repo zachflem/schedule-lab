@@ -52,7 +52,7 @@ export function JobsPage() {
   if (loading && !jobs.length) return <Spinner />;
 
   return (
-    <div className="container jobs-page p-8">
+    <div className="container-fluid jobs-page p-8">
       <div className="page-header mb-8">
         <h1 className="text-2xl font-bold">{isScheduleView ? 'Project Schedule' : 'Jobs Management'}</h1>
         <p className="text-gray-500 text-sm">
