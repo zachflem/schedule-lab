@@ -5,6 +5,10 @@ import { JobStatusEnum } from '@/shared/validation/schemas';
 import type { JobWithResources } from '../api/useJobs';
 import { Spinner } from '@/shared/ui';
 
+interface AssetWithMetadata extends Asset {
+  asset_type_name?: string;
+}
+
 interface JobEditModalProps {
   job: JobWithResources;
   onClose: () => void;
@@ -23,7 +27,7 @@ export function JobEditModal({ job, onClose, onSave }: JobEditModalProps) {
     job_type: job.job_type || '',
   });
 
-  const [allAssets, setAllAssets] = useState<Asset[]>([]);
+  const [allAssets, setAllAssets] = useState<AssetWithMetadata[]>([]);
   const [allPersonnel, setAllPersonnel] = useState<Personnel[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,6 +35,8 @@ export function JobEditModal({ job, onClose, onSave }: JobEditModalProps) {
 
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [selectedPersonnel, setSelectedPersonnel] = useState<string[]>([]);
+  const [selectedAssetTypes, setSelectedAssetTypes] = useState<string[]>([]);
+  const [selectedQualifications, setSelectedQualifications] = useState<string[]>([]);
   const [assetSearch, setAssetSearch] = useState('');
   const [personnelSearch, setPersonnelSearch] = useState('');
 
@@ -60,13 +66,44 @@ export function JobEditModal({ job, onClose, onSave }: JobEditModalProps) {
     fetchData();
   }, [job.resources]);
 
+  const toggleAssetType = (type: string) => {
+    setSelectedAssetTypes(prev => 
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
+  const toggleQualification = (qual: string) => {
+    setSelectedQualifications(prev => 
+      prev.includes(qual) ? prev.filter(q => q !== qual) : [...prev, qual]
+    );
+  };
+
+  const uniqueTypes = useMemo(() => {
+    const types = allAssets.map(a => a.asset_type_name || 'Other');
+    return Array.from(new Set(types)).sort();
+  }, [allAssets]);
+
+  const uniqueQualifications = useMemo(() => {
+    const quals = allPersonnel.flatMap(p => p.qualifications?.map(q => q.name) || []);
+    return Array.from(new Set(quals)).sort();
+  }, [allPersonnel]);
+
   const filteredAssets = useMemo(() => {
-    return allAssets.filter(a => a.name.toLowerCase().includes(assetSearch.toLowerCase()));
-  }, [allAssets, assetSearch]);
+    return allAssets.filter(a => {
+      const matchesSearch = a.name.toLowerCase().includes(assetSearch.toLowerCase());
+      const matchesType = selectedAssetTypes.length === 0 || selectedAssetTypes.includes(a.asset_type_name || 'Other');
+      return matchesSearch && matchesType;
+    });
+  }, [allAssets, assetSearch, selectedAssetTypes]);
 
   const filteredPersonnel = useMemo(() => {
-    return allPersonnel.filter(p => p.name.toLowerCase().includes(personnelSearch.toLowerCase()));
-  }, [allPersonnel, personnelSearch]);
+    return allPersonnel.filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(personnelSearch.toLowerCase());
+      const matchesQual = selectedQualifications.length === 0 || 
+        p.qualifications?.some(q => selectedQualifications.includes(q.name));
+      return matchesSearch && matchesQual;
+    });
+  }, [allPersonnel, personnelSearch, selectedQualifications]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -201,25 +238,59 @@ export function JobEditModal({ job, onClose, onSave }: JobEditModalProps) {
                         />
                       )}
                     </div>
+
+                    {!isLocked && (
+                      <div className="filters mb-2 flex flex-wrap gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAssetTypes([])}
+                          className={`btn btn--sm ${selectedAssetTypes.length === 0 ? 'btn--primary' : 'btn--secondary'}`}
+                          style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}
+                        >
+                          All
+                        </button>
+                        {uniqueTypes.map(type => (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => toggleAssetType(type)}
+                            className={`btn btn--sm ${selectedAssetTypes.includes(type) ? 'btn--primary' : 'btn--secondary'}`}
+                            style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}
+                          >
+                            {type}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     <div className="border rounded h-40 overflow-y-auto">
                       {isLocked ? (
                         <div className="p-2 space-y-1">
                           {allAssets.filter(a => selectedAssets.includes(a.id!)).map(a => (
                             <div key={a.id} className="text-sm py-1 border-b last:border-0">{a.name}</div>
                           ))}
+                          {selectedAssets.length === 0 && <div className="text-xs text-gray-400 p-2 italic">No assets allocated</div>}
                         </div>
                       ) : (
-                        filteredAssets.map(a => (
-                          <label key={a.id} className="flex items-center p-2 hover:bg-gray-50 cursor-pointer border-b last:border-0">
-                            <input 
-                              type="checkbox" 
-                              checked={selectedAssets.includes(a.id!)} 
-                              onChange={() => handleToggleAsset(a.id!)}
-                              className="mr-2"
-                            />
-                            <span className="text-sm">{a.name}</span>
-                          </label>
-                        ))
+                        <>
+                          {filteredAssets.map(a => (
+                            <label key={a.id} className="flex items-center p-2 hover:bg-gray-50 cursor-pointer border-b last:border-0">
+                              <input 
+                                type="checkbox" 
+                                checked={selectedAssets.includes(a.id!)} 
+                                onChange={() => handleToggleAsset(a.id!)}
+                                className="mr-2"
+                              />
+                              <div className="flex flex-col">
+                                <span className="text-sm">{a.name}</span>
+                                <span className="text-[10px] text-gray-500">{a.asset_type_name}</span>
+                              </div>
+                            </label>
+                          ))}
+                          {filteredAssets.length === 0 && (
+                            <div className="p-4 text-center text-gray-400 text-sm">No assets found</div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -238,25 +309,61 @@ export function JobEditModal({ job, onClose, onSave }: JobEditModalProps) {
                         />
                       )}
                     </div>
+
+                    {!isLocked && (
+                      <div className="filters mb-2 flex flex-wrap gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedQualifications([])}
+                          className={`btn btn--sm ${selectedQualifications.length === 0 ? 'btn--primary' : 'btn--secondary'}`}
+                          style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}
+                        >
+                          All
+                        </button>
+                        {uniqueQualifications.map(qual => (
+                          <button
+                            key={qual}
+                            type="button"
+                            onClick={() => toggleQualification(qual)}
+                            className={`btn btn--sm ${selectedQualifications.includes(qual) ? 'btn--primary' : 'btn--secondary'}`}
+                            style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}
+                          >
+                            {qual}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     <div className="border rounded h-40 overflow-y-auto">
                       {isLocked ? (
                         <div className="p-2 space-y-1">
                           {allPersonnel.filter(p => selectedPersonnel.includes(p.id!)).map(p => (
                             <div key={p.id} className="text-sm py-1 border-b last:border-0">{p.name}</div>
                           ))}
+                          {selectedPersonnel.length === 0 && <div className="text-xs text-gray-400 p-2 italic">No personnel allocated</div>}
                         </div>
                       ) : (
-                        filteredPersonnel.map(p => (
-                          <label key={p.id} className="flex items-center p-2 hover:bg-gray-50 cursor-pointer border-b last:border-0">
-                            <input 
-                              type="checkbox" 
-                              checked={selectedPersonnel.includes(p.id!)} 
-                              onChange={() => handleTogglePersonnel(p.id!)}
-                              className="mr-2"
-                            />
-                            <span className="text-sm">{p.name}</span>
-                          </label>
-                        ))
+                        <>
+                          {filteredPersonnel.map(p => (
+                            <label key={p.id} className="flex items-center p-2 hover:bg-gray-50 cursor-pointer border-b last:border-0">
+                              <input 
+                                type="checkbox" 
+                                checked={selectedPersonnel.includes(p.id!)} 
+                                onChange={() => handleTogglePersonnel(p.id!)}
+                                className="mr-2"
+                              />
+                              <div className="flex flex-col">
+                                <span className="text-sm">{p.name}</span>
+                                <span className="text-[10px] text-gray-500">
+                                  {p.qualifications?.map(q => q.name).join(', ') || 'No qualifications'}
+                                </span>
+                              </div>
+                            </label>
+                          ))}
+                          {filteredPersonnel.length === 0 && (
+                            <div className="p-4 text-center text-gray-400 text-sm">No personnel found</div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>

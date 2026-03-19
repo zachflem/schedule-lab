@@ -18,7 +18,7 @@ export function JobsPage() {
   const [editingJob, setEditingJob] = useState<JobWithResources | null>(null);
 
   useEffect(() => {
-    loadJobs({ status: selectedStatuses });
+    loadJobs({ status: selectedStatuses, include: 'resources' });
   }, [loadJobs, selectedStatuses]);
 
   const toggleStatus = (status: JobStatus) => {
