@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '@/shared/lib/api';
 import type { Enquiry, Asset, Personnel } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
@@ -16,6 +16,7 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
   
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [selectedPersonnel, setSelectedPersonnel] = useState<string[]>([]);
+  const [selectedAssetCategories, setSelectedAssetCategories] = useState<string[]>([]);
   const [convertTo, setConvertTo] = useState<'Job' | 'Quote'>('Job');
   const [quoteRecipient, setQuoteRecipient] = useState<'site' | 'billing' | 'both'>('site');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,6 +50,24 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
       prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
     );
   };
+
+  const toggleAssetCategory = (category: string) => {
+    setSelectedAssetCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category) 
+        : [...prev, category]
+    );
+  };
+
+  const uniqueCategories = useMemo(() => {
+    const categories = assets.map(a => a.category || 'General');
+    return Array.from(new Set(categories)).sort();
+  }, [assets]);
+
+  const filteredAssets = useMemo(() => {
+    if (selectedAssetCategories.length === 0) return assets;
+    return assets.filter(a => selectedAssetCategories.includes(a.category || 'General'));
+  }, [assets, selectedAssetCategories]);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -165,8 +184,29 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
               <>
                 <div className="mb-6">
                   <h3>Assign Assets</h3>
+                  
+                  <div className="filters mb-3 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setSelectedAssetCategories([])}
+                      className={`btn btn--sm ${selectedAssetCategories.length === 0 ? 'btn--primary' : 'btn--secondary'}`}
+                      style={{ borderRadius: '20px', padding: '2px 12px', fontSize: '11px' }}
+                    >
+                      All
+                    </button>
+                    {uniqueCategories.map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => toggleAssetCategory(cat)}
+                        className={`btn btn--sm ${selectedAssetCategories.includes(cat) ? 'btn--primary' : 'btn--secondary'}`}
+                        style={{ borderRadius: '20px', padding: '2px 12px', fontSize: '11px' }}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+
                   <div className="resource-list" style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '4px' }}>
-                    {assets.map(asset => (
+                    {filteredAssets.map(asset => (
                       <label key={asset.id} className="flex items-center p-2 hover:bg-gray-50 cursor-pointer border-b last:border-0">
                         <input 
                           type="checkbox" 
@@ -176,7 +216,7 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
                         />
                         <div className="text-sm">
                           <div className="font-semibold">{asset.name}</div>
-                          <div className="text-xs text-gray-500">{asset.category}</div>
+                          <div className="text-xs text-gray-500">{asset.category || 'General'}</div>
                         </div>
                       </label>
                     ))}
