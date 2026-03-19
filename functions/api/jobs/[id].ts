@@ -40,6 +40,7 @@ export const onRequest = methodRouter({
     const result = JobSchema.partial().safeParse(body);
     if (!result.success) return errorResponse(result.error.message, 422);
 
+    const batch: any[] = [];
     const updates: string[] = [];
     const params: any[] = [];
     const timestamp = now();
@@ -61,16 +62,50 @@ export const onRequest = methodRouter({
       }
     }
 
-    if (updates.length === 0) return jsonResponse({ id, message: 'No changes' });
+    if (updates.length > 0) {
+      updates.push('updated_at = ?');
+      params.push(timestamp);
+      params.push(id);
 
-    updates.push('updated_at = ?');
-    params.push(timestamp);
-    params.push(id);
+      batch.push(
+        db.prepare(`
+          UPDATE jobs SET ${updates.join(', ')}
+          WHERE id = ?
+        `).bind(...params)
+      );
+    }
 
-    await db.prepare(`
-      UPDATE jobs SET ${updates.join(', ')}
-      WHERE id = ?
-    `).bind(...params).run();
+    // Handle resource updates if provided
+    if (body.resources && Array.isArray(body.resources)) {
+      // 1. Clear existing resources for this job
+      batch.push(db.prepare('DELETE FROM job_resources WHERE job_id = ?').bind(id));
+
+      // 2. Insert new resources
+      for (const res of body.resources) {
+        batch.push(
+          db.prepare(`
+            INSERT INTO job_resources (id, job_id, resource_type, asset_id, personnel_id, qualification_id, rate_type, rate_amount, qty, total, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(
+            res.id || (Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2)),
+            id,
+            res.resource_type,
+            res.asset_id || null,
+            res.personnel_id || null,
+            res.qualification_id || null,
+            res.rate_type || null,
+            res.rate_amount || 0,
+            res.qty || 1,
+            res.total || 0,
+            timestamp
+          )
+        );
+      }
+    }
+
+    if (batch.length === 0) return jsonResponse({ id, message: 'No changes' });
+
+    await db.batch(batch);
 
     return jsonResponse({ id });
   },
