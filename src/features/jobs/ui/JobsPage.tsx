@@ -6,7 +6,7 @@ import { GanttChart } from './GanttChart';
 import { JobTable } from './JobTable';
 import { JobEditModal } from './JobEditModal';
 import { Spinner } from '@/shared/ui';
-import { JOB_ONLY_STATUSES, JobStatusEnum, type JobStatus } from '@/shared/validation/schemas';
+import { JOB_ONLY_STATUSES, type JobStatus } from '@/shared/validation/schemas';
 import { useState, useMemo } from 'react';
 
 export function JobsPage() {
@@ -50,7 +50,7 @@ export function JobsPage() {
 
       <div className="filters mb-6 flex flex-wrap gap-2">
         <span className="text-sm font-semibold self-center mr-2">Filter Status:</span>
-        {JobStatusEnum.options.map(status => (
+        {JOB_ONLY_STATUSES.map(status => (
           <button
             key={status}
             onClick={() => toggleStatus(status)}
