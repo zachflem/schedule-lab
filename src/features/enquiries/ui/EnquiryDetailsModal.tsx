@@ -9,14 +9,18 @@ interface EnquiryDetailsModalProps {
   onConvert: (data: any) => Promise<{ success: boolean; data?: any; error?: string }>;
 }
 
+interface AssetWithMetadata extends Asset {
+  asset_type_name?: string;
+}
+
 export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDetailsModalProps) {
-  const [assets, setAssets] = useState<Asset[]>([]);
+  const [assets, setAssets] = useState<AssetWithMetadata[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [selectedPersonnel, setSelectedPersonnel] = useState<string[]>([]);
-  const [selectedAssetCategories, setSelectedAssetCategories] = useState<string[]>([]);
+  const [selectedAssetTypes, setSelectedAssetTypes] = useState<string[]>([]);
   const [convertTo, setConvertTo] = useState<'Job' | 'Quote'>('Job');
   const [quoteRecipient, setQuoteRecipient] = useState<'site' | 'billing' | 'both'>('site');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,23 +55,23 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
     );
   };
 
-  const toggleAssetCategory = (category: string) => {
-    setSelectedAssetCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category) 
-        : [...prev, category]
+  const toggleAssetType = (type: string) => {
+    setSelectedAssetTypes(prev => 
+      prev.includes(type) 
+        ? prev.filter(t => t !== type) 
+        : [...prev, type]
     );
   };
 
-  const uniqueCategories = useMemo(() => {
-    const categories = assets.map(a => a.category || 'General');
-    return Array.from(new Set(categories)).sort();
+  const uniqueTypes = useMemo(() => {
+    const types = assets.map(a => a.asset_type_name || 'Other');
+    return Array.from(new Set(types)).sort();
   }, [assets]);
 
   const filteredAssets = useMemo(() => {
-    if (selectedAssetCategories.length === 0) return assets;
-    return assets.filter(a => selectedAssetCategories.includes(a.category || 'General'));
-  }, [assets, selectedAssetCategories]);
+    if (selectedAssetTypes.length === 0) return assets;
+    return assets.filter(a => selectedAssetTypes.includes(a.asset_type_name || 'Other'));
+  }, [assets, selectedAssetTypes]);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -187,20 +191,20 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
                   
                   <div className="filters mb-3 flex flex-wrap gap-2">
                     <button
-                      onClick={() => setSelectedAssetCategories([])}
-                      className={`btn btn--sm ${selectedAssetCategories.length === 0 ? 'btn--primary' : 'btn--secondary'}`}
+                      onClick={() => setSelectedAssetTypes([])}
+                      className={`btn btn--sm ${selectedAssetTypes.length === 0 ? 'btn--primary' : 'btn--secondary'}`}
                       style={{ borderRadius: '20px', padding: '2px 12px', fontSize: '11px' }}
                     >
                       All
                     </button>
-                    {uniqueCategories.map(cat => (
+                    {uniqueTypes.map(type => (
                       <button
-                        key={cat}
-                        onClick={() => toggleAssetCategory(cat)}
-                        className={`btn btn--sm ${selectedAssetCategories.includes(cat) ? 'btn--primary' : 'btn--secondary'}`}
+                        key={type}
+                        onClick={() => toggleAssetType(type)}
+                        className={`btn btn--sm ${selectedAssetTypes.includes(type) ? 'btn--primary' : 'btn--secondary'}`}
                         style={{ borderRadius: '20px', padding: '2px 12px', fontSize: '11px' }}
                       >
-                        {cat}
+                        {type}
                       </button>
                     ))}
                   </div>
