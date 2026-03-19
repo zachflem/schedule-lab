@@ -6,7 +6,7 @@ export const DocsPage: React.FC = () => {
   const [activeSection, setActiveSection] = useState('getting-started');
 
   useEffect(() => {
-    const sections = ['getting-started', 'workflow', 'modules', 'features', 'architecture'];
+    const sections = ['getting-started', 'workflow', 'lifecycle', 'modules', 'features', 'architecture'];
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -60,10 +60,18 @@ export const DocsPage: React.FC = () => {
           </li>
           <li>
             <button 
+              onClick={() => scrollToSection('lifecycle')} 
+              className={activeSection === 'lifecycle' ? 'active' : ''}
+            >
+              <span className="dot"></span> 03. Task Lifecycle
+            </button>
+          </li>
+          <li>
+            <button 
               onClick={() => scrollToSection('modules')} 
               className={activeSection === 'modules' ? 'active' : ''}
             >
-              <span className="dot"></span> 03. Core Modules
+              <span className="dot"></span> 04. Core Modules
             </button>
           </li>
           <li>
@@ -71,7 +79,7 @@ export const DocsPage: React.FC = () => {
               onClick={() => scrollToSection('features')} 
               className={activeSection === 'features' ? 'active' : ''}
             >
-              <span className="dot"></span> 04. Key Features
+              <span className="dot"></span> 05. Key Features
             </button>
           </li>
           <li>
@@ -79,7 +87,7 @@ export const DocsPage: React.FC = () => {
               onClick={() => scrollToSection('architecture')} 
               className={activeSection === 'architecture' ? 'active' : ''}
             >
-              <span className="dot"></span> 05. Technical Stack
+              <span className="dot"></span> 06. Technical Stack
             </button>
           </li>
         </ul>
@@ -147,8 +155,67 @@ export const DocsPage: React.FC = () => {
           </div>
         </section>
 
+        <section id="lifecycle" className="docs-section">
+          <h2>3. Task Lifecycle</h2>
+          <div className="lifecycle-wrapper">
+            <div className="lifecycle-description mb-10">
+              <p>The journey from a client's initial enquiry to a completed and invoiced job follows a structured stage-gate process to ensure data integrity and operational readiness.</p>
+            </div>
+            
+            <div className="lifecycle-flow">
+              <div className="flow-stage">
+                <div className="stage-point">1</div>
+                <div className="stage-content">
+                  <div className="stage-title">Enquiry</div>
+                  <div className="stage-tags">
+                    <span className="tag">New</span>
+                    <span className="tag">Reviewed</span>
+                  </div>
+                  <p>Lead captured and reviewed for feasibility. Resources identified.</p>
+                </div>
+              </div>
+              <div className="flow-arrow">→</div>
+              <div className="flow-stage">
+                <div className="stage-point">2</div>
+                <div className="stage-content">
+                  <div className="stage-title">Quote</div>
+                  <div className="stage-tags">
+                    <span className="tag">Sent</span>
+                    <span className="tag">Accepted</span>
+                  </div>
+                  <p>Proposal generated and sent to client. Waiting for digital sign-off.</p>
+                </div>
+              </div>
+              <div className="flow-arrow">→</div>
+              <div className="flow-stage active">
+                <div className="stage-point">3</div>
+                <div className="stage-content">
+                  <div className="stage-title">Job</div>
+                  <div className="stage-tags">
+                    <span className="tag">Scheduled</span>
+                    <span className="tag">Allocated</span>
+                  </div>
+                  <p>Booking placed on Gantt chart. Assets and Personnel locked.</p>
+                </div>
+              </div>
+              <div className="flow-arrow">→</div>
+              <div className="flow-stage">
+                <div className="stage-point">4</div>
+                <div className="stage-content">
+                  <div className="stage-title">Docket</div>
+                  <div className="stage-tags">
+                    <span className="tag">Signed</span>
+                    <span className="tag">Invoiced</span>
+                  </div>
+                  <p>Site execution recorded. Client signature captured via mobile.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section id="modules" className="docs-section">
-          <h2>3. Core Modules</h2>
+          <h2>4. Core Modules</h2>
           <div className="modules-grid">
             <div className="module-card">
               <div className="module-icon">👥</div>

@@ -7,6 +7,7 @@ import { JobTable } from './JobTable';
 import { JobEditModal } from './JobEditModal';
 import { Spinner } from '@/shared/ui';
 import { JOB_ONLY_STATUSES, type JobStatus } from '@/shared/validation/schemas';
+import { api } from '@/shared/lib/api';
 import { useState, useMemo } from 'react';
 
 export function JobsPage() {
@@ -16,9 +17,24 @@ export function JobsPage() {
   
   const [selectedStatuses, setSelectedStatuses] = useState<JobStatus[]>(JOB_ONLY_STATUSES);
   const [editingJob, setEditingJob] = useState<JobWithResources | null>(null);
+  const [resources, setResources] = useState<{ assets: any[], personnel: any[] }>({ assets: [], personnel: [] });
 
   useEffect(() => {
     loadJobs({ status: selectedStatuses, include: 'resources' });
+    
+    // Fetch all resources for Gantt rows
+    async function fetchResources() {
+      try {
+        const [assets, personnel] = await Promise.all([
+          api.get<any[]>('/assets'),
+          api.get<any[]>('/personnel')
+        ]);
+        setResources({ assets, personnel });
+      } catch (err) {
+        console.error('Failed to fetch resources', err);
+      }
+    }
+    fetchResources();
   }, [loadJobs, selectedStatuses]);
 
   const toggleStatus = (status: JobStatus) => {
@@ -81,6 +97,7 @@ export function JobsPage() {
 
           <GanttChart 
             jobs={filteredJobs} 
+            resources={resources}
             onScheduleUpdate={(jobId, start, end) => {
               updateJobSchedule(jobId, start, end);
             }} 

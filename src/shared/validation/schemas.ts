@@ -275,6 +275,8 @@ export const JobSchema = z.object({
   inclusions: z.string().optional().nullable(),
   exclusions: z.string().optional().nullable(),
   include_standard_terms: z.boolean().default(true),
+  start_time: z.string().optional().nullable(),
+  end_time: z.string().optional().nullable(),
 });
 export type Job = z.infer<typeof JobSchema>;
 

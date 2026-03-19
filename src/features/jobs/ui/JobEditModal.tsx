@@ -25,6 +25,8 @@ export function JobEditModal({ job, onClose, onSave }: JobEditModalProps) {
     job_brief: job.job_brief || '',
     po_number: job.po_number || '',
     job_type: job.job_type || '',
+    start_time: job.start_time ? new Date(job.start_time).toISOString().slice(0, 16) : '',
+    end_time: job.end_time ? new Date(job.end_time).toISOString().slice(0, 16) : '',
   });
 
   const [allAssets, setAllAssets] = useState<AssetWithMetadata[]>([]);
@@ -174,6 +176,38 @@ export function JobEditModal({ job, onClose, onSave }: JobEditModalProps) {
                       <option key={status} value={status}>{status}</option>
                     ))}
                   </select>
+                </div>
+
+                <div className="form-group bg-blue-50/30 p-4 border border-blue-100 rounded-lg col-span-2 mb-4">
+                  <h4 className="text-sm font-bold text-blue-800 mb-3 border-b border-blue-100 pb-1 flex justify-between">
+                    <span>Scheduling & Timeline</span>
+                    {!formData.start_time && <span className="text-[10px] font-normal text-blue-500 bg-blue-50 px-2 rounded-full uppercase">Unscheduled</span>}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="form-group">
+                      <label className="form-label text-[11px] uppercase tracking-tight text-gray-500">Start Date / Time</label>
+                      <input 
+                        type="datetime-local" 
+                        name="start_time" 
+                        value={formData.start_time} 
+                        onChange={handleChange} 
+                        className="form-input bg-white" 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label text-[11px] uppercase tracking-tight text-gray-500">End Date / Time</label>
+                      <input 
+                        type="datetime-local" 
+                        name="end_time" 
+                        value={formData.end_time} 
+                        onChange={handleChange} 
+                        className="form-input bg-white" 
+                      />
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-blue-600 mt-2 italic">
+                    Tip: Use these fields to manually schedule or adjust the job timeline.
+                  </div>
                 </div>
 
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>

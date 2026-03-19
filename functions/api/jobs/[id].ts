@@ -75,6 +75,33 @@ export const onRequest = methodRouter({
       );
     }
 
+    // Handle schedule updates if provided (start_time/end_time)
+    if (data.start_time || data.end_time) {
+      // 1. Clear existing schedule for this job
+      batch.push(db.prepare('DELETE FROM job_schedules WHERE job_id = ?').bind(id));
+
+      // 2. Insert new schedule if both are present
+      if (data.start_time && data.end_time) {
+        batch.push(
+          db.prepare(`
+            INSERT INTO job_schedules (id, job_id, start_time, end_time, created_at)
+            VALUES (?, ?, ?, ?, ?)
+          `).bind(
+            crypto.randomUUID(),
+            id,
+            new Date(data.start_time).toISOString(),
+            new Date(data.end_time).toISOString(),
+            timestamp
+          )
+        );
+        
+        // Auto-update status if it was Job Booked or similar
+        if (data.status_id === 'Job Booked' || !data.status_id) {
+           batch.push(db.prepare('UPDATE jobs SET status_id = ? WHERE id = ?').bind('Job Scheduled', id));
+        }
+      }
+    }
+
     // Handle resource updates if provided
     if (body.resources && Array.isArray(body.resources)) {
       // 1. Clear existing resources for this job
