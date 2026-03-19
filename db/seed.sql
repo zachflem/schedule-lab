@@ -81,9 +81,9 @@ INSERT INTO personnel_qualifications (id, personnel_id, qualification_id, expiry
 ON CONFLICT(id) DO NOTHING;
 
 -- ENQUIRIES
-INSERT INTO enquiries (id, enquiry_type, customer_name, contact_email, contact_phone, job_brief, location, preferred_date, status, anticipated_hours, asset_type_id, asset_requirement) VALUES
-  ('e01', 'Job', 'New Builder Co', 'info@newbuilder.com.au', '07 3111 5555', 'Need a 20T crane for steel erection, single day job.', '15 Main St, Southport QLD', '2026-04-10', 'New', 8, 'at01', '20T Franna or similar'),
-  ('e02', 'Project', 'Pacific Developments', 'sarah@pacdev.com.au', '0412 333 444', 'Multi-story apartment build. Crane and excavation over 6-month project.', '200 Esplanade, Surfers Paradise QLD', NULL, 'Reviewed', NULL, NULL, '50T+ mobile crane, 20T excavator')
+INSERT INTO enquiries (id, enquiry_type, customer_name, site_contact_name, contact_email, contact_phone, job_brief, location, preferred_date, status, anticipated_hours, asset_type_id, asset_requirement) VALUES
+  ('e01', 'Job', 'New Builder Co', 'John Builder', 'info@newbuilder.com.au', '07 3111 5555', 'Need a 20T crane for steel erection, single day job.', '15 Main St, Southport QLD', '2026-04-10', 'New', 8, 'at01', '20T Franna or similar'),
+  ('e02', 'Project', 'Pacific Developments', 'Sarah Chen', 'sarah@pacdev.com.au', '0412 333 444', 'Multi-story apartment build. Crane and excavation over 6-month project.', '200 Esplanade, Surfers Paradise QLD', NULL, 'Reviewed', NULL, NULL, '50T+ mobile crane, 20T excavator')
 ON CONFLICT(id) DO NOTHING;
 
 -- Update project enquiry with date range
@@ -95,10 +95,10 @@ INSERT INTO projects (id, customer_id, enquiry_id, name, description, status, st
 ON CONFLICT(id) DO NOTHING;
 
 -- JOBS (various statuses to demonstrate lifecycle)
-INSERT INTO jobs (id, customer_id, project_id, status_id, location, asset_requirement, po_number, job_brief, max_weight, pricing, task_description) VALUES
-  ('j01', 'c001', NULL, 'Allocated', '42 Builder St, Brisbane QLD', '20T Franna', 'PO-ACM-001', 'Steel beam placement — level 3 car park', 2.5, 1950.00, 'Supply 20T Franna for steel erection. Approx 8hr day.'),
-  ('j02', 'c002', 'pr01', 'Enquiry', '200 Esplanade, Surfers Paradise QLD', '100T Mobile Crane', NULL, 'Tower crane assembly assistance', 15, NULL, NULL),
-  ('j03', 'c001', NULL, 'Completed', '10 Industrial Ave, Eagle Farm QLD', '20T Franna + Dogman', 'PO-ACM-002', 'AC unit lift to rooftop — 3 units', 1.8, 2340.00, 'Supply Franna 20T with dogman for HVAC lift. 3x units, est 6hrs.')
+INSERT INTO jobs (id, customer_id, project_id, status_id, location, site_contact_name, site_contact_email, site_contact_phone, asset_requirement, po_number, job_brief, max_weight, pricing, task_description) VALUES
+  ('j01', 'c001', NULL, 'Allocated', '42 Builder St, Brisbane QLD', 'Tom Smith', 'tom@acme.com.au', '0412 111 222', '20T Franna', 'PO-ACM-001', 'Steel beam placement — level 3 car park', 2.5, 1950.00, 'Supply 20T Franna for steel erection. Approx 8hr day.'),
+  ('j02', 'c002', 'pr01', 'Enquiry', '200 Esplanade, Surfers Paradise QLD', 'Sarah Chen', 'sarah@pacdev.com.au', '0412 333 444', '100T Mobile Crane', NULL, 'Tower crane assembly assistance', 15, NULL, NULL),
+  ('j03', 'c001', NULL, 'Completed', '10 Industrial Ave, Eagle Farm QLD', 'Tom Smith', 'tom@acme.com.au', '0412 111 222', '20T Franna + Dogman', 'PO-ACM-002', 'AC unit lift to rooftop — 3 units', 1.8, 2340.00, 'Supply Franna 20T with dogman for HVAC lift. 3x units, est 6hrs.')
 ON CONFLICT(id) DO NOTHING;
 
 -- JOB RESOURCES (for quoted job j01)
@@ -127,8 +127,8 @@ INSERT INTO docket_line_items (id, docket_id, asset_id, personnel_id, descriptio
 ON CONFLICT(id) DO NOTHING;
 
 -- NEW DUMMY JOB FOR VERIFICATION (j04)
-INSERT INTO jobs (id, customer_id, project_id, status_id, location, asset_requirement, po_number, job_brief, max_weight, pricing, task_description) VALUES
-  ('j04', 'c001', NULL, 'Allocated', '123 Test Lane, Brisbane QLD', '20T Franna', 'PO-VERIFY-001', 'Verification of Date/Time fix', 1.0, 500.00, 'Test job to verify that date/time selectors preserve Wall Clock Time.')
+INSERT INTO jobs (id, customer_id, project_id, status_id, location, site_contact_name, site_contact_email, site_contact_phone, asset_requirement, po_number, job_brief, max_weight, pricing, task_description) VALUES
+  ('j04', 'c001', NULL, 'Allocated', '123 Test Lane, Brisbane QLD', 'Tom Smith', 'tom@acme.com.au', '0412 111 222', '20T Franna', 'PO-VERIFY-001', 'Verification of Date/Time fix', 1.0, 500.00, 'Test job to verify that date/time selectors preserve Wall Clock Time.')
 ON CONFLICT(id) DO NOTHING;
 
 -- RESOURCE FOR j04

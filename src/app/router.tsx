@@ -29,6 +29,7 @@ export function AppRouter() {
           <Route path="/enquiries" element={<EnquiriesPage />} />
           <Route path="/enquiry" element={<PublicEnquiryPage />} />
           <Route path="/jobs" element={<JobsPage />} />
+          <Route path="/schedule" element={<JobsPage />} />
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/" element={<Navigate to="/docs" replace />} />
           <Route path="*" element={<Navigate to="/docs" replace />} />
