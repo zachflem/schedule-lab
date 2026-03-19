@@ -133,8 +133,8 @@ export const DocsPage: React.FC = () => {
             <div className="workflow-connector">→</div>
             <div className="workflow-item">
               <div className="workflow-step">03</div>
-              <h3>Scheduling</h3>
-              <p>Convert approved enquiries into jobs. Use the Gantt chart to assign assets and personnel to specific time slots.</p>
+              <h3>Scheduling & Allocation</h3>
+              <p>Convert enquiries into jobs. Use the Gantt chart for scheduling and the Edit Job dialog to manage precise asset and personnel allocations.</p>
               <Link to="/jobs" className="btn btn--secondary btn--sm">Go to Jobs</Link>
             </div>
             <div className="workflow-connector">→</div>
@@ -199,6 +199,20 @@ export const DocsPage: React.FC = () => {
               <div>
                 <h4>Dynamic Safety Checklists</h4>
                 <p>Asset-specific hazard assessments and safety checks required before job commencement to ensure compliance.</p>
+              </div>
+            </div>
+            <div className="feature-item">
+              <div className="feature-check">✓</div>
+              <div>
+                <h4>Smart Resource Filtering</h4>
+                <p>Find the right personnel for any job instantly with qualification-based filtering during the enquiry process.</p>
+              </div>
+            </div>
+            <div className="feature-item">
+              <div className="feature-check">✓</div>
+              <div>
+                <h4>Allocation Control & Locking</h4>
+                <p>Manage job resources with built-in safety locking that prevents accidental allocation changes once a job is scheduled.</p>
               </div>
             </div>
             <div className="feature-item">
