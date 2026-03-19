@@ -92,6 +92,18 @@ export function GeneralTab() {
             />
           </div>
 
+          <div className="form-group">
+            <label className="form-label">Installation URL (Public)</label>
+            <input
+              type="text"
+              className="form-input"
+              value={settings.base_url || ''}
+              onChange={e => setSettings({ ...settings, base_url: e.target.value })}
+              placeholder="https://schedule-lab.pages.dev"
+            />
+            <p className="text-xs text-gray-400 mt-1">This is the base URL used for public links (e.g. for enquiries).</p>
+          </div>
+
           {message && (
             <div style={{ 
               padding: 'var(--space-3)', 

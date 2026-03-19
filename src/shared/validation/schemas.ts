@@ -326,5 +326,6 @@ export const PlatformSettingsSchema = z.object({
   company_name: z.string().default('ScheduleLab'),
   logo_url: z.string().optional().nullable(),
   primary_color: z.string().default('#2563eb'),
+  base_url: z.string().url('Must be a valid URL').optional().nullable(),
 });
 export type PlatformSettings = z.infer<typeof PlatformSettingsSchema>;

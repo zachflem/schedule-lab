@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS platform_settings (
   company_name  TEXT NOT NULL DEFAULT 'ScheduleLab',
   logo_url      TEXT,
   primary_color TEXT DEFAULT '#2563eb',
+  base_url      TEXT,
   created_at    TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
