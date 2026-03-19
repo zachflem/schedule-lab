@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useEnquiries } from '../api/useEnquiries';
 import { Spinner } from '@/shared/ui';
 import { EnquiryDetailsModal } from './EnquiryDetailsModal';
+import { CreateEnquiryModal } from './CreateEnquiryModal';
 import { formatRecordId } from '@/shared/lib/format';
 import { ENQUIRY_TABLE_STATUSES } from '@/shared/validation/schemas';
 
 export function EnquiriesPage() {
   const { enquiries, loading, error, loadEnquiries, updateEnquiryStatus, convertToJob } = useEnquiries();
   const [selectedEnquiry, setSelectedEnquiry] = useState<any>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([...ENQUIRY_TABLE_STATUSES].filter(s => s !== 'Converted'));
 
   useEffect(() => {
@@ -34,9 +36,17 @@ export function EnquiriesPage() {
 
   return (
     <div className="container enquiries-page p-8">
-      <div className="page-header mb-8">
-        <h1 className="text-2xl font-bold">Enquiries</h1>
-        <p className="text-gray-500 text-sm">Manage incoming booking enquiries.</p>
+      <div className="page-header mb-8 flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold">Enquiries</h1>
+          <p className="text-gray-500 text-sm">Manage incoming booking enquiries.</p>
+        </div>
+        <button 
+          className="btn btn--primary"
+          onClick={() => setShowCreateModal(true)}
+        >
+          New Enquiry
+        </button>
       </div>
 
       <div className="filters mb-6 flex flex-wrap gap-4 items-center bg-gray-50 p-4 rounded-lg">
@@ -141,6 +151,13 @@ export function EnquiriesPage() {
           }}
         />
       )}
+
+      {showCreateModal && (
+        <CreateEnquiryModal 
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
     </div>
+
   );
 }
