@@ -6,7 +6,7 @@ export const DocsPage: React.FC = () => {
   const [activeSection, setActiveSection] = useState('getting-started');
 
   useEffect(() => {
-    const sections = ['getting-started', 'workflow', 'modules', 'features', 'architecture'];
+    const sections = ['getting-started', 'workflow', 'lifecycle', 'modules', 'features', 'architecture'];
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -60,10 +60,18 @@ export const DocsPage: React.FC = () => {
           </li>
           <li>
             <button 
+              onClick={() => scrollToSection('lifecycle')} 
+              className={activeSection === 'lifecycle' ? 'active' : ''}
+            >
+              <span className="dot"></span> 03. Task Lifecycle
+            </button>
+          </li>
+          <li>
+            <button 
               onClick={() => scrollToSection('modules')} 
               className={activeSection === 'modules' ? 'active' : ''}
             >
-              <span className="dot"></span> 03. Core Modules
+              <span className="dot"></span> 04. Core Modules
             </button>
           </li>
           <li>
@@ -71,7 +79,7 @@ export const DocsPage: React.FC = () => {
               onClick={() => scrollToSection('features')} 
               className={activeSection === 'features' ? 'active' : ''}
             >
-              <span className="dot"></span> 04. Key Features
+              <span className="dot"></span> 05. Key Features
             </button>
           </li>
           <li>
@@ -79,7 +87,7 @@ export const DocsPage: React.FC = () => {
               onClick={() => scrollToSection('architecture')} 
               className={activeSection === 'architecture' ? 'active' : ''}
             >
-              <span className="dot"></span> 05. Technical Stack
+              <span className="dot"></span> 06. Technical Stack
             </button>
           </li>
         </ul>
@@ -147,8 +155,38 @@ export const DocsPage: React.FC = () => {
           </div>
         </section>
 
+        <section id="lifecycle" className="docs-section">
+          <h2>3. Task Lifecycle</h2>
+          <div className="lifecycle-container">
+            <div className="lifecycle-description mb-8">
+              <p>The journey from a client's initial enquiry to a completed and invoiced job follows a structured stage-gate process to ensure data integrity and operational readiness.</p>
+            </div>
+            <div className="lifecycle-diagram-wrapper">
+              <img src="/workflow-lifecycle.png" alt="Workflow Lifecycle Diagram" className="lifecycle-diagram" />
+            </div>
+            <div className="lifecycle-details mt-10 grid grid-cols-2 gap-8">
+              <div className="lifecycle-card p-6 bg-white rounded-xl border border-gray-100">
+                <h4 className="font-bold text-primary-700 mb-2">Stage 1: Lead Capture</h4>
+                <p className="text-sm text-gray-600">Enquiries enter as "New". They are reviewed for feasibility before being converted into either a formal Quote or a booked Job.</p>
+              </div>
+              <div className="lifecycle-card p-6 bg-white rounded-xl border border-gray-100">
+                <h4 className="font-bold text-primary-700 mb-2">Stage 2: Proposal & Approval</h4>
+                <p className="text-sm text-gray-600">Quotes are generated, sent, and tracked until acceptance. Upon approval, they transition automatically into the booking phase.</p>
+              </div>
+              <div className="lifecycle-card p-6 bg-white rounded-xl border border-gray-100">
+                <h4 className="font-bold text-primary-700 mb-2">Stage 3: Scheduling & Allocation</h4>
+                <p className="text-sm text-gray-600">Jobs are placed on the Gantt chart and specific assets and personnel are allocated. Safety locks prevent changes once scheduling is finalized.</p>
+              </div>
+              <div className="lifecycle-card p-6 bg-white rounded-xl border border-gray-100">
+                <h4 className="font-bold text-primary-700 mb-2">Stage 4: Execution & Finalization</h4>
+                <p className="text-sm text-gray-600">Field staff complete digital dockets on-site. Once signatures are captured and the docket is locked, the job is marked for invoicing.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section id="modules" className="docs-section">
-          <h2>3. Core Modules</h2>
+          <h2>4. Core Modules</h2>
           <div className="modules-grid">
             <div className="module-card">
               <div className="module-icon">👥</div>
