@@ -108,6 +108,27 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
                 <span>{enquiry.location || 'N/A'}</span>
               </div>
               <div className="info-item">
+                <label>Enquiry Type:</label>
+                <div className="flex items-center gap-2 font-semibold">
+                  {enquiry.enquiry_type === 'Project' ? (
+                    <span className="badge badge--active flex items-center gap-1" style={{ fontSize: '10px' }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: '12px', height: '12px' }}>
+                        <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                        <polyline points="2 17 12 22 22 17" />
+                      </svg>
+                      Ongoing Project
+                    </span>
+                  ) : (
+                    <span className="badge badge--locked flex items-center gap-1" style={{ fontSize: '10px', background: 'var(--color-primary-50)', color: 'var(--color-primary-700)' }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: '12px', height: '12px' }}>
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                      </svg>
+                      One-off Job
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="info-item">
                 <label>Preferred Date:</label>
                 <span>{enquiry.preferred_date || 'N/A'}</span>
               </div>

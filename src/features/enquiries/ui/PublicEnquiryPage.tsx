@@ -7,6 +7,7 @@ export function PublicEnquiryPage() {
   const { assetTypes, loading, error, loadAssetTypes, submitEnquiry } = useEnquiries();
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({
+    enquiry_type: 'Job' as 'Job' | 'Project',
     customer_name: '',
     site_contact_name: '',
     contact_email: '',
@@ -56,9 +57,40 @@ export function PublicEnquiryPage() {
           <p>Provide the details below and we'll handle the rest.</p>
         </header>
 
-        {error && <div className="alert alert--danger">{error}</div>}
+        {error && <div className="alert alert--danger mb-4">{error}</div>}
 
         <form onSubmit={handleSubmit} className="enquiry-form">
+          <section className="form-section">
+            <h3>Enquiry Type</h3>
+            <div className="selection-cards">
+              <div 
+                className={`selection-card ${formData.enquiry_type === 'Job' ? 'selection-card--active' : ''}`}
+                onClick={() => setFormData(prev => ({ ...prev, enquiry_type: 'Job' }))}
+              >
+                <div className="selection-card__icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                  </svg>
+                </div>
+                <div className="selection-card__label">I have a one off job</div>
+              </div>
+              <div 
+                className={`selection-card ${formData.enquiry_type === 'Project' ? 'selection-card--active' : ''}`}
+                onClick={() => setFormData(prev => ({ ...prev, enquiry_type: 'Project' }))}
+              >
+                <div className="selection-card__icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                    <polyline points="2 17 12 22 22 17" />
+                    <polyline points="2 12 12 17 22 12" />
+                  </svg>
+                </div>
+                <div className="selection-card__label">I have an ongoing project</div>
+              </div>
+            </div>
+          </section>
+
           <section className="form-section">
             <h3>Customer Info</h3>
             <div className="form-group">
