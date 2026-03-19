@@ -157,8 +157,8 @@ export function JobEditModal({ job, onClose, onSave }: JobEditModalProps) {
           <button className="btn-close" onClick={onClose}>&times;</button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 350px', gap: '2rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, overflow: 'hidden' }}>
+          <div className="modal-body" style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 350px', gap: '2rem' }}>
             <div className="main-info">
               {error && <div className="alert alert--danger mb-4">{error}</div>}
 
@@ -406,7 +406,7 @@ export function JobEditModal({ job, onClose, onSave }: JobEditModalProps) {
             </div>
           </div>
 
-          <div className="modal-footer mt-6 flex justify-end gap-3">
+          <div className="modal-footer flex justify-end gap-3">
             <button type="button" className="btn btn--secondary" onClick={onClose} disabled={isSubmitting}>Cancel</button>
             <button 
               type="submit" 
