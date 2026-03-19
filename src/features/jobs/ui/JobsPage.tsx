@@ -18,6 +18,12 @@ export function JobsPage() {
   const [selectedStatuses, setSelectedStatuses] = useState<JobStatus[]>(JOB_ONLY_STATUSES);
   const [editingJob, setEditingJob] = useState<JobWithResources | null>(null);
   const [resources, setResources] = useState<{ assets: any[], personnel: any[] }>({ assets: [], personnel: [] });
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    return new Date(d.setDate(diff));
+  });
+  const [selectedAssetType, setSelectedAssetType] = useState<string>('All');
 
   useEffect(() => {
     loadJobs({ status: selectedStatuses, include: 'resources' });
@@ -37,6 +43,31 @@ export function JobsPage() {
     fetchResources();
   }, [loadJobs, selectedStatuses]);
 
+  const navigateWeek = (direction: number) => {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + (direction * 7));
+    setStartDate(d);
+  };
+
+  const jumpToToday = () => {
+    const d = new Date();
+    const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    setStartDate(new Date(new Date().setDate(diff)));
+  };
+
+  const assetTypes = useMemo(() => {
+    const types = resources.assets.map(a => a.asset_type_name || 'Other');
+    return ['All', ...Array.from(new Set(types))].sort();
+  }, [resources.assets]);
+
+  const filteredResources = useMemo(() => {
+    if (selectedAssetType === 'All') return resources;
+    return {
+      ...resources,
+      assets: resources.assets.filter(a => a.asset_type_name === selectedAssetType)
+    };
+  }, [resources, selectedAssetType]);
+
   const toggleStatus = (status: JobStatus) => {
     setSelectedStatuses(prev => 
       prev.includes(status) 
@@ -52,14 +83,55 @@ export function JobsPage() {
   if (loading && !jobs.length) return <Spinner />;
 
   return (
-    <div className="container-fluid jobs-page p-8">
-      <div className="page-header mb-8">
-        <h1 className="text-2xl font-bold">{isScheduleView ? 'Project Schedule' : 'Jobs Management'}</h1>
-        <p className="text-gray-500 text-sm">
-          {isScheduleView 
-            ? 'Visualize and manage timelines for all jobs.' 
-            : 'List and manage all jobs in the system.'}
-        </p>
+    <div className="container-fluid jobs-page p-6">
+      <div className="page-header mb-6 flex justify-between items-end">
+        <div>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">{isScheduleView ? 'Project Schedule' : 'Jobs Management'}</h1>
+            <p className="text-gray-500 text-sm">
+            {isScheduleView 
+                ? 'Manage asset timelines and personnel allocations.' 
+                : 'List and manage all jobs in the system.'}
+            </p>
+        </div>
+
+        {isScheduleView && (
+            <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                    <button onClick={() => navigateWeek(-1)} className="p-2 hover:bg-white hover:shadow-sm rounded-md transition-all text-gray-600">◀</button>
+                    <button onClick={jumpToToday} className="px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary-600 hover:bg-white hover:shadow-sm rounded-md transition-all">Today</button>
+                    <button onClick={() => navigateWeek(1)} className="p-2 hover:bg-white hover:shadow-sm rounded-md transition-all text-gray-600">▶</button>
+                </div>
+                
+                <div className="h-6 w-px bg-gray-200"></div>
+
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Jump to:</span>
+                    <input 
+                        type="date" 
+                        className="text-xs border-0 bg-transparent font-bold text-gray-700 cursor-pointer focus:ring-0" 
+                        onChange={(e) => {
+                            if (!e.target.value) return;
+                            const d = new Date(e.target.value);
+                            const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                            setStartDate(new Date(d.setDate(diff)));
+                        }}
+                    />
+                </div>
+                
+                <div className="h-6 w-px bg-gray-200"></div>
+
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Asset Type:</span>
+                    <select 
+                        className="text-xs border-0 bg-transparent font-bold text-primary-600 cursor-pointer focus:ring-0"
+                        value={selectedAssetType}
+                        onChange={(e) => setSelectedAssetType(e.target.value)}
+                    >
+                        {assetTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                </div>
+            </div>
+        )}
       </div>
 
       {error && <div className="alert alert--danger mb-6">{error}</div>}
@@ -97,7 +169,8 @@ export function JobsPage() {
 
           <GanttChart 
             jobs={filteredJobs} 
-            resources={resources}
+            resources={filteredResources}
+            startDate={startDate}
             onScheduleUpdate={(jobId, start, end) => {
               updateJobSchedule(jobId, start, end);
             }} 

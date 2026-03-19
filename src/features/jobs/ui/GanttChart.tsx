@@ -4,35 +4,39 @@ import { formatRecordId } from '@/shared/lib/format';
 
 interface GanttChartProps {
   jobs: JobWithResources[];
-  resources: { assets: any[], personnel: any[] };
+  resources: {
+    assets: any[];
+    personnel: any[];
+  };
+  startDate: Date;
   onScheduleUpdate: (jobId: string, start: string, end: string) => void;
 }
 
-export function GanttChart({ jobs, resources, onScheduleUpdate }: GanttChartProps) {
+export function GanttChart({ jobs, resources, startDate, onScheduleUpdate }: GanttChartProps) {
   const scheduledJobs = jobs.filter(j => j.start_time && j.end_time);
   
   // Flatten resources into a single list for rows
-  const rows = useMemo(() => {
-    const r = [
-      ...resources.assets.map(a => ({ id: a.id, name: a.name, type: 'Asset' })),
-      ...resources.personnel.map(p => ({ id: p.id, name: p.name, type: 'Personnel' }))
-    ];
-    // Add an "Unassigned" row at the top just in case
-    return [{ id: 'unassigned', name: 'Unassigned / General', type: 'System' }, ...r];
-  }, [resources]);
-
-  // Simple 7-day view starting from today
   const days = useMemo(() => {
-    const d = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    for (let i = 0; i < 7; i++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + i);
-        d.push(date);
-    }
-    return d;
-  }, []);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  }, [startDate]);
+
+  const rows = useMemo(() => {
+    const assetRows = resources.assets.map(a => ({
+      id: a.id,
+      name: a.name,
+      type: 'Asset',
+      asset_type: a.asset_type_name
+    }));
+
+    return [
+      { id: 'unassigned', name: 'Unassigned / General', type: 'System' },
+      ...assetRows
+    ];
+  }, [resources.assets]);
 
   const handleDrop = (e: React.DragEvent, date: Date) => {
     e.preventDefault();
@@ -50,94 +54,107 @@ export function GanttChart({ jobs, resources, onScheduleUpdate }: GanttChartProp
   };
 
   return (
-    <div className="gantt-container bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col mb-10">
-      {/* Header Row */}
-      <div className="gantt-header flex border-b border-gray-200 bg-gray-50/80 backdrop-blur-sm sticky top-0 z-20">
-        <div className="w-64 p-4 border-r border-gray-200 flex items-center justify-center shrink-0">
-            <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Resources</span>
+    <div className="gantt-scroll-area shadow-xl">
+      <div className="flex flex-col" style={{ minWidth: 'fit-content' }}>
+        {/* Header Row */}
+        <div className="flex sticky-top bg-white border-b-2 border-gray-100">
+          <div className="w-60 shrink-0 p-4 border-r border-gray-100 flex items-center justify-center bg-gray-50/50">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Asset Timeline</span>
+          </div>
+          <div className="flex flex-1">
+            {days.map(day => (
+              <div key={day.toISOString()} className="w-[180px] p-4 text-center border-r border-gray-50 last:border-0 bg-white">
+                <div className="text-[10px] font-bold text-primary-500 uppercase tracking-widest mb-1">{day.toLocaleDateString('en-AU', { weekday: 'short' })}</div>
+                <div className="text-2xl font-black text-gray-900 leading-none">{day.getDate()}</div>
+                <div className="text-[9px] font-bold text-gray-400 uppercase mt-1">{day.toLocaleDateString('en-AU', { month: 'short', year: 'numeric' })}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex-1 flex" style={{ minWidth: '700px' }}>
-          {days.map(day => (
-            <div key={day.toISOString()} className="flex-1 min-w-[100px] py-3 text-center border-r border-gray-100 last:border-0">
-              <div className="text-[10px] font-bold text-primary-500 uppercase">{day.toLocaleDateString('en-AU', { weekday: 'short' })}</div>
-              <div className="text-xl font-black text-gray-800">{day.getDate()}</div>
+
+        {/* Body Rows */}
+        <div className="gantt-body">
+          {rows.map(row => (
+            <div key={row.id} className="flex border-b border-gray-50 last:border-0 min-h-[100px] hover:bg-gray-50/30 transition-colors">
+              {/* Resource Info */}
+              <div className="w-60 shrink-0 p-4 border-r border-gray-100 bg-gray-50/10 flex flex-col justify-center sticky-left z-10 bg-white">
+                <div className="text-sm font-black text-gray-800 leading-snug">{row.name}</div>
+                {row.type === 'Asset' && (
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]"></span>
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">{('asset_type' in row) ? (row as any).asset_type : 'General'}</span>
+                    </div>
+                )}
+              </div>
+
+              {/* Grid Cells */}
+              <div className="flex flex-1 relative bg-white/50" style={{ minWidth: '1260px' }}>
+                {days.map(day => (
+                  <div 
+                    key={day.toISOString()} 
+                    className="w-[180px] border-r border-gray-50/50 last:border-0 relative h-full transition-all drop-zone-cell"
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      (e.currentTarget as HTMLElement).classList.add('is-draggover');
+                    }}
+                    onDragLeave={(e) => {
+                      (e.currentTarget as HTMLElement).classList.remove('is-draggover');
+                    }}
+                    onDrop={(e) => {
+                      (e.currentTarget as HTMLElement).classList.remove('is-draggover');
+                      handleDrop(e, day);
+                    }}
+                  />
+                ))}
+
+                {/* Scheduled Jobs Layer */}
+                <div className="absolute inset-0 pointer-events-none p-2 flex flex-col gap-2">
+                  {scheduledJobs.filter(job => {
+                    if (row.id === 'unassigned') return !job.resources || job.resources.length === 0;
+                    return job.resources?.some(r => r.asset_id === row.id);
+                  }).map((job, idx) => {
+                    const start = new Date(job.start_time!);
+                    const dayIndex = days.findIndex(d => d.toDateString() === start.toDateString());
+                    if (dayIndex === -1) return null;
+
+                    const jobPeople = job.resources?.filter(r => r.resource_type === 'Personnel') || [];
+
+                    return (
+                      <div 
+                        key={`${row.id}-${job.id}-${idx}`}
+                        className="pointer-events-auto bg-white rounded-xl border border-gray-100 shadow-lg p-3 hover:scale-[1.02] hover:shadow-2xl transition-all absolute flex flex-col justify-between overflow-hidden cursor-pointer"
+                        style={{
+                          left: `calc(${dayIndex * 180}px + 10px)`,
+                          width: `160px`,
+                          top: '10px',
+                          zIndex: 10,
+                          minHeight: '80px',
+                          borderLeft: '4px solid var(--color-primary-600)'
+                        }}
+                      >
+                        <div className="flex flex-col gap-0.5">
+                            <div className="text-[11px] font-black text-gray-900 leading-tight truncate uppercase tracking-tighter">
+                                {job.customer_name}
+                            </div>
+                            <div className="text-[9px] font-bold text-gray-400 mb-1">{formatRecordId(job.id, job.status_id)}</div>
+                            <div className="text-[10px] text-gray-600 line-clamp-1 leading-snug">{job.job_brief}</div>
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap gap-1 pt-2 border-t border-gray-50">
+                            {jobPeople.length > 0 ? jobPeople.map((p, pIdx) => (
+                                <span key={pIdx} className="job-pill">{p.personnel_name || 'Staff'}</span>
+                            )) : (
+                                <span className="text-[9px] text-gray-300 italic">No staff</span>
+                            )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Body Rows */}
-      <div className="gantt-body overflow-y-auto" style={{ maxHeight: '700px' }}>
-        {rows.map(row => (
-          <div key={row.id} className="gantt-row flex border-b border-gray-100 last:border-0 min-h-[100px] hover:bg-gray-50/30 transition-colors">
-            {/* Resource Column */}
-            <div className="w-64 p-4 border-r border-gray-200 flex flex-col justify-center shrink-0 bg-gray-50/20">
-              <div className="text-sm font-bold text-gray-900 leading-tight">{row.name}</div>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className={`w-1.5 h-1.5 rounded-full ${row.type === 'Asset' ? 'bg-amber-400' : row.type === 'Personnel' ? 'bg-green-400' : 'bg-gray-400'}`}></span>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{row.type}</span>
-              </div>
-            </div>
-
-            {/* Daily Grid Cells */}
-            <div className="flex-1 flex relative" style={{ minWidth: '700px' }}>
-              {days.map(day => (
-                <div 
-                  key={day.toISOString()} 
-                  className="flex-1 min-w-[100px] border-r border-gray-50 last:border-0 relative h-full transition-all drop-zone-cell"
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    (e.currentTarget as HTMLElement).classList.add('is-draggover');
-                  }}
-                  onDragLeave={(e) => {
-                    (e.currentTarget as HTMLElement).classList.remove('is-draggover');
-                  }}
-                  onDrop={(e) => {
-                    (e.currentTarget as HTMLElement).classList.remove('is-draggover');
-                    handleDrop(e, day);
-                  }}
-                />
-              ))}
-
-              {/* Jobs Layer (Absolute within the flex-1 container) */}
-              <div className="absolute inset-0 pointer-events-none p-2 flex flex-col gap-1">
-                {scheduledJobs.filter(job => {
-                  if (row.id === 'unassigned') return !job.resources || job.resources.length === 0;
-                  return job.resources?.some(r => r.asset_id === row.id || r.personnel_id === row.id);
-                }).map((job, idx) => {
-                  const start = new Date(job.start_time!);
-                  const dayIndex = days.findIndex(d => d.toDateString() === start.toDateString());
-                  if (dayIndex === -1) return null;
-
-                  return (
-                    <div 
-                      key={`${row.id}-${job.id}-${idx}`}
-                      className="pointer-events-auto bg-white rounded-lg border-l-[6px] border-primary-600 shadow-md p-2 hover:shadow-lg transition-all absolute group/job"
-                      style={{
-                        left: `calc(${(dayIndex / 7) * 100}% + 8px)`,
-                        width: `calc(${(1/7) * 100}% - 16px)`,
-                        top: '8px',
-                        zIndex: 10,
-                        minHeight: '60px'
-                      }}
-                    >
-                      <div className="flex justify-between items-start mb-1 overflow-hidden">
-                        <div className="text-[10px] font-black text-gray-900 truncate uppercase">{job.customer_name}</div>
-                        <div className="text-[8px] font-mono text-gray-400 bg-gray-50 px-1 rounded">{formatRecordId(job.id, job.status_id)}</div>
-                      </div>
-                      <div className="text-[10px] text-gray-600 leading-tight mb-1 line-clamp-1">{job.job_brief}</div>
-                      <div className="flex justify-between items-center mt-1">
-                        <div className="text-[9px] font-bold text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded-full">
-                          {new Date(job.start_time!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
 
       <style>{`
@@ -145,18 +162,6 @@ export function GanttChart({ jobs, resources, onScheduleUpdate }: GanttChartProp
           background-color: var(--color-primary-50) !important;
           box-shadow: inset 0 0 0 2px var(--color-primary-500);
           z-index: 10;
-        }
-        .line-clamp-1 {
-          display: -webkit-box;
-          -webkit-line-clamp: 1;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-        .line-clamp-2 {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
         }
       `}</style>
     </div>
