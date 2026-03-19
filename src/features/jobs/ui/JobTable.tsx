@@ -5,9 +5,10 @@ import { formatRecordId } from '@/shared/lib/format';
 interface JobTableProps {
   jobs: JobWithResources[];
   loading?: boolean;
+  onEdit?: (job: JobWithResources) => void;
 }
 
-export function JobTable({ jobs, loading }: JobTableProps) {
+export function JobTable({ jobs, loading, onEdit }: JobTableProps) {
   const getStatusBadge = (status: any) => {
     const statusStr = String(status);
     const classes: Record<string, string> = {
@@ -77,7 +78,10 @@ export function JobTable({ jobs, loading }: JobTableProps) {
                     <NavLink to={`/docket?jobId=${job.id}`} className="btn btn--secondary btn--sm">
                       Docket
                     </NavLink>
-                    <button className="btn btn--secondary btn--sm" onClick={() => console.log('Edit job', job.id)}>
+                    <button 
+                      className="btn btn--secondary btn--sm" 
+                      onClick={() => onEdit?.(job)}
+                    >
                       Edit
                     </button>
                   </div>

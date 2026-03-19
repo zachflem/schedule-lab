@@ -1,19 +1,37 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router';
-import { useJobs } from '../api/useJobs';
+import { useJobs, type JobWithResources } from '../api/useJobs';
 import { UnscheduledBucket } from './UnscheduledBucket';
 import { GanttChart } from './GanttChart';
 import { JobTable } from './JobTable';
+import { JobEditModal } from './JobEditModal';
 import { Spinner } from '@/shared/ui';
+import { JOB_ONLY_STATUSES, JobStatusEnum, type JobStatus } from '@/shared/validation/schemas';
+import { useState, useMemo } from 'react';
 
 export function JobsPage() {
-  const { jobs, loading, error, loadJobs, updateJobSchedule } = useJobs();
+  const { jobs, loading, error, loadJobs, updateJob, updateJobSchedule } = useJobs();
   const location = useLocation();
   const isScheduleView = location.pathname === '/schedule';
+  
+  const [selectedStatuses, setSelectedStatuses] = useState<JobStatus[]>(JOB_ONLY_STATUSES);
+  const [editingJob, setEditingJob] = useState<JobWithResources | null>(null);
 
   useEffect(() => {
-    loadJobs({ include: 'resources' });
-  }, [loadJobs]);
+    loadJobs({ status: selectedStatuses });
+  }, [loadJobs, selectedStatuses]);
+
+  const toggleStatus = (status: JobStatus) => {
+    setSelectedStatuses(prev => 
+      prev.includes(status) 
+        ? prev.filter(s => s !== status) 
+        : [...prev, status]
+    );
+  };
+
+  const filteredJobs = useMemo(() => {
+    return jobs.filter(j => selectedStatuses.includes(j.status_id as JobStatus));
+  }, [jobs, selectedStatuses]);
 
   if (loading && !jobs.length) return <Spinner />;
 
@@ -30,12 +48,26 @@ export function JobsPage() {
 
       {error && <div className="alert alert--danger mb-6">{error}</div>}
 
+      <div className="filters mb-6 flex flex-wrap gap-2">
+        <span className="text-sm font-semibold self-center mr-2">Filter Status:</span>
+        {JobStatusEnum.options.map(status => (
+          <button
+            key={status}
+            onClick={() => toggleStatus(status)}
+            className={`btn btn--sm ${selectedStatuses.includes(status) ? 'btn--primary' : 'btn--secondary'}`}
+            style={{ borderRadius: '20px', padding: '2px 12px', fontSize: '12px' }}
+          >
+            {status}
+          </button>
+        ))}
+      </div>
+
       {isScheduleView ? (
         <>
           <UnscheduledBucket 
-            jobs={jobs} 
+            jobs={filteredJobs} 
             onSelectJob={(job) => {
-              console.log('Selected job', job);
+              setEditingJob(job);
             }} 
           />
 
@@ -48,14 +80,33 @@ export function JobsPage() {
           </div>
 
           <GanttChart 
-            jobs={jobs} 
+            jobs={filteredJobs} 
             onScheduleUpdate={(jobId, start, end) => {
               updateJobSchedule(jobId, start, end);
             }} 
           />
         </>
       ) : (
-        <JobTable jobs={jobs} loading={loading} />
+        <JobTable 
+          jobs={filteredJobs} 
+          loading={loading} 
+          onEdit={(job) => setEditingJob(job)}
+        />
+      )}
+
+      {editingJob && (
+        <JobEditModal 
+          job={editingJob}
+          onClose={() => setEditingJob(null)}
+          onSave={async (id, data) => {
+            const res = await updateJob(id, data);
+            if (res.success) {
+               // Load jobs again with current filters to ensure consistency
+               loadJobs({ status: selectedStatuses });
+            }
+            return res;
+          }}
+        />
       )}
     </div>
   );

@@ -221,6 +221,11 @@ export const JOB_STATUS_FLOW = [
   'Site Docket', 'Completed', 'Invoiced',
 ] as const;
 
+export const JOB_ONLY_STATUSES: JobStatus[] = [
+  'Job Booked', 'Job Scheduled', 'Allocated',
+  'Site Docket', 'Completed', 'Invoiced',
+];
+
 // ── Project ────────────────────────────────────────────
 export const ProjectStatusEnum = z.enum(['Active', 'On Hold', 'Completed', 'Cancelled']);
 

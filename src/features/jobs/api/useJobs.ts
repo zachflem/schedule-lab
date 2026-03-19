@@ -15,11 +15,23 @@ export function useJobs() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadJobs = useCallback(async (params?: Record<string, string>) => {
+  const loadJobs = useCallback(async (params?: Record<string, string | string[]>) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.get<JobWithResources[]>('/jobs', params);
+      // Handle array params for status
+      const queryParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            value.forEach(v => queryParams.append(key, v));
+          } else {
+            queryParams.append(key, value);
+          }
+        });
+      }
+      
+      const data = await api.get<JobWithResources[]>(`/jobs?${queryParams.toString()}`);
       setJobs(data);
     } catch (err: any) {
       setError(err.message || 'Failed to load jobs');
@@ -27,6 +39,17 @@ export function useJobs() {
       setLoading(false);
     }
   }, []);
+
+  const updateJob = async (id: string, data: Partial<Job>) => {
+    try {
+      await api.put(`/jobs/${id}`, data);
+      await loadJobs(); // Refresh all
+      return { success: true };
+    } catch (err: any) {
+      setError(err.message || 'Failed to update job');
+      return { success: false, error: err.message };
+    }
+  };
 
   const updateJobSchedule = async (id: string, startTime: string, endTime: string) => {
     try {
@@ -59,6 +82,7 @@ export function useJobs() {
     loading,
     error,
     loadJobs,
+    updateJob,
     updateJobSchedule,
     removeJobSchedule,
   };

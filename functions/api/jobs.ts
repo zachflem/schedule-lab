@@ -5,7 +5,7 @@ export const onRequest = methodRouter({
   async GET(context) {
     const db = getDb(context);
     const url = new URL(context.request.url);
-    const status = url.searchParams.get('status');
+    const statuses = url.searchParams.getAll('status');
     const customerId = url.searchParams.get('customer_id');
     const projectId = url.searchParams.get('project_id');
 
@@ -18,7 +18,10 @@ export const onRequest = methodRouter({
     const conditions: string[] = [];
     const params: unknown[] = [];
 
-    if (status) { conditions.push('j.status_id = ?'); params.push(status); }
+    if (statuses.length > 0) {
+      conditions.push(`j.status_id IN (${statuses.map(() => '?').join(',')})`);
+      params.push(...statuses);
+    }
     if (customerId) { conditions.push('j.customer_id = ?'); params.push(customerId); }
     if (projectId) { conditions.push('j.project_id = ?'); params.push(projectId); }
 
