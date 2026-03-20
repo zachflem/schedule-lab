@@ -86,8 +86,8 @@ export function UnscheduledBucket({ jobs, onSelectJob }: UnscheduledBucketProps)
                 </div>
 
                 {/* Hover Tooltip */}
-                <div className="job-card-tooltip invisible group-hover:visible absolute z-[100] bg-gray-900/95 backdrop-blur-sm text-white p-3 rounded-lg shadow-2xl w-64 bottom-full left-0 mb-3 pointer-events-none transition-all">
-                  <div className="flex justify-between items-start mb-2 border-b border-gray-700 pb-1">
+                <div className="job-card-tooltip invisible group-hover:visible absolute z-[9999] bg-[#111827] text-white p-3 rounded-lg shadow-2xl w-64 bottom-full left-0 mb-3 pointer-events-none transition-all border border-gray-700">
+                  <div className="flex justify-between items-start mb-2 border-b border-gray-800 pb-1">
                     <div className="text-[10px] font-bold text-primary-400 font-black uppercase tracking-widest">{job.customer_name}</div>
                     <div className="text-[9px] font-mono text-gray-500 bg-gray-800 px-1 rounded">{formatRecordId(job.id, job.status_id)}</div>
                   </div>
@@ -124,7 +124,7 @@ export function UnscheduledBucket({ jobs, onSelectJob }: UnscheduledBucketProps)
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-700">
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-800">
                        <div>
                          <div className="text-[8px] text-gray-500 uppercase font-black tracking-tighter">Staff Assigned</div>
                          <div className="text-[10px] text-gray-300 font-medium">
@@ -155,7 +155,7 @@ export function UnscheduledBucket({ jobs, onSelectJob }: UnscheduledBucketProps)
                   </div>
                   
                   {/* Tooltip Triangle */}
-                  <div className="absolute -bottom-1 left-6 w-2 h-2 bg-gray-900/95 rotate-45"></div>
+                  <div className="absolute -bottom-1 left-6 w-2 h-2 bg-[#111827] border-r border-b border-gray-700 rotate-45"></div>
                 </div>
               </div>
             );
@@ -174,7 +174,11 @@ export function UnscheduledBucket({ jobs, onSelectJob }: UnscheduledBucketProps)
           transition-delay: 200ms;
         }
         .unscheduled-bucket {
-          padding-top: 10px; /* Space for tooltips */
+          padding-top: 20px; /* More space for tooltips */
+        }
+        /* Ensure tooltip stays above Gantt and other fixed elements */
+        .job-card-condensed:hover {
+          z-index: 10000;
         }
       `}</style>
     </div>
