@@ -31,17 +31,16 @@ export function UnscheduledBucket({ jobs, onSelectJob }: UnscheduledBucketProps)
               >
                 {/* Drag Handle Bar */}
                 <div 
-                  className="w-6 bg-gray-50 border-r border-gray-100 flex items-center justify-center cursor-move hover:bg-primary-50 hover:text-primary-600 transition-colors rounded-l-xl"
+                  className="drag-handle"
                   draggable
                   onDragStart={(e) => {
                     e.dataTransfer.setData('jobId', job.id!);
                   }}
                   title="Drag to schedule"
                 >
-                  <div className="flex flex-col gap-1 text-gray-300">
-                    <div className="w-1 h-1 bg-current rounded-full"></div>
-                    <div className="w-1 h-1 bg-current rounded-full"></div>
-                    <div className="w-1 h-1 bg-current rounded-full"></div>
+                  <div className="drag-handle-dots">
+                    <span></span><span></span><span></span>
+                    <span></span><span></span><span></span>
                   </div>
                 </div>
 
@@ -335,6 +334,40 @@ export function UnscheduledBucket({ jobs, onSelectJob }: UnscheduledBucketProps)
 
         .unscheduled-bucket {
           padding-top: 20px;
+        }
+
+        .drag-handle {
+          width: 24px;
+          background-color: #f1f5f9; /* gray-100 */
+          border-right: 1px solid #e2e8f0; /* gray-200 */
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: grab;
+          transition: background-color 0.2s;
+          border-top-left-radius: 12px;
+          border-bottom-left-radius: 12px;
+        }
+
+        .drag-handle:hover {
+          background-color: #dbeafe; /* blue-100 */
+        }
+
+        .drag-handle-dots {
+          display: grid;
+          grid-template-columns: repeat(2, 4px);
+          gap: 3px;
+        }
+
+        .drag-handle-dots span {
+          width: 3px;
+          height: 3px;
+          background-color: #94a3b8; /* gray-400 */
+          border-radius: 50%;
+        }
+
+        .drag-handle:hover .drag-handle-dots span {
+          background-color: #3b82f6; /* blue-500 */
         }
 
         .job-card-condensed:hover {
