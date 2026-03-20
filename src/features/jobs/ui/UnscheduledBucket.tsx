@@ -55,8 +55,8 @@ export function UnscheduledBucket({ jobs, onSelectJob }: UnscheduledBucketProps)
                     <div className="flex -space-x-1 overflow-hidden shrink-0">
                       {personnel.length > 0 ? (
                         personnel.slice(0, 3).map((p, i) => (
-                          <div key={i} className="w-5 h-5 rounded-full bg-primary-100 border border-white flex items-center justify-center text-[8px] font-bold text-primary-700" title={p.personnel_name}>
-                             {p.personnel_name?.split(' ').map((n: string) => n[0]).join('')}
+                          <div key={i} className="w-5 h-5 rounded-full bg-primary-100 border border-white flex items-center justify-center text-[8px] font-bold text-primary-700" title={p.personnel_name || 'Staff'}>
+                             {(p.personnel_name || 'S').split(' ').map((n: string) => n[0] || '').join('').toUpperCase()}
                           </div>
                         ))
                       ) : (
