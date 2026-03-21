@@ -83,7 +83,11 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
         <div ref={scrollContainerRef} className="calendar-timeline-scroll flex-1 overflow-x-auto no-scrollbar scroll-smooth">
           <div className="calendar-timeline-header flex border-b border-gray-100 relative" style={{ width: '3840px' }}>
             {timeBlocks.map((time, i) => (
-              <div key={i} className="calendar-time-block w-[80px] shrink-0 p-3 text-center border-r border-gray-50 last:border-0">
+              <div 
+                key={i} 
+                className="calendar-time-block shrink-0 p-3 text-center border-r border-gray-50 last:border-0"
+                style={{ width: '80px' }}
+              >
                 <span className="text-[10px] font-bold text-gray-400">{i % 2 === 0 ? time : ''}</span>
               </div>
             ))}
@@ -106,7 +110,8 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                   {timeBlocks.map((_, i) => (
                     <div 
                       key={i} 
-                      className="calendar-slot w-[80px] border-r border-gray-50/50 last:border-0 relative transition-all"
+                      className="calendar-slot border-r border-gray-50/50 last:border-0 relative transition-all shrink-0"
+                      style={{ width: '80px' }}
                       onDragOver={(e) => {
                         e.preventDefault();
                         (e.currentTarget as HTMLElement).classList.add('is-draggover');
