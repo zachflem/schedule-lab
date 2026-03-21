@@ -38,8 +38,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
     if (scrollContainerRef.current) {
         // Center on 12:00 PM
         // 48 blocks total. Midday is index 24.
-        // Each block is 60px wide (specified in CSS below)
-        const blockWidth = 60;
+        const blockWidth = 80;
         const middayOffset = 24 * blockWidth;
         const containerWidth = scrollContainerRef.current.clientWidth;
         scrollContainerRef.current.scrollLeft = middayOffset - (containerWidth / 2);
@@ -82,17 +81,17 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">10-Day Forecast</span>
         </div>
         <div ref={scrollContainerRef} className="calendar-timeline-scroll flex-1 overflow-x-auto no-scrollbar scroll-smooth">
-          <div className="calendar-timeline-header flex border-b border-gray-100 relative" style={{ width: '2880px' }}>
+          <div className="calendar-timeline-header flex border-b border-gray-100 relative" style={{ width: '3840px' }}>
             {timeBlocks.map((time, i) => (
-              <div key={i} className="calendar-time-block w-[60px] shrink-0 p-3 text-center border-r border-gray-50 last:border-0">
+              <div key={i} className="calendar-time-block w-[80px] shrink-0 p-3 text-center border-r border-gray-50 last:border-0">
                 <span className="text-[10px] font-bold text-gray-400">{i % 2 === 0 ? time : ''}</span>
               </div>
             ))}
             {/* Midday indicator line */}
-            <div className="absolute top-0 bottom-0 w-1 bg-primary-500/20 z-0" style={{ left: '1440px' }}></div>
+            <div className="absolute top-0 bottom-0 w-1 bg-primary-500/20 z-0" style={{ left: '1920px' }}></div>
           </div>
           
-          <div className="calendar-body relative" style={{ width: '2880px' }}>
+          <div className="calendar-body relative" style={{ width: '3840px' }}>
             {days.map(day => (
               <div key={day.toISOString()} className="calendar-day-row flex border-b border-gray-50 last:border-0 hover:bg-gray-50/30 transition-colors group">
                 <div className="calendar-date-label sticky-left bg-white group-hover:bg-gray-50/50 border-r border-gray-100 z-20 w-48 shrink-0 p-4 flex flex-col justify-center">
@@ -107,7 +106,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                   {timeBlocks.map((_, i) => (
                     <div 
                       key={i} 
-                      className="calendar-slot w-[60px] h-20 border-r border-gray-50/50 last:border-0 relative transition-all"
+                      className="calendar-slot w-[80px] border-r border-gray-50/50 last:border-0 relative transition-all"
                       onDragOver={(e) => {
                         e.preventDefault();
                         (e.currentTarget as HTMLElement).classList.add('is-draggover');
@@ -134,38 +133,96 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                       const startMinutes = start.getHours() * 60 + start.getMinutes();
                       const durationMinutes = (end.getTime() - start.getTime()) / 60000;
                       
-                      // Each minute is 2px (since 30 mins = 60px)
-                      const left = (startMinutes * 2);
-                      const width = Math.max(durationMinutes * 2, 40); // Min width for visibility
+                      // Each minute is 2.666px (since 30 mins = 80px)
+                      const left = (startMinutes * (80 / 30));
+                      const width = Math.max(durationMinutes * (80 / 30), 60);
 
                       const jobPeople = job.resources?.filter(r => r.resource_type === 'Personnel') || [];
+                      const jobAssets = job.resources?.filter(r => r.resource_type === 'Asset') || [];
 
                       return (
                         <div 
                           key={`${job.id}-${idx}`}
-                          className="pointer-events-auto bg-white rounded-lg border border-gray-100 shadow-md p-2 hover:scale-[1.02] hover:shadow-xl transition-all absolute flex flex-col justify-between overflow-hidden cursor-pointer"
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('jobId', job.id!);
+                          }}
+                          className="calendar-job-item group/job pointer-events-auto bg-white rounded-lg border border-gray-100 shadow-md p-2 hover:scale-[1.01] hover:shadow-xl transition-all absolute flex flex-col justify-between overflow-visible cursor-grab active:cursor-grabbing"
                           style={{
                             left: `${left}px`,
                             width: `${width}px`,
-                            top: '4px',
-                            bottom: '4px',
+                            top: '8px',
+                            bottom: '8px',
                             zIndex: 10,
-                            borderLeft: '3px solid var(--color-primary-600)'
+                            borderLeft: '4px solid var(--color-primary-600)'
                           }}
                         >
-                          <div className="flex flex-col gap-0.5">
-                              <div className="text-[9px] font-black text-gray-900 leading-tight truncate uppercase tracking-tighter">
+                          <div className="flex flex-col gap-0.5 pointer-events-none">
+                              <div className="text-[10px] font-black text-gray-900 leading-tight truncate uppercase tracking-tighter">
                                   {job.customer_name}
                               </div>
-                              <div className="text-[8px] font-bold text-gray-400 line-clamp-1">{job.job_brief}</div>
+                              <div className="text-[9px] font-bold text-gray-400 line-clamp-2">{job.job_brief}</div>
                           </div>
 
-                          <div className="flex gap-0.5 mt-1 overflow-hidden">
-                              {jobPeople.slice(0, 2).map((p, pIdx) => (
-                                  <span key={pIdx} className="text-[7px] px-1 py-0.5 bg-primary-50 text-primary-700 rounded-sm font-bold truncate">
+                          <div className="flex gap-0.5 mt-1 overflow-hidden pointer-events-none">
+                              {jobPeople.slice(0, 3).map((p, pIdx) => (
+                                  <span key={pIdx} className="text-[8px] px-1.5 py-0.5 bg-primary-50 text-primary-700 rounded-sm font-bold truncate">
                                       {p.personnel_name?.split(' ')[0]}
                                   </span>
                               ))}
+                          </div>
+
+                          {/* Hover Tooltip - Copied from UnscheduledBucket */}
+                          <div className="job-card-tooltip absolute invisible group-hover/job:visible pointer-events-none transition-all z-[1000] opacity-0 translate-y-[-5px]">
+                            <div className="tooltip-header">
+                              <div className="tooltip-customer">{job.customer_name}</div>
+                              <div className="tooltip-id">{job.id?.slice(-6).toUpperCase()}</div>
+                            </div>
+                            
+                            <div className="tooltip-body">
+                              <div className="tooltip-status-row">
+                                <div>
+                                  <div className="tooltip-label">Scheduled Time</div>
+                                  <div className="tooltip-value tooltip-value--primary">
+                                      {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                </div>
+                                <div className="tooltip-badge">
+                                  {job.job_type || 'General'}
+                                </div>
+                              </div>
+                              
+                              {job.job_brief && (
+                                <div>
+                                  <div className="tooltip-label">Job Brief</div>
+                                  <div className="tooltip-brief">{job.job_brief}</div>
+                                </div>
+                              )}
+
+                              <div className="tooltip-resources">
+                                 <div>
+                                   <div className="tooltip-label">Staff</div>
+                                   <div className="tooltip-resource-list">
+                                     {jobPeople.length > 0 ? (
+                                       jobPeople.slice(0, 3).map((p, i) => (
+                                         <div key={i} className="tooltip-resource-item">• {p.personnel_name}</div>
+                                       ))
+                                     ) : <span className="tooltip-unassigned">None</span>}
+                                   </div>
+                                 </div>
+                                 <div>
+                                   <div className="tooltip-label">Assets</div>
+                                   <div className="tooltip-resource-list">
+                                     {jobAssets.length > 0 ? (
+                                       jobAssets.slice(0, 3).map((a, i) => (
+                                         <div key={i} className="tooltip-resource-item">• {a.asset_name}</div>
+                                       ))
+                                     ) : <span className="tooltip-unassigned">None</span>}
+                                   </div>
+                                 </div>
+                              </div>
+                            </div>
+                            <div className="tooltip-triangle"></div>
                           </div>
                         </div>
                       );
@@ -209,7 +266,145 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
             z-index: 20;
         }
         .calendar-view {
-            --calendar-row-height: 5rem;
+            --calendar-row-height: 7rem;
+        }
+        .calendar-day-row {
+            height: var(--calendar-row-height);
+        }
+        
+        /* Tooltip Styles (Mirroring UnscheduledBucket) */
+        .job-card-tooltip {
+          z-index: 9999;
+          background-color: #0f172a;
+          color: white;
+          padding: 12px;
+          border-radius: 8px;
+          width: 280px;
+          bottom: calc(100% + 15px);
+          left: 0;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+          border: 1px solid #334155;
+          opacity: 0;
+          transform: translateY(-5px);
+          transition: all 0.2s ease;
+        }
+        
+        .calendar-job-item:hover .job-card-tooltip {
+          opacity: 1;
+          visibility: visible;
+          transform: translateY(0);
+          transition-delay: 200ms;
+        }
+
+        .tooltip-header {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+          border-bottom: 1px solid #1e293b;
+          padding-bottom: 4px;
+        }
+
+        .tooltip-customer {
+          font-size: 10px;
+          font-weight: 900;
+          text-transform: uppercase;
+          color: #60a5fa;
+        }
+
+        .tooltip-id {
+          font-size: 9px;
+          color: #64748b;
+          background-color: #1e293b;
+          padding: 0 4px;
+          border-radius: 2px;
+        }
+
+        .tooltip-body {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .tooltip-status-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background-color: rgba(30, 41, 59, 0.5);
+          padding: 6px;
+          border-radius: 6px;
+        }
+
+        .tooltip-label {
+          font-size: 8px;
+          color: #64748b;
+          text-transform: uppercase;
+          font-weight: 900;
+        }
+
+        .tooltip-value {
+          font-size: 11px;
+          font-weight: 700;
+        }
+
+        .tooltip-value--primary {
+          color: #93c5fd;
+        }
+
+        .tooltip-badge {
+          font-size: 10px;
+          font-weight: 700;
+          padding: 2px 8px;
+          background-color: rgba(51, 65, 85, 0.5);
+          color: #cbd5e1;
+          border-radius: 9999px;
+          border: 1px solid #475569;
+        }
+
+        .tooltip-brief {
+          font-size: 11px;
+          color: #e2e8f0;
+          line-height: 1.4;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .tooltip-resources {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          padding-top: 8px;
+          border-top: 1px solid #1e293b;
+        }
+
+        .tooltip-resource-list {
+          font-size: 10px;
+          color: #cbd5e1;
+        }
+
+        .tooltip-resource-item {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          margin-bottom: 2px;
+        }
+
+        .tooltip-unassigned {
+          color: #475569;
+          font-style: italic;
+        }
+
+        .tooltip-triangle {
+          position: absolute;
+          bottom: -4px;
+          left: 24px;
+          width: 8px;
+          height: 8px;
+          background-color: #0f172a;
+          border-right: 1px solid #334155;
+          border-bottom: 1px solid #334155;
+          transform: rotate(45deg);
         }
       `}</style>
     </div>

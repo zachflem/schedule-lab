@@ -4,13 +4,33 @@ import { formatRecordId } from '@/shared/lib/format';
 interface UnscheduledBucketProps {
   jobs: JobWithResources[];
   onSelectJob: (job: JobWithResources) => void;
+  onUnschedule?: (jobId: string) => void;
 }
 
-export function UnscheduledBucket({ jobs, onSelectJob }: UnscheduledBucketProps) {
+export function UnscheduledBucket({ jobs, onSelectJob, onUnschedule }: UnscheduledBucketProps) {
   const unscheduledJobs = jobs.filter(j => !j.start_time);
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const jobId = e.dataTransfer.getData('jobId');
+    if (jobId && onUnschedule) {
+      onUnschedule(jobId);
+    }
+    (e.currentTarget as HTMLElement).classList.remove('is-drop-target');
+  };
+
   return (
-    <div className="unscheduled-bucket p-4 bg-gray-100 rounded-lg mb-6 shadow-inner">
+    <div 
+      className="unscheduled-bucket p-4 bg-gray-100 rounded-lg mb-6 shadow-inner transition-all"
+      onDragOver={(e) => {
+        e.preventDefault();
+        (e.currentTarget as HTMLElement).classList.add('is-drop-target');
+      }}
+      onDragLeave={(e) => {
+        (e.currentTarget as HTMLElement).classList.remove('is-drop-target');
+      }}
+      onDrop={handleDrop}
+    >
       <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-gray-500 flex justify-between items-center">
         <span>Unscheduled Jobs ({unscheduledJobs.length})</span>
         <span className="text-[10px] font-normal lowercase italic text-gray-400">Tip: Drag handle (⋮⋮) to timeline to schedule</span>
@@ -372,6 +392,11 @@ export function UnscheduledBucket({ jobs, onSelectJob }: UnscheduledBucketProps)
 
         .job-card-condensed:hover {
           z-index: 10000;
+        }
+        .unscheduled-bucket.is-drop-target {
+          background-color: var(--color-primary-100);
+          box-shadow: inset 0 0 0 2px var(--color-primary-500);
+          transform: scale(1.01);
         }
       `}</style>
     </div>

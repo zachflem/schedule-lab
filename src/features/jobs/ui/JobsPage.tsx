@@ -11,7 +11,7 @@ import { api } from '@/shared/lib/api';
 import { useState, useMemo } from 'react';
 
 export function JobsPage() {
-  const { jobs, loading, error, loadJobs, updateJob, updateJobSchedule } = useJobs();
+  const { jobs, loading, error, loadJobs, updateJob, updateJobSchedule, removeJobSchedule } = useJobs();
   const location = useLocation();
   const isScheduleView = location.pathname === '/schedule';
   
@@ -117,6 +117,9 @@ export function JobsPage() {
             onSelectJob={(job) => {
               setEditingJob(job);
             }} 
+            onUnschedule={(jobId) => {
+              removeJobSchedule(jobId);
+            }}
           />
 
           <div className="mb-4 flex justify-between items-center">
