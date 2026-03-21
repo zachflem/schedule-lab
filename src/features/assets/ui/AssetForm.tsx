@@ -34,6 +34,7 @@ export function AssetForm({ initialData, onSave, onCancel, saving }: AssetFormPr
     service_interval_type: 'hours',
     service_interval_value: 250,
     last_service_meter_reading: 0,
+    minimum_hire_period: 0,
   });
 
   const [assetTypes, setAssetTypes] = useState<AssetTypeEnriched[]>([]);
@@ -177,14 +178,26 @@ export function AssetForm({ initialData, onSave, onCancel, saving }: AssetFormPr
               />
             </div>
           </div>
-          <div className="form-group">
-            <label className="form-label">Required Operators</label>
-            <input 
-              type="number"
-              className="form-input"
-              value={formData.required_operators || 1}
-              onChange={e => handleInputChange('required_operators', parseInt(e.target.value))}
-            />
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label">Required Operators</label>
+              <input 
+                type="number"
+                className="form-input"
+                value={formData.required_operators || 1}
+                onChange={e => handleInputChange('required_operators', parseInt(e.target.value))}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Min. Hire Period (mins)</label>
+              <input 
+                type="number"
+                className="form-input"
+                value={formData.minimum_hire_period || 0}
+                onChange={e => handleInputChange('minimum_hire_period', parseInt(e.target.value))}
+                placeholder="e.g. 240"
+              />
+            </div>
           </div>
         </div>
       </div>

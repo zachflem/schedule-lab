@@ -185,6 +185,7 @@ export const AssetSchema = z.object({
   service_interval_type: z.enum(['hours', 'odometer']).default('hours'),
   service_interval_value: z.number().default(250),
   last_service_meter_reading: z.number().default(0),
+  minimum_hire_period: z.number().int().min(0).default(0),
 });
 export type Asset = z.infer<typeof AssetSchema>;
 

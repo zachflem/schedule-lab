@@ -128,6 +128,31 @@ export function JobEditModal({ job, onClose, onSave }: JobEditModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check minimum hire period
+    if (formData.start_time && formData.end_time && selectedAssets.length > 0) {
+      const start = new Date(formData.start_time);
+      const end = new Date(formData.end_time);
+      const durationMinutes = (end.getTime() - start.getTime()) / 60000;
+      
+      const breachAssets = allAssets.filter(a => 
+        selectedAssets.includes(a.id!) && 
+        a.minimum_hire_period > 0 && 
+        durationMinutes < a.minimum_hire_period
+      );
+      
+      if (breachAssets.length > 0) {
+        const msg = `The following assets have a minimum hire period that is not met:
+${breachAssets.map(a => `- ${a.name}: ${a.minimum_hire_period} mins`).join('\n')}
+
+The current booking is only ${durationMinutes} minutes. Do you want to proceed anyway?`;
+        
+        if (!window.confirm(msg)) {
+          return;
+        }
+      }
+    }
+
     setIsSubmitting(true);
     setError(null);
     try {
