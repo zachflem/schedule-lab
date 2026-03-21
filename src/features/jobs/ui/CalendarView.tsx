@@ -35,14 +35,16 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
   }, []);
 
   useEffect(() => {
-    if (scrollContainerRef.current) {
-        // Center on 12:00 PM
-        // 48 blocks total. Midday is index 24.
-        const blockWidth = 80;
-        const middayOffset = 24 * blockWidth;
-        const containerWidth = scrollContainerRef.current.clientWidth;
-        scrollContainerRef.current.scrollLeft = middayOffset - (containerWidth / 2);
-    }
+    // Small timeout to ensure layout has stabilized
+    const timer = setTimeout(() => {
+      if (scrollContainerRef.current) {
+          const blockWidth = 80;
+          const middayOffset = 24 * blockWidth;
+          const containerWidth = scrollContainerRef.current.clientWidth;
+          scrollContainerRef.current.scrollLeft = middayOffset - (containerWidth / 2);
+      }
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleDrop = (e: React.DragEvent, date: Date, blockIndex: number) => {
@@ -96,146 +98,193 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
           </div>
           
           <div className="calendar-body relative" style={{ width: '3840px' }}>
-            {days.map(day => (
-              <div key={day.toISOString()} className="calendar-day-row flex border-b border-gray-50 last:border-0 hover:bg-gray-50/30 transition-colors group">
-                <div className="calendar-date-label sticky-left bg-white group-hover:bg-gray-50/50 border-r border-gray-100 z-20 w-48 shrink-0 p-4 flex flex-col justify-center">
-                    <div className="text-[10px] font-bold text-primary-500 uppercase tracking-widest mb-0.5">{day.toLocaleDateString('en-AU', { weekday: 'short' })}</div>
-                    <div className="text-xl font-black text-gray-900 leading-none flex items-baseline gap-1">
-                        {day.getDate()}
-                        <span className="text-[10px] text-gray-400 font-bold uppercase">{day.toLocaleDateString('en-AU', { month: 'short' })}</span>
-                    </div>
-                </div>
-                
-                <div className="flex-1 flex relative">
-                  {timeBlocks.map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="calendar-slot border-r border-gray-50/50 last:border-0 relative transition-all shrink-0"
-                      style={{ width: '80px' }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        (e.currentTarget as HTMLElement).classList.add('is-draggover');
-                      }}
-                      onDragLeave={(e) => {
-                        (e.currentTarget as HTMLElement).classList.remove('is-draggover');
-                      }}
-                      onDrop={(e) => {
-                        (e.currentTarget as HTMLElement).classList.remove('is-draggover');
-                        handleDrop(e, day, i);
-                      }}
-                    />
-                  ))}
+            {days.map(day => {
+              // Group and track overlapping jobs for this day
+              const jobsForDay = jobs.filter(job => {
+                if (!job.start_time) return false;
+                const jobStart = new Date(job.start_time);
+                return jobStart.toDateString() === day.toDateString();
+              }).sort((a, b) => new Date(a.start_time!).getTime() - new Date(b.start_time!).getTime());
 
-                  {/* Jobs on this day */}
-                  <div className="absolute inset-0 pointer-events-none p-1">
-                    {jobs.filter(job => {
-                      if (!job.start_time) return false;
-                      const jobStart = new Date(job.start_time);
-                      return jobStart.toDateString() === day.toDateString();
-                    }).map((job, idx) => {
-                      const start = new Date(job.start_time!);
-                      const end = new Date(job.end_time!);
-                      const startMinutes = start.getHours() * 60 + start.getMinutes();
-                      const durationMinutes = (end.getTime() - start.getTime()) / 60000;
-                      
-                      // Each minute is 2.666px (since 30 mins = 80px)
-                      const left = (startMinutes * (80 / 30));
-                      const width = Math.max(durationMinutes * (80 / 30), 60);
+              const tracks: JobWithResources[][] = [];
+              jobsForDay.forEach(job => {
+                let trackIndex = tracks.findIndex(track => {
+                  const lastJob = track[track.length - 1];
+                  // Allow 1 minute gap to prevent sub-pixel overlap issues
+                  return new Date(job.start_time!).getTime() >= new Date(lastJob.end_time!).getTime() - 60000;
+                });
+                if (trackIndex === -1) {
+                  tracks.push([job]);
+                } else {
+                  tracks[trackIndex].push(job);
+                }
+              });
 
-                      const jobPeople = job.resources?.filter(r => r.resource_type === 'Personnel') || [];
-                      const jobAssets = job.resources?.filter(r => r.resource_type === 'Asset') || [];
+              const totalTracks = Math.max(tracks.length, 1);
+              const rowHeight = totalTracks > 1 ? `${totalTracks * 4 + 2}rem` : '7rem';
 
-                      return (
-                        <div 
-                          key={`${job.id}-${idx}`}
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData('jobId', job.id!);
-                          }}
-                          className="calendar-job-item group/job pointer-events-auto bg-white rounded-lg border border-gray-100 shadow-md p-2 hover:scale-[1.01] hover:shadow-xl transition-all absolute flex flex-col justify-between overflow-visible cursor-grab active:cursor-grabbing"
-                          style={{
-                            left: `${left}px`,
-                            width: `${width}px`,
-                            top: '8px',
-                            bottom: '8px',
-                            zIndex: 10,
-                            borderLeft: '4px solid var(--color-primary-600)'
-                          }}
-                        >
-                          <div className="flex flex-col gap-0.5 pointer-events-none">
-                              <div className="text-[10px] font-black text-gray-900 leading-tight truncate uppercase tracking-tighter">
-                                  {job.customer_name}
+              return (
+                <div key={day.toISOString()} className="calendar-day-row flex border-b border-gray-50 last:border-0 hover:bg-gray-50/30 transition-colors group" style={{ height: rowHeight }}>
+                  <div className="calendar-date-label sticky-left bg-white group-hover:bg-gray-50/50 border-r border-gray-100 z-20 w-48 shrink-0 p-4 flex flex-col justify-center">
+                      <div className="text-[10px] font-bold text-primary-500 uppercase tracking-widest mb-0.5">{day.toLocaleDateString('en-AU', { weekday: 'short' })}</div>
+                      <div className="text-xl font-black text-gray-900 leading-none flex items-baseline gap-1">
+                          {day.getDate()}
+                          <span className="text-[10px] text-gray-400 font-bold uppercase">{day.toLocaleDateString('en-AU', { month: 'short' })}</span>
+                      </div>
+                  </div>
+                  
+                  <div className="flex-1 flex relative">
+                    {timeBlocks.map((_, i) => (
+                      <div 
+                        key={i} 
+                        className="calendar-slot border-r border-gray-50/50 last:border-0 relative transition-all shrink-0"
+                        style={{ width: '80px' }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          (e.currentTarget as HTMLElement).classList.add('is-draggover');
+                        }}
+                        onDragLeave={(e) => {
+                          (e.currentTarget as HTMLElement).classList.remove('is-draggover');
+                        }}
+                        onDrop={(e) => {
+                          (e.currentTarget as HTMLElement).classList.remove('is-draggover');
+                          handleDrop(e, day, i);
+                        }}
+                      />
+                    ))}
+
+                    {/* Jobs on this day rendered in tracks */}
+                    <div className="absolute inset-0 pointer-events-none p-1">
+                      {tracks.flatMap((track, trackIdx) => 
+                        track.map((job, idx) => {
+                          const start = new Date(job.start_time!);
+                          const end = new Date(job.end_time!);
+                          const startMinutes = start.getHours() * 60 + start.getMinutes();
+                          const durationMinutes = (end.getTime() - start.getTime()) / 60000;
+                          
+                          // Each minute is 2.666px (since 30 mins = 80px)
+                          const left = (startMinutes * (80 / 30));
+                          const width = Math.max(durationMinutes * (80 / 30), 60);
+
+                          const jobPeople = job.resources?.filter(r => r.resource_type === 'Personnel') || [];
+                          const jobAssets = job.resources?.filter(r => r.resource_type === 'Asset') || [];
+
+                          // Position based on track
+                          const topOffset = trackIdx * 64 + 8; // Each track gets 64px height
+
+                          return (
+                            <div 
+                              key={`${job.id}-${trackIdx}-${idx}`}
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData('jobId', job.id!);
+                              }}
+                              className="calendar-job-item group/job pointer-events-auto bg-white rounded-lg border border-gray-100 shadow-md flex transition-all absolute overflow-visible cursor-grab active:cursor-grabbing hover:z-50 hover:scale-[1.01] hover:shadow-xl"
+                              style={{
+                                left: `${left}px`,
+                                width: `${width}px`,
+                                top: `${topOffset}px`,
+                                height: '56px',
+                                zIndex: 10,
+                                borderLeft: '4px solid var(--color-primary-600)'
+                              }}
+                            >
+                              {/* Drag Handle from UnscheduledBucket */}
+                              <div className="calendar-job-drag-handle w-5 bg-gray-50 border-r border-gray-100 flex items-center justify-center shrink-0 rounded-l-lg hover:bg-primary-50 group-hover/job:bg-gray-100 transition-colors">
+                                  <div className="flex flex-col gap-1 opacity-40 group-hover/job:opacity-80">
+                                      <div className="flex gap-0.5">
+                                          <div className="w-0.5 h-0.5 bg-gray-600 rounded-full"></div>
+                                          <div className="w-0.5 h-0.5 bg-gray-600 rounded-full"></div>
+                                      </div>
+                                      <div className="flex gap-0.5">
+                                          <div className="w-0.5 h-0.5 bg-gray-600 rounded-full"></div>
+                                          <div className="w-0.5 h-0.5 bg-gray-600 rounded-full"></div>
+                                      </div>
+                                      <div className="flex gap-0.5">
+                                          <div className="w-0.5 h-0.5 bg-gray-600 rounded-full"></div>
+                                          <div className="w-0.5 h-0.5 bg-gray-600 rounded-full"></div>
+                                      </div>
+                                  </div>
                               </div>
-                              <div className="text-[9px] font-bold text-gray-400 line-clamp-2">{job.job_brief}</div>
-                          </div>
 
-                          <div className="flex gap-0.5 mt-1 overflow-hidden pointer-events-none">
-                              {jobPeople.slice(0, 3).map((p, pIdx) => (
-                                  <span key={pIdx} className="text-[8px] px-1.5 py-0.5 bg-primary-50 text-primary-700 rounded-sm font-bold truncate">
-                                      {p.personnel_name?.split(' ')[0]}
-                                  </span>
-                              ))}
-                          </div>
+                              <div className="flex-1 p-1.5 flex flex-col justify-between overflow-hidden">
+                                <div className="flex flex-col gap-0.5 pointer-events-none">
+                                    <div className="text-[10px] font-black text-gray-900 leading-tight truncate uppercase tracking-tighter">
+                                        {job.customer_name}
+                                    </div>
+                                    <div className="text-[9px] font-bold text-gray-400 truncate">{job.job_brief}</div>
+                                </div>
 
-                          {/* Hover Tooltip - Copied from UnscheduledBucket */}
-                          <div className="job-card-tooltip absolute invisible group-hover/job:visible pointer-events-none transition-all z-[1000] opacity-0 translate-y-[-5px]">
-                            <div className="tooltip-header">
-                              <div className="tooltip-customer">{job.customer_name}</div>
-                              <div className="tooltip-id">{job.id?.slice(-6).toUpperCase()}</div>
-                            </div>
-                            
-                            <div className="tooltip-body">
-                              <div className="tooltip-status-row">
-                                <div>
-                                  <div className="tooltip-label">Scheduled Time</div>
-                                  <div className="tooltip-value tooltip-value--primary">
-                                      {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                <div className="flex gap-1 mt-1 overflow-hidden pointer-events-none">
+                                    {jobPeople.slice(0, 3).map((p, pIdx) => (
+                                        <span key={pIdx} className="text-[8px] px-1.5 py-0.5 bg-primary-50 text-primary-700 rounded-sm font-bold truncate">
+                                            {p.personnel_name?.split(' ')[0]}
+                                        </span>
+                                    ))}
+                                </div>
+                              </div>
+
+                              {/* Hover Tooltip */}
+                              <div className="job-card-tooltip absolute invisible group-hover/job:visible pointer-events-none transition-all z-[1000] opacity-0 translate-y-[-5px]">
+                                <div className="tooltip-header">
+                                  <div className="tooltip-customer">{job.customer_name}</div>
+                                  <div className="tooltip-id">{job.id?.slice(-6).toUpperCase()}</div>
+                                </div>
+                                
+                                <div className="tooltip-body">
+                                  <div className="tooltip-status-row">
+                                    <div>
+                                      <div className="tooltip-label">Scheduled Time</div>
+                                      <div className="tooltip-value tooltip-value--primary">
+                                          {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                      </div>
+                                    </div>
+                                    <div className="tooltip-badge">
+                                      {job.job_type || 'General'}
+                                    </div>
+                                  </div>
+                                  
+                                  {job.job_brief && (
+                                    <div>
+                                      <div className="tooltip-label">Job Brief</div>
+                                      <div className="tooltip-brief">{job.job_brief}</div>
+                                    </div>
+                                  )}
+
+                                  <div className="tooltip-resources">
+                                     <div>
+                                       <div className="tooltip-label">Staff</div>
+                                       <div className="tooltip-resource-list">
+                                         {jobPeople.length > 0 ? (
+                                           jobPeople.slice(0, 3).map((p, i) => (
+                                             <div key={i} className="tooltip-resource-item">• {p.personnel_name}</div>
+                                           ))
+                                         ) : <span className="tooltip-unassigned">None</span>}
+                                       </div>
+                                     </div>
+                                     <div>
+                                       <div className="tooltip-label">Assets</div>
+                                       <div className="tooltip-resource-list">
+                                         {jobAssets.length > 0 ? (
+                                           jobAssets.slice(0, 3).map((a, i) => (
+                                             <div key={i} className="tooltip-resource-item">• {a.asset_name}</div>
+                                           ))
+                                         ) : <span className="tooltip-unassigned">None</span>}
+                                       </div>
+                                     </div>
                                   </div>
                                 </div>
-                                <div className="tooltip-badge">
-                                  {job.job_type || 'General'}
-                                </div>
-                              </div>
-                              
-                              {job.job_brief && (
-                                <div>
-                                  <div className="tooltip-label">Job Brief</div>
-                                  <div className="tooltip-brief">{job.job_brief}</div>
-                                </div>
-                              )}
-
-                              <div className="tooltip-resources">
-                                 <div>
-                                   <div className="tooltip-label">Staff</div>
-                                   <div className="tooltip-resource-list">
-                                     {jobPeople.length > 0 ? (
-                                       jobPeople.slice(0, 3).map((p, i) => (
-                                         <div key={i} className="tooltip-resource-item">• {p.personnel_name}</div>
-                                       ))
-                                     ) : <span className="tooltip-unassigned">None</span>}
-                                   </div>
-                                 </div>
-                                 <div>
-                                   <div className="tooltip-label">Assets</div>
-                                   <div className="tooltip-resource-list">
-                                     {jobAssets.length > 0 ? (
-                                       jobAssets.slice(0, 3).map((a, i) => (
-                                         <div key={i} className="tooltip-resource-item">• {a.asset_name}</div>
-                                       ))
-                                     ) : <span className="tooltip-unassigned">None</span>}
-                                   </div>
-                                 </div>
+                                <div className="tooltip-triangle"></div>
                               </div>
                             </div>
-                            <div className="tooltip-triangle"></div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
