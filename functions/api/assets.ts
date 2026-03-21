@@ -37,15 +37,17 @@ export const onRequest = methodRouter({
           rate_hourly, rate_after_hours, rate_dry_hire, required_operators,
           cranesafe_expiry, rego_expiry, insurance_expiry,
           current_machine_hours, current_odometer, service_interval_type,
-          service_interval_value, last_service_meter_reading, asset_number, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          service_interval_value, last_service_meter_reading, asset_number, 
+          minimum_hire_period, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         id, a.name, a.asset_type_id, a.category ?? null,
         a.required_qualification_id ?? null, a.rate_hourly ?? null,
         a.rate_after_hours ?? null, a.rate_dry_hire ?? null, a.required_operators,
         a.cranesafe_expiry ?? null, a.rego_expiry ?? null, a.insurance_expiry ?? null,
         a.current_machine_hours, a.current_odometer, a.service_interval_type,
-        a.service_interval_value, a.last_service_meter_reading, a.asset_number ?? null, timestamp, timestamp
+        a.service_interval_value, a.last_service_meter_reading, a.asset_number ?? null,
+        a.minimum_hire_period || 0, timestamp, timestamp
       ),
       ...(rawBody.extension_data ? [
         db.prepare(`

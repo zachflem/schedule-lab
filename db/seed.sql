@@ -48,11 +48,11 @@ INSERT INTO qualifications (id, name, rate_hourly, rate_after_hours) VALUES
 ON CONFLICT(id) DO NOTHING;
 
 -- ASSETS
-INSERT INTO assets (id, name, asset_type_id, category, required_qualification_id, rate_hourly, rate_after_hours, rate_dry_hire, required_operators, cranesafe_expiry, current_machine_hours, current_odometer, service_interval_type, service_interval_value, last_service_meter_reading, asset_number) VALUES
-  ('a01', 'Liebherr LTM 1100', 'at01', '100T', 'q01', 285.00, 427.50, 220.00, 1, '2026-12-31', 4520, 0, 'hours', 250, 4400, 'LTM100'),
-  ('a02', 'Franna AT-20', 'at01', '20T', 'q01', 195.00, 292.50, 150.00, 1, '2026-09-15', 3200, 52000, 'hours', 250, 3100, 'FR20-1'),
-  ('a03', 'CAT 320 Excavator', 'at02', '20T', 'q03', 165.00, 247.50, 130.00, 1, NULL, 2800, 0, 'hours', 500, 2600, 'EX320'),
-  ('a04', 'Isuzu FVZ 1400', 'at03', 'Heavy Rigid', NULL, 95.00, 142.50, 75.00, 1, NULL, 0, 182000, 'odometer', 15000, 175000, 'TRK04')
+INSERT INTO assets (id, name, asset_type_id, category, required_qualification_id, rate_hourly, rate_after_hours, rate_dry_hire, required_operators, cranesafe_expiry, current_machine_hours, current_odometer, service_interval_type, service_interval_value, last_service_meter_reading, asset_number, minimum_hire_period) VALUES
+  ('a01', 'Liebherr LTM 1100', 'at01', '100T', 'q01', 285.00, 427.50, 220.00, 1, '2026-12-31', 4520, 0, 'hours', 250, 4400, 'LTM100', 480),
+  ('a02', 'Franna AT-20', 'at01', '20T', 'q01', 195.00, 292.50, 150.00, 1, '2026-09-15', 3200, 52000, 'hours', 250, 3100, 'FR20-1', 240),
+  ('a03', 'CAT 320 Excavator', 'at02', '20T', 'q03', 165.00, 247.50, 130.00, 1, NULL, 2800, 0, 'hours', 500, 2600, 'EX320', 120),
+  ('a04', 'Isuzu FVZ 1400', 'at03', 'Heavy Rigid', NULL, 95.00, 142.50, 75.00, 1, NULL, 0, 182000, 'odometer', 15000, 175000, 'TRK04', 0)
 ON CONFLICT(id) DO NOTHING;
 
 -- ASSET EXTENSIONS

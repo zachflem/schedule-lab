@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS assets (
   service_interval_value     REAL DEFAULT 250,
   last_service_meter_reading REAL DEFAULT 0,
   asset_number               TEXT,
+  minimum_hire_period        INTEGER DEFAULT 0,
   -- Timestamps
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))

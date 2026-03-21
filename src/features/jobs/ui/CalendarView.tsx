@@ -12,6 +12,11 @@ interface CalendarViewProps {
   daysToShow?: number;
 }
 
+// Global UI Constants for synchronization
+const SLOT_WIDTH = 48; // Space available for 30-minute block (reduced from 80)
+const DATE_COL_WIDTH = 192; // Consistent with Tailwind 'w-48' (12rem)
+const TOTAL_WIDTH = (48 * SLOT_WIDTH) + DATE_COL_WIDTH;
+
 export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 10 }: CalendarViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [extraDays, setExtraDays] = useState(0);
@@ -39,13 +44,11 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
     // Small timeout to ensure layout has stabilized
     const timer = setTimeout(() => {
       if (scrollContainerRef.current) {
-          const blockWidth = 80;
-          const dateColumnWidth = 192; // Correspond to w-48
-          const middayOffset = 24 * blockWidth + dateColumnWidth;
+          const middayOffset = 24 * SLOT_WIDTH + DATE_COL_WIDTH;
           const containerWidth = scrollContainerRef.current.clientWidth;
           scrollContainerRef.current.scrollLeft = middayOffset - (containerWidth / 2);
       }
-    }, 100);
+    }, 150); // Increased slightly for reliability
     return () => clearTimeout(timer);
   }, []);
 
@@ -59,16 +62,28 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
     const mins = (blockIndex % 2) * 30;
     start.setHours(hours, mins, 0, 0);
     
-    // Find the job to see if it has an asset with a minimum hire period
+    // Find the job to see its assigned assets
     const job = jobs.find(j => j.id === jobId);
-    let durationMinutes = 240; // Default 4 hours if no min hire or job not found
+    
+    // Minimum hire period logic:
+    // Should match the HIGHEST minimum hire period of all assigned assets.
+    // Default fallback to 240 mins (4 hours) if no min hire found.
+    let durationMinutes = 240;
 
     if (job && job.resources) {
-        const assetResource = job.resources.find(r => r.resource_type === 'Asset');
-        if (assetResource) {
-            const asset = resources.assets.find(a => a.id === assetResource.asset_id);
-            if (asset && asset.minimum_hire_period > 0) {
-                durationMinutes = asset.minimum_hire_period;
+        const assetResources = job.resources.filter(r => r.resource_type === 'Asset');
+        if (assetResources.length > 0) {
+            let maxMinHire = 0;
+            assetResources.forEach(res => {
+                const asset = resources.assets.find(a => a.id === res.asset_id);
+                if (asset && (asset.minimum_hire_period || 0) > maxMinHire) {
+                    maxMinHire = asset.minimum_hire_period;
+                }
+            });
+            
+            // Only use if a valid min hire was found (otherwise keeps default 240)
+            if (maxMinHire > 0) {
+                durationMinutes = maxMinHire;
             }
         }
     }
@@ -82,24 +97,27 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
     <div className="calendar-view shadow-2xl rounded-2xl overflow-hidden border border-gray-100 bg-white">
       <div className="calendar-header-row flex">
         <div ref={scrollContainerRef} className="calendar-timeline-scroll flex-1 overflow-x-auto no-scrollbar scroll-smooth">
-          <div className="calendar-timeline-header flex border-b border-gray-100 relative" style={{ width: '4032px' }}>
-            <div className="calendar-date-column sticky-left bg-gray-50/80 backdrop-blur-md border-r border-gray-200 z-30 w-48 shrink-0 flex items-center justify-center">
+          <div className="calendar-timeline-header flex border-b border-gray-100 relative" style={{ width: `${TOTAL_WIDTH}px` }}>
+            <div 
+              className="calendar-date-column sticky-left bg-gray-50/80 backdrop-blur-md border-r border-gray-200 z-30 shrink-0 flex items-center justify-center"
+              style={{ width: `${DATE_COL_WIDTH}px` }}
+            >
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Date</span>
             </div>
             {timeBlocks.map((time, i) => (
               <div 
                 key={i} 
                 className="calendar-time-block shrink-0 p-3 text-center border-r border-gray-50 last:border-0"
-                style={{ width: '80px' }}
+                style={{ width: `${SLOT_WIDTH}px` }}
               >
-                <span className="text-[10px] font-bold text-gray-400">{i % 2 === 0 ? time : ''}</span>
+                <span className="text-[10px] font-bold text-gray-400">{i % 2 === 0 ? time.split(':')[0] : ''}</span>
               </div>
             ))}
             {/* Midday indicator line */}
-            <div className="absolute top-0 bottom-0 w-1 bg-primary-500/20 z-0" style={{ left: '2112px' }}></div>
+            <div className="absolute top-0 bottom-0 w-1 bg-primary-500/20 z-0" style={{ left: `${24 * SLOT_WIDTH + DATE_COL_WIDTH}px` }}></div>
           </div>
           
-          <div className="calendar-body relative" style={{ width: '4032px' }}>
+          <div className="calendar-body relative" style={{ width: `${TOTAL_WIDTH}px` }}>
             {days.map(day => {
               // Group and track overlapping jobs for this day
               const jobsForDay = jobs.filter(job => {
@@ -127,7 +145,10 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
 
               return (
                 <div key={day.toISOString()} className="calendar-day-row flex border-b border-gray-50 last:border-0 hover:bg-gray-50/30 transition-colors group" style={{ height: rowHeight }}>
-                  <div className="calendar-date-label sticky-left bg-white group-hover:bg-gray-50/50 border-r border-gray-100 z-20 w-48 shrink-0 p-4 flex flex-col justify-center">
+                  <div 
+                    className="calendar-date-label sticky-left bg-white group-hover:bg-gray-50/50 border-r border-gray-100 z-20 shrink-0 p-4 flex flex-col justify-center"
+                    style={{ width: `${DATE_COL_WIDTH}px` }}
+                  >
                       <div className="text-[10px] font-bold text-primary-500 uppercase tracking-widest mb-0.5">{day.toLocaleDateString('en-AU', { weekday: 'short' })}</div>
                       <div className="text-xl font-black text-gray-900 leading-none flex items-baseline gap-1">
                           {day.getDate()}
@@ -140,7 +161,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                       <div 
                         key={i} 
                         className="calendar-slot border-r border-gray-50/50 last:border-0 relative transition-all shrink-0"
-                        style={{ width: '80px' }}
+                        style={{ width: `${SLOT_WIDTH}px` }}
                         onDragOver={(e) => {
                           e.preventDefault();
                           (e.currentTarget as HTMLElement).classList.add('is-draggover');
@@ -164,9 +185,10 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                           const startMinutes = start.getHours() * 60 + start.getMinutes();
                           const durationMinutes = (end.getTime() - start.getTime()) / 60000;
                           
-                          // Each minute is 2.666px (since 30 mins = 80px)
-                          const left = (startMinutes * (80 / 30));
-                          const width = Math.max(durationMinutes * (80 / 30), 60);
+                          // Scaling factor based on SLOT_WIDTH
+                          const SCALE = SLOT_WIDTH / 30; // pixels per minute
+                          const left = (startMinutes * SCALE);
+                          const width = Math.max(durationMinutes * SCALE, 40);
 
                           const jobPeople = job.resources?.filter(r => r.resource_type === 'Personnel') || [];
                           const jobAssets = job.resources?.filter(r => r.resource_type === 'Asset') || [];
