@@ -1,5 +1,6 @@
 import { useMemo, useRef, useEffect, useState } from 'react';
 import type { JobWithResources } from '../api/useJobs';
+import { formatRecordId } from '@/shared/lib/format';
 
 interface CalendarViewProps {
   jobs: JobWithResources[];
@@ -169,6 +170,10 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                           const jobPeople = job.resources?.filter(r => r.resource_type === 'Personnel') || [];
                           const jobAssets = job.resources?.filter(r => r.resource_type === 'Asset') || [];
 
+                          const getInitials = (name: string) => {
+                            return name.split(' ').map(n => n[0]).join('').toUpperCase();
+                          };
+
                           // Position based on track
                           const topOffset = trackIdx * 64 + 8; // Each track gets 64px height
 
@@ -212,15 +217,19 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                                     <div className="text-[10px] font-black text-gray-900 leading-tight truncate uppercase tracking-tighter">
                                         {job.customer_name}
                                     </div>
-                                    <div className="text-[9px] font-bold text-gray-400 truncate">{job.job_brief}</div>
-                                </div>
-
-                                <div className="flex gap-1 mt-1 overflow-hidden pointer-events-none">
-                                    {jobPeople.slice(0, 3).map((p, pIdx) => (
-                                        <span key={pIdx} className="text-[8px] px-1.5 py-0.5 bg-primary-50 text-primary-700 rounded-sm font-bold truncate">
-                                            {p.personnel_name?.split(' ')[0]}
-                                        </span>
-                                    ))}
+                                    
+                                    <div className="flex flex-wrap gap-1">
+                                        {jobAssets.map((a, aIdx) => (
+                                            <span key={`a-${aIdx}`} className="job-pill job-pill--asset">
+                                                {a.asset_number || a.asset_name.slice(0, 6)}
+                                            </span>
+                                        ))}
+                                        {jobPeople.map((p, pIdx) => (
+                                            <span key={`p-${pIdx}`} className="job-pill job-pill--person">
+                                                {getInitials(p.personnel_name || 'S')}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
                               </div>
 
@@ -228,7 +237,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                               <div className="job-card-tooltip absolute invisible group-hover/job:visible pointer-events-none transition-all z-[1000] opacity-0 translate-y-[-5px]">
                                 <div className="tooltip-header">
                                   <div className="tooltip-customer">{job.customer_name}</div>
-                                  <div className="tooltip-id">{job.id?.slice(-6).toUpperCase()}</div>
+                                  <div className="tooltip-id">{formatRecordId(job.id, job.status_id)}</div>
                                 </div>
                                 
                                 <div className="tooltip-body">
@@ -251,24 +260,44 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                                     </div>
                                   )}
 
+                                  {job.location && (
+                                    <div>
+                                      <div className="tooltip-label">Location</div>
+                                      <div className="tooltip-location">{job.location}</div>
+                                    </div>
+                                  )}
+
+                                  {job.asset_requirement && (
+                                    <div className="tooltip-asset-req">
+                                      <div className="tooltip-label tooltip-label--amber">Asset Requirement</div>
+                                      <div className="tooltip-asset-text">"{job.asset_requirement}"</div>
+                                    </div>
+                                  )}
+
                                   <div className="tooltip-resources">
                                      <div>
-                                       <div className="tooltip-label">Staff</div>
+                                       <div className="tooltip-label">Staff Assigned</div>
                                        <div className="tooltip-resource-list">
                                          {jobPeople.length > 0 ? (
-                                           jobPeople.slice(0, 3).map((p, i) => (
-                                             <div key={i} className="tooltip-resource-item">• {p.personnel_name}</div>
-                                           ))
-                                         ) : <span className="tooltip-unassigned">None</span>}
+                                           <>
+                                             {jobPeople.slice(0, 4).map((p, i) => (
+                                               <div key={i} className="tooltip-resource-item">• {p.personnel_name}</div>
+                                             ))}
+                                             {jobPeople.length > 4 && <div className="tooltip-more">+{jobPeople.length - 4} more</div>}
+                                           </>
+                                         ) : <span className="tooltip-unassigned">Unassigned</span>}
                                        </div>
                                      </div>
                                      <div>
-                                       <div className="tooltip-label">Assets</div>
+                                       <div className="tooltip-label">Assets Allocated</div>
                                        <div className="tooltip-resource-list">
                                          {jobAssets.length > 0 ? (
-                                           jobAssets.slice(0, 3).map((a, i) => (
-                                             <div key={i} className="tooltip-resource-item">• {a.asset_name}</div>
-                                           ))
+                                           <>
+                                             {jobAssets.slice(0, 4).map((a, i) => (
+                                               <div key={i} className="tooltip-resource-item">• {a.asset_name}</div>
+                                             ))}
+                                             {jobAssets.length > 4 && <div className="tooltip-more">+{jobAssets.length - 4} more</div>}
+                                           </>
                                          ) : <span className="tooltip-unassigned">None</span>}
                                        </div>
                                      </div>
@@ -442,6 +471,12 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
           overflow: hidden;
           text-overflow: ellipsis;
           margin-bottom: 2px;
+        }
+
+        .tooltip-more {
+          font-size: 9px;
+          font-style: italic;
+          color: #64748b;
         }
 
         .tooltip-unassigned {

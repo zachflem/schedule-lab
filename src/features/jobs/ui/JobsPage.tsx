@@ -123,7 +123,7 @@ export function JobsPage() {
           />
 
           <div className="mb-4 flex justify-between items-center">
-              <h2 className="text-lg font-bold">Gantt Timeline</h2>
+              <h2 className="text-lg font-bold">Daily Schedule</h2>
               <div className="flex gap-2 text-xs">
                   <span className="flex items-center gap-1"><span className="w-3 h-3 bg-primary-100 border-l-2 border-primary-600"></span> Scheduled</span>
                   <span className="flex items-center gap-1"><span className="w-3 h-3 bg-gray-100 border-l-2 border-gray-400"></span> Confirmed</span>
