@@ -40,7 +40,8 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
     const timer = setTimeout(() => {
       if (scrollContainerRef.current) {
           const blockWidth = 80;
-          const middayOffset = 24 * blockWidth;
+          const dateColumnWidth = 192; // Correspond to w-48
+          const middayOffset = 24 * blockWidth + dateColumnWidth;
           const containerWidth = scrollContainerRef.current.clientWidth;
           scrollContainerRef.current.scrollLeft = middayOffset - (containerWidth / 2);
       }
@@ -80,11 +81,11 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
   return (
     <div className="calendar-view shadow-2xl rounded-2xl overflow-hidden border border-gray-100 bg-white">
       <div className="calendar-header-row flex">
-        <div className="calendar-date-column sticky-left bg-gray-50/80 backdrop-blur-md border-r border-gray-200 z-30 w-48 shrink-0 flex items-center justify-center">
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">10-Day Forecast</span>
-        </div>
         <div ref={scrollContainerRef} className="calendar-timeline-scroll flex-1 overflow-x-auto no-scrollbar scroll-smooth">
-          <div className="calendar-timeline-header flex border-b border-gray-100 relative" style={{ width: '3840px' }}>
+          <div className="calendar-timeline-header flex border-b border-gray-100 relative" style={{ width: '4032px' }}>
+            <div className="calendar-date-column sticky-left bg-gray-50/80 backdrop-blur-md border-r border-gray-200 z-30 w-48 shrink-0 flex items-center justify-center">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Date</span>
+            </div>
             {timeBlocks.map((time, i) => (
               <div 
                 key={i} 
@@ -95,10 +96,10 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
               </div>
             ))}
             {/* Midday indicator line */}
-            <div className="absolute top-0 bottom-0 w-1 bg-primary-500/20 z-0" style={{ left: '1920px' }}></div>
+            <div className="absolute top-0 bottom-0 w-1 bg-primary-500/20 z-0" style={{ left: '2112px' }}></div>
           </div>
           
-          <div className="calendar-body relative" style={{ width: '3840px' }}>
+          <div className="calendar-body relative" style={{ width: '4032px' }}>
             {days.map(day => {
               // Group and track overlapping jobs for this day
               const jobsForDay = jobs.filter(job => {
