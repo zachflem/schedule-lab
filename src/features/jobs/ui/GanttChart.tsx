@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import type { JobWithResources } from '../api/useJobs';
-import { formatRecordId } from '@/shared/lib/format';
 
 interface GanttChartProps {
   jobs: JobWithResources[];
@@ -118,6 +117,11 @@ export function GanttChart({ jobs, resources, startDate, onScheduleUpdate }: Gan
                     if (dayIndex === -1) return null;
 
                     const jobPeople = job.resources?.filter(r => r.resource_type === 'Personnel') || [];
+                    const jobAssets = job.resources?.filter(r => r.resource_type === 'Asset') || [];
+
+                    const getInitials = (name: string) => {
+                        return name.split(' ').map(n => n[0]).join('').toUpperCase();
+                    };
 
                     return (
                       <div 
@@ -128,24 +132,27 @@ export function GanttChart({ jobs, resources, startDate, onScheduleUpdate }: Gan
                           width: `160px`,
                           top: '10px',
                           zIndex: 10,
-                          minHeight: '80px',
+                          minHeight: '70px',
                           borderLeft: '4px solid var(--color-primary-600)'
                         }}
                       >
-                        <div className="flex flex-col gap-0.5">
+                        <div className="flex flex-col gap-1">
                             <div className="text-[11px] font-black text-gray-900 leading-tight truncate uppercase tracking-tighter">
                                 {job.customer_name}
                             </div>
-                            <div className="text-[9px] font-bold text-gray-400 mb-1">{formatRecordId(job.id, job.status_id)}</div>
-                            <div className="text-[10px] text-gray-600 line-clamp-1 leading-snug">{job.job_brief}</div>
-                        </div>
-
-                        <div className="mt-2 flex flex-wrap gap-1 pt-2 border-t border-gray-50">
-                            {jobPeople.length > 0 ? jobPeople.map((p, pIdx) => (
-                                <span key={pIdx} className="job-pill">{p.personnel_name || 'Staff'}</span>
-                            )) : (
-                                <span className="text-[9px] text-gray-300 italic">No staff</span>
-                            )}
+                            
+                            <div className="flex flex-wrap gap-1">
+                                {jobAssets.map((a, aIdx) => (
+                                    <span key={`a-${aIdx}`} className="job-pill job-pill--asset">
+                                        {a.asset_number || a.asset_name.slice(0, 6)}
+                                    </span>
+                                ))}
+                                {jobPeople.map((p, pIdx) => (
+                                    <span key={`p-${pIdx}`} className="job-pill job-pill--person">
+                                        {getInitials(p.personnel_name || 'S')}
+                                    </span>
+                                ))}
+                            </div>
                         </div>
                       </div>
                     );

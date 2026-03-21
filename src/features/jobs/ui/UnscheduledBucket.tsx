@@ -65,28 +65,25 @@ export function UnscheduledBucket({ jobs, onSelectJob, onUnschedule }: Unschedul
                 </div>
 
                 {/* Card Content */}
-                <div className="flex-1 p-2 flex flex-col justify-between cursor-pointer overflow-hidden" onClick={() => onSelectJob(job)}>
-                  <div className="text-[11px] font-black text-gray-900 truncate uppercase tracking-tight">
+                <div className="flex-1 p-2 flex flex-col justify-center cursor-pointer overflow-hidden" onClick={() => onSelectJob(job)}>
+                  <div className="text-[11px] font-black text-gray-900 truncate uppercase tracking-tight mb-1">
                     {job.customer_name}
                   </div>
                   
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <div className="flex -space-x-1 overflow-hidden shrink-0">
-                      {personnel.length > 0 ? (
-                        personnel.slice(0, 3).map((p, i) => (
-                          <div key={i} className="w-5 h-5 rounded-full bg-primary-100 border border-white flex items-center justify-center text-[8px] font-bold text-primary-700" title={p.personnel_name || 'Staff'}>
-                             {(p.personnel_name || 'S').split(' ').map((n: string) => n[0] || '').join('').toUpperCase()}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-[9px] text-gray-400 italic">No Staff</div>
-                      )}
-                      {personnel.length > 3 && <div className="w-5 h-5 rounded-full bg-gray-100 border border-white flex items-center justify-center text-[8px] font-bold text-gray-500">+{personnel.length - 3}</div>}
-                    </div>
-                    <div className="h-3 w-px bg-gray-100"></div>
-                    <div className="text-[10px] text-gray-500 truncate font-medium">
-                      {assets.length > 0 ? `${assets.length} Assets` : 'No Assets'}
-                    </div>
+                  <div className="flex flex-wrap gap-1 overflow-hidden">
+                    {assets.map((a, i) => (
+                      <span key={`a-${i}`} className="job-pill job-pill--asset">
+                        {a.asset_number || a.asset_name.slice(0, 6)}
+                      </span>
+                    ))}
+                    {personnel.map((p, i) => (
+                       <span key={`p-${i}`} className="job-pill job-pill--person">
+                         {(p.personnel_name || 'S').split(' ').map((n: string) => n[0] || '').join('').toUpperCase()}
+                       </span>
+                    ))}
+                    {assets.length === 0 && personnel.length === 0 && (
+                      <span className="text-[9px] text-gray-400 italic">No resources</span>
+                    )}
                   </div>
                 </div>
 

@@ -285,8 +285,21 @@ input, select, textarea, button {
   background: var(--color-gray-100);
   border-radius: 4px;
   font-size: 9px;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--color-gray-600);
+  border: 1px solid var(--color-gray-200);
+}
+
+.job-pill--asset {
+  background: var(--color-warning-50);
+  color: var(--color-warning-600);
+  border-color: var(--color-warning-500);
+}
+
+.job-pill--person {
+  background: var(--color-primary-50);
+  color: var(--color-primary-600);
+  border-color: var(--color-primary-500);
 }
 
 .line-clamp-1 {

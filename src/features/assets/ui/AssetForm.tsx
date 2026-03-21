@@ -97,7 +97,7 @@ export function AssetForm({ initialData, onSave, onCancel, saving }: AssetFormPr
         <div className="card__header">
           <h3 className="card__title">General Information</h3>
         </div>
-        <div className="card__body flex-col gap-4" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           <div className="form-grid">
             <div className="form-group">
               <label className="form-label">Asset Name *</label>
@@ -109,6 +109,18 @@ export function AssetForm({ initialData, onSave, onCancel, saving }: AssetFormPr
                 placeholder="e.g. Franna 25t"
               />
             </div>
+            <div className="form-group">
+              <label className="form-label">Asset Number</label>
+              <input 
+                className="form-input"
+                value={formData.asset_number || ''}
+                onChange={e => handleInputChange('asset_number', e.target.value)}
+                placeholder="e.g. LHMC15"
+              />
+            </div>
+          </div>
+
+          <div className="form-grid">
             <div className="form-group">
               <label className="form-label">Asset Type *</label>
               <select 
@@ -123,9 +135,6 @@ export function AssetForm({ initialData, onSave, onCancel, saving }: AssetFormPr
                 ))}
               </select>
             </div>
-          </div>
-
-          <div className="form-grid">
             <div className="form-group">
               <label className="form-label">Category</label>
               <input 
@@ -135,19 +144,20 @@ export function AssetForm({ initialData, onSave, onCancel, saving }: AssetFormPr
                 placeholder="e.g. Mobile Crane"
               />
             </div>
-            <div className="form-group">
-              <label className="form-label">Required Qualification</label>
-              <select 
-                className="form-input"
-                value={formData.required_qualification_id || ''}
-                onChange={e => handleInputChange('required_qualification_id', e.target.value)}
-              >
-                <option value="">None Required</option>
-                {qualifications.map(q => (
-                  <option key={q.id} value={q.id}>{q.name}</option>
-                ))}
-              </select>
-            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Required Qualification</label>
+            <select 
+              className="form-input"
+              value={formData.required_qualification_id || ''}
+              onChange={e => handleInputChange('required_qualification_id', e.target.value)}
+            >
+              <option value="">None Required</option>
+              {qualifications.map(q => (
+                <option key={q.id} value={q.id}>{q.name}</option>
+              ))}
+            </select>
           </div>
         </div>
       </div>

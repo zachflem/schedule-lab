@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS assets (
   service_interval_type      TEXT DEFAULT 'hours' CHECK(service_interval_type IN ('hours','odometer')),
   service_interval_value     REAL DEFAULT 250,
   last_service_meter_reading REAL DEFAULT 0,
+  asset_number               TEXT,
   -- Timestamps
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))

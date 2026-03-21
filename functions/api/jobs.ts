@@ -35,7 +35,7 @@ export const onRequest = methodRouter({
     if (url.searchParams.get('include') === 'resources') {
       for (const job of jobs) {
         const { results: resources } = await db.prepare(`
-          SELECT jr.*, a.name as asset_name, per.name as personnel_name
+          SELECT jr.*, a.name as asset_name, a.asset_number, per.name as personnel_name
           FROM job_resources jr
           LEFT JOIN assets a ON jr.asset_id = a.id
           LEFT JOIN personnel per ON jr.personnel_id = per.id
