@@ -154,7 +154,7 @@ export function JobsPage() {
             const res = await updateJob(id, data);
             if (res.success) {
                // Load jobs again with current filters to ensure consistency
-               loadJobs({ status: selectedStatuses });
+               loadJobs({ status: selectedStatuses, include: 'resources' });
             }
             return res;
           }}

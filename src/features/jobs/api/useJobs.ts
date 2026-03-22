@@ -43,7 +43,7 @@ export function useJobs() {
   const updateJob = async (id: string, data: Partial<Job>) => {
     try {
       await api.put(`/jobs/${id}`, data);
-      await loadJobs(); // Refresh all
+      await loadJobs({ include: 'resources' }); // Refresh all with resources
       return { success: true };
     } catch (err: any) {
       setError(err.message || 'Failed to update job');
