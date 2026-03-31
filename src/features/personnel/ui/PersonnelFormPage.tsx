@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { api } from '@/shared/lib/api';
+import { PersonnelSchema, type Personnel, type Qualification } from '@/shared/validation/schemas';
 import { toLocalDatetimeString } from '@/shared/lib/date';
 import { Spinner } from '@/shared/ui';
 
 export function PersonnelFormPage() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(!!(id && id !== 'new'));
   const [saving, setSaving] = useState(false);
@@ -20,26 +21,36 @@ export function PersonnelFormPage() {
   });
 
   useEffect(() => {
-    async function fetchData() {
+    const fetchData = async () => {
       try {
-        // Fetch all available qualifications
         const qualifications = await api.get<Qualification[]>('/qualifications');
         setAllQualifications(qualifications);
 
-        if (id && id !== 'new') {
-          const person = await api.get<Personnel>(`/personnel/${id}`);
-          setFormData(person);
+        if (!id || id === 'new') {
+          setFormData({
+            name: '',
+            email: '',
+            phone: '',
+            can_login: false,
+            qualifications: [],
+          });
+          setLoading(false);
+          return;
         }
+
+        const data = await api.get<Personnel>(`/personnel/${id}`);
+        setFormData(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch data');
+        console.error('Failed to fetch personnel', err);
+        setError('Failed to load personnel data');
       } finally {
         setLoading(false);
       }
-    }
+    };
     fetchData();
   }, [id]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
