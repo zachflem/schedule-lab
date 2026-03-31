@@ -14,13 +14,14 @@
 - [x] Add `/api/me` endpoint for session identity and login tracking.
 - [x] Enhance Personnel UI with "Last Login" display.
 - [x] Add User Profile and Login UI to the main Header toolbar.
+- [x] Resolve TypeScript build failures (Added `@cloudflare/workers-types`, fixed `tsconfig.json`).
+- [x] Synchronized `package-lock.json` for Cloudflare CI/CD.
 
 ### In Progress
-- [ ] Final verification and deployment to GitHub.
+- [ ] Final verification of Cloudflare Pages deployment.
 
 ### Blockers / Open Questions
-- Need confirmation on whether to perform full cryptographic JWT verification in middleware or rely on headers (standard for Cloudflare-to-Cloudflare setups).
-- Designing the mapping between Cloudflare Access identity (email) and the `personnel.auth_id` field.
+- None.
 
 ### Next Steps
 1. Obtain user approval for the implementation plan.

@@ -2,12 +2,14 @@
  * Shared D1 query helpers for Cloudflare Pages Functions.
  */
 
-interface Env {
+export interface Env {
   DB: D1Database;
 }
 
+export type BaseContext = EventContext<Env, string, unknown>;
+
 /** Extract D1 binding from Pages Function context */
-export function getDb(context: EventContext<Env, string, unknown>): D1Database {
+export function getDb(context: BaseContext): D1Database {
   return context.env.DB;
 }
 

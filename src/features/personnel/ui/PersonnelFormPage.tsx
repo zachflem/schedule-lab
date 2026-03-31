@@ -1,8 +1,7 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { api } from '@/shared/lib/api';
 import { PersonnelSchema, type Personnel, type Qualification } from '@/shared/validation/schemas';
-import { toLocalDatetimeString } from '@/shared/lib/date';
 import { Spinner } from '@/shared/ui';
 
 export function PersonnelFormPage() {

@@ -1,14 +1,8 @@
-import { getDb, generateId, jsonResponse, parseBody, methodRouter, now } from '../lib/db';
+import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now, type BaseContext } from '../lib/db';
 import { QualificationSchema } from '../../src/shared/validation/schemas';
 
-interface Context {
-  params: Record<string, string>;
-  request: Request;
-  env: any;
-}
-
 export const onRequest = methodRouter({
-  async GET(context: Context) {
+  async GET(context: BaseContext) {
     const db = getDb(context);
     const { results } = await db.prepare(
       'SELECT * FROM qualifications ORDER BY name'
@@ -16,7 +10,7 @@ export const onRequest = methodRouter({
     return jsonResponse(results);
   },
 
-  async POST(context: Context) {
+  async POST(context: BaseContext) {
     const db = getDb(context);
     const parsed = await parseBody(context.request, QualificationSchema);
     if ('error' in parsed) return parsed.error;
@@ -29,8 +23,8 @@ export const onRequest = methodRouter({
     `).bind(
       id, 
       p.name, 
-      p.rate_hourly, 
-      p.rate_after_hours, 
+      p.rate_hourly || 0, 
+      p.rate_after_hours || 0, 
       now()
     ).run();
 

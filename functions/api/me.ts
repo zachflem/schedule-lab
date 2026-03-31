@@ -1,10 +1,6 @@
-import { getDb, jsonResponse, errorResponse, now } from '../lib/db';
+import { getDb, jsonResponse, errorResponse, now, type BaseContext } from '../lib/db';
 
-interface Env {
-  DB: D1Database;
-}
-
-export const onRequest: PagesFunction<Env> = async (context) => {
+export const onRequest = async (context: BaseContext) => {
   const db = getDb(context);
   const userEmail = context.request.headers.get('CF-Access-Authenticated-User-Email');
 

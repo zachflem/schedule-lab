@@ -1,14 +1,8 @@
-import { getDb, jsonResponse, errorResponse, parseBody, methodRouter } from '../../lib/db';
+import { getDb, jsonResponse, errorResponse, parseBody, methodRouter, now, type BaseContext } from '../../lib/db';
 import { QualificationSchema } from '../../../src/shared/validation/schemas';
 
-interface Context {
-  params: Record<string, string>;
-  request: Request;
-  env: any;
-}
-
 export const onRequest = methodRouter({
-  async GET(context: Context) {
+  async GET(context: BaseContext) {
     const id = context.params.id;
     const db = getDb(context);
     const qualification = await db.prepare('SELECT * FROM qualifications WHERE id = ?').bind(id).first();
@@ -17,7 +11,7 @@ export const onRequest = methodRouter({
     return jsonResponse(qualification);
   },
 
-  async PUT(context: Context) {
+  async PUT(context: BaseContext) {
     const id = context.params.id;
     const db = getDb(context);
     const parsed = await parseBody(context.request, QualificationSchema);
@@ -38,7 +32,7 @@ export const onRequest = methodRouter({
     return jsonResponse({ success: true });
   },
 
-  async DELETE(context: Context) {
+  async DELETE(context: BaseContext) {
     const id = context.params.id;
     const db = getDb(context);
     await db.prepare('DELETE FROM qualifications WHERE id = ?').bind(id).run();

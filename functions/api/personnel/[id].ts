@@ -1,14 +1,8 @@
-import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../../lib/db';
+import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now, type BaseContext } from '../../lib/db';
 import { PersonnelSchema } from '../../../src/shared/validation/schemas';
 
-interface Context {
-  params: Record<string, string>;
-  request: Request;
-  env: any;
-}
-
 export const onRequest = methodRouter({
-  async GET(context: Context) {
+  async GET(context: BaseContext) {
     const id = context.params.id as string;
     const db = getDb(context);
     
@@ -25,7 +19,7 @@ export const onRequest = methodRouter({
     return jsonResponse({ ...person, qualifications });
   },
 
-  async PUT(context: Context) {
+  async PUT(context: BaseContext) {
     const id = context.params.id as string;
     const parsed = await parseBody(context.request, PersonnelSchema);
     if ('error' in parsed) return parsed.error;
@@ -60,7 +54,7 @@ export const onRequest = methodRouter({
     return jsonResponse({ success: true });
   },
 
-  async DELETE(context: Context) {
+  async DELETE(context: BaseContext) {
     const id = context.params.id as string;
     const db = getDb(context);
     
