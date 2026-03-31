@@ -3,6 +3,7 @@ import { z } from 'zod';
 // ── Primitives ──────────────────────────────────────────
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD format');
 const isoTimestamp = z.string().datetime({ message: 'Must be an ISO 8601 timestamp' });
+const robustBoolean = z.union([z.boolean(), z.number()]).transform((v: boolean | number) => !!v);
 
 // ── Signature Metadata (Mild Audit Trail) ───────────────
 export const SignatureMetadataSchema = z.object({
@@ -70,7 +71,7 @@ export const DocketLineItemSchema = z.object({
   inventory_code: z.string().default('AD-HOC'),
   quantity: z.number().min(0),
   unit_rate: z.number().min(0),
-  is_taxable: z.boolean().default(true),
+  is_taxable: robustBoolean.default(true),
 });
 export type DocketLineItem = z.infer<typeof DocketLineItemSchema>;
 
@@ -92,7 +93,7 @@ export const SiteDocketSchema = z.object({
   job_description_actual: z.string().optional(),
   document_images: z.array(DocumentImageSchema).max(6).default([]),
   signatures: z.array(SignatureMetadataSchema).min(1, 'At least one signature is required'),
-  is_locked: z.boolean().default(false),
+  is_locked: robustBoolean.default(false),
   locked_at: isoTimestamp.nullable().optional(),
   locked_by: z.string().nullable().optional(),
   end_machine_hours: z.number().nullable().optional(),
@@ -154,7 +155,7 @@ export const ExtensionFieldDefinitionSchema = z.object({
   key: z.string().min(1),
   label: z.string().min(1),
   type: z.enum(['text', 'number', 'date', 'boolean', 'select']),
-  required: z.boolean().default(false),
+  required: robustBoolean.default(false),
   options: z.array(z.string()).optional(),
 });
 export type ExtensionFieldDefinition = z.infer<typeof ExtensionFieldDefinitionSchema>;
@@ -204,7 +205,7 @@ export const PersonnelSchema = z.object({
   name: z.string().min(1, 'Personnel name is required'),
   email: z.string().email().optional().nullable(),
   phone: z.string().optional().nullable(),
-  can_login: z.boolean().default(false),
+  can_login: robustBoolean.default(false),
   auth_id: z.string().optional().nullable(),
   last_login_date: z.string().optional().nullable(),
   qualifications: z.array(QualificationSchema).optional(),
@@ -273,12 +274,12 @@ export const JobSchema = z.object({
   hazards: z.string().optional().nullable(),
   site_access: z.string().optional().nullable(),
   pricing: z.number().optional().nullable(),
-  tc_accepted: z.boolean().default(false),
+  tc_accepted: robustBoolean.default(false),
   approver_name: z.string().optional().nullable(),
   task_description: z.string().optional().nullable(),
   inclusions: z.string().optional().nullable(),
   exclusions: z.string().optional().nullable(),
-  include_standard_terms: z.boolean().default(true),
+  include_standard_terms: robustBoolean.default(true),
   start_time: z.string().optional().nullable(),
   end_time: z.string().optional().nullable(),
 });
@@ -317,9 +318,9 @@ export const EnquirySchema = z.object({
   project_end_date: isoDate.optional().nullable(),
   status: EnquiryStatusEnum.default('New'),
   dispatcher_notes: z.string().optional().nullable(),
-  is_trashed: z.boolean().default(false),
+  is_trashed: robustBoolean.default(false),
   anticipated_hours: z.number().optional().nullable(),
-  site_inspection_required: z.boolean().default(false),
+  site_inspection_required: robustBoolean.default(false),
   asset_type_id: z.string().optional().nullable(),
   asset_requirement: z.string().optional().nullable(),
   po_number: z.string().optional().nullable(),
