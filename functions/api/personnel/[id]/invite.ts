@@ -1,9 +1,9 @@
-import { getDb, jsonResponse, errorResponse, now, sendEmail, type BaseContext } from '../../../lib/db';
+import { getDb, jsonResponse, errorResponse, now, sendEmail, withRole, type BaseContext } from '../../../lib/db';
 
 /**
  * Send an invitation email to a personnel member.
  */
-export const onRequest = async (context: BaseContext) => {
+export const onRequest = withRole(['admin', 'dispatcher'], async (context: BaseContext) => {
   if (context.request.method !== 'POST') {
     return errorResponse('Method not allowed', 405);
   }
@@ -71,4 +71,4 @@ export const onRequest = async (context: BaseContext) => {
     .run();
 
   return jsonResponse({ success: true, sent_at: timestamp });
-};
+});

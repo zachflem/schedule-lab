@@ -1,8 +1,11 @@
-import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../lib/db';
+import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now, withRole, getUser } from '../lib/db';
 import { JobSchema } from '../../src/shared/validation/schemas';
 
 export const onRequest = methodRouter({
-  async GET(context) {
+  GET: async (context) => {
+    const user = await getUser(context);
+    if (!user) return errorResponse('Unauthorized', 401);
+
     const db = getDb(context);
     const url = new URL(context.request.url);
     const statuses = url.searchParams.getAll('status');
@@ -10,13 +13,20 @@ export const onRequest = methodRouter({
     const projectId = url.searchParams.get('project_id');
 
     let query = `
-      SELECT j.*, c.name as customer_name, js.start_time, js.end_time
+      SELECT DISTINCT j.*, c.name as customer_name, js.start_time, js.end_time
       FROM jobs j
       JOIN customers c ON j.customer_id = c.id
       LEFT JOIN job_schedules js ON j.id = js.job_id
+      LEFT JOIN job_resources jr ON j.id = jr.job_id
     `;
     const conditions: string[] = [];
     const params: unknown[] = [];
+
+    // Role-based filtering: Operators only see assigned jobs
+    if (user.role === 'operator') {
+      conditions.push('jr.personnel_id = ?');
+      params.push(user.id);
+    }
 
     if (statuses.length > 0) {
       conditions.push(`j.status_id IN (${statuses.map(() => '?').join(',')})`);
@@ -30,8 +40,7 @@ export const onRequest = methodRouter({
 
     const { results: jobs } = await db.prepare(query).bind(...params).all() as { results: any[] };
 
-    // If requested, fetch resources for each job (N+1 but small dataset, or batch)
-    // For Gantt chart we usually need resources to display on the correct lane
+    // If requested, fetch resources for each job
     if (url.searchParams.get('include') === 'resources') {
       for (const job of jobs) {
         const { results: resources } = await db.prepare(`
@@ -48,7 +57,7 @@ export const onRequest = methodRouter({
     return jsonResponse(jobs);
   },
 
-  async POST(context) {
+  POST: withRole(['admin', 'dispatcher'], async (context) => {
     const parsed = await parseBody(context.request, JobSchema);
     if ('error' in parsed) return parsed.error;
 
@@ -77,5 +86,5 @@ export const onRequest = methodRouter({
     ).run();
 
     return jsonResponse({ id }, 201);
-  },
+  }),
 });

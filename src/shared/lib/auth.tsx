@@ -7,6 +7,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,12 +35,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const logout = () => {
+    window.location.href = '/cdn-cgi/access/logout';
+  };
+
   useEffect(() => {
     fetchUser();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, refresh: fetchUser }}>
+    <AuthContext.Provider value={{ user, loading, error, refresh: fetchUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

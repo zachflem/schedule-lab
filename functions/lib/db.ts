@@ -114,3 +114,33 @@ export async function sendEmail({
     return { success: false, error: err instanceof Error ? err.message : 'Unknown mail error' };
   }
 }
+
+/** 
+ * Fetch the current authenticated user record from the database.
+ */
+export async function getUser(context: BaseContext): Promise<any | null> {
+  const email = context.request.headers.get('CF-Access-Authenticated-User-Email');
+  if (!email) return null;
+
+  const db = getDb(context);
+  return await db.prepare('SELECT * FROM personnel WHERE email = ? AND can_login = 1').bind(email).first();
+}
+
+/**
+ * Higher-order function to protect handlers with role-based checks.
+ */
+export function withRole(allowedRoles: string[], handler: (ctx: BaseContext, user: any) => Promise<Response>) {
+  return async (context: BaseContext): Promise<Response> => {
+    const user = await getUser(context);
+    
+    if (!user) {
+      return errorResponse('Unauthorized', 401);
+    }
+
+    if (!allowedRoles.includes(user.role)) {
+      return errorResponse('Forbidden: Insufficient permissions', 403);
+    }
+
+    return await handler(context, user);
+  };
+}

@@ -1,8 +1,8 @@
-import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now, sendEmail } from '../lib/db';
-import { PersonnelSchema } from '../../src/shared/validation/schemas';
+import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now, sendEmail, withRole } from '../lib/db';
+import { PersonnelSchema, type Personnel } from '../../src/shared/validation/schemas';
 
 export const onRequest = methodRouter({
-  async GET(context) {
+  GET: withRole(['admin', 'dispatcher'], async (context) => {
     const db = getDb(context);
     const { results } = await db.prepare(`
       SELECT p.*, (
@@ -28,23 +28,23 @@ export const onRequest = methodRouter({
     }));
 
     return jsonResponse(formatted);
-  },
+  }),
 
-  async POST(context) {
+  POST: withRole(['admin', 'dispatcher'], async (context) => {
     const parsed = await parseBody(context.request, PersonnelSchema);
     if ('error' in parsed) return parsed.error;
 
     const db = getDb(context);
     const id = generateId();
-    const p = parsed.data;
+    const p = parsed.data as Personnel;
     const timestamp = now();
 
     await db.prepare(`
-      INSERT INTO personnel (id, name, email, phone, can_login, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO personnel (id, name, email, phone, can_login, role, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id, p.name, p.email ?? null, p.phone ?? null,
-      p.can_login ? 1 : 0, timestamp, timestamp
+      p.can_login ? 1 : 0, p.role || 'operator', timestamp, timestamp
     ).run();
 
     // Handle qualifications if provided
@@ -61,7 +61,6 @@ export const onRequest = methodRouter({
     // Automatically send invite if can_login is true and email exists
     if (p.can_login && p.email) {
       try {
-        // We call the invite logic (duplicated here for simplicity or we could refactor)
         const appUrl = new URL(context.request.url).origin;
         const subject = `Welcome to ScheduleLab, ${p.name}!`;
         const content = `
@@ -86,5 +85,5 @@ export const onRequest = methodRouter({
     }
 
     return jsonResponse({ id }, 201);
-  },
+  }),
 });

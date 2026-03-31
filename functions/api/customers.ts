@@ -1,8 +1,8 @@
-import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../lib/db';
+import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now, withRole } from '../lib/db';
 import { CustomerSchema } from '../../src/shared/validation/schemas';
 
 export const onRequest = methodRouter({
-  async GET(context) {
+  GET: withRole(['admin', 'dispatcher'], async (context) => {
     const db = getDb(context);
     const { results } = await db.prepare(`
       SELECT 
@@ -14,9 +14,9 @@ export const onRequest = methodRouter({
       ORDER BY c.name
     `).all();
     return jsonResponse(results);
-  },
+  }),
 
-  async POST(context) {
+  POST: withRole(['admin', 'dispatcher'], async (context) => {
     const parsed = await parseBody(context.request, CustomerSchema);
     if ('error' in parsed) return parsed.error;
 
@@ -41,9 +41,9 @@ export const onRequest = methodRouter({
     ).run();
 
     return jsonResponse({ id }, 201);
-  },
+  }),
 
-  async PUT(context) {
+  PUT: withRole(['admin', 'dispatcher'], async (context) => {
     const id = context.params.id as string;
     if (!id) return errorResponse('Missing ID', 400);
 
@@ -69,5 +69,5 @@ export const onRequest = methodRouter({
     ).run();
 
     return jsonResponse({ success: true });
-  },
+  }),
 });

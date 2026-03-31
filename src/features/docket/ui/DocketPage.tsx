@@ -22,11 +22,24 @@ export function DocketPage() {
   if (state.loading) return <Spinner />;
 
   if (state.error && !state.job) {
+    const isNotAssigned = state.error.includes('You are not assigned to this job');
     return (
-      <div className="container" style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
-        <p style={{ color: 'var(--color-danger-600)', fontWeight: 600 }}>
-          {state.error}
-        </p>
+      <div className="container" style={{ padding: 'var(--space-12)', textAlign: 'center' }}>
+        <div className="card" style={{ padding: 'var(--space-8)', maxWidth: '500px', margin: '0 auto' }}>
+          <div style={{ fontSize: 'var(--text-4xl)', marginBottom: 'var(--space-4)' }}>🚫</div>
+          <h2 style={{ marginBottom: 'var(--space-2)' }}>Access Denied</h2>
+          <p style={{ color: 'var(--color-gray-600)', marginBottom: 'var(--space-6)' }}>
+            {isNotAssigned 
+              ? "You are not assigned as a resource for this job. Please contact your dispatcher if you believe this is an error."
+              : state.error}
+          </p>
+          <button 
+            className="btn btn--primary" 
+            onClick={() => window.history.back()}
+          >
+            Go Back
+          </button>
+        </div>
       </div>
     );
   }

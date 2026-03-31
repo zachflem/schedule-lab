@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router';
+import { useAuth } from '@/shared/lib/auth';
 import type { JobWithResources } from '../api/useJobs';
 import { formatRecordId } from '@/shared/lib/format';
 
@@ -9,6 +10,9 @@ interface JobTableProps {
 }
 
 export function JobTable({ jobs, loading, onEdit }: JobTableProps) {
+  const { user } = useAuth();
+  const isAdminOrDispatcher = user?.role === 'admin' || user?.role === 'dispatcher';
+
   const getStatusBadge = (status: any) => {
     const statusStr = String(status);
     const classes: Record<string, string> = {
@@ -100,12 +104,14 @@ export function JobTable({ jobs, loading, onEdit }: JobTableProps) {
                       <NavLink to={`/docket?jobId=${job.id}`} className="btn btn--secondary btn--sm">
                         Docket
                       </NavLink>
-                      <button 
-                        className="btn btn--secondary btn--sm" 
-                        onClick={() => onEdit?.(job)}
-                      >
-                        Edit
-                      </button>
+                      {isAdminOrDispatcher && (
+                        <button 
+                          className="btn btn--secondary btn--sm" 
+                          onClick={() => onEdit?.(job)}
+                        >
+                          Edit
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

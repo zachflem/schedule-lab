@@ -1,8 +1,8 @@
-import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../lib/db';
-import { SiteDocketSchema } from '../../src/shared/validation/schemas';
+import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now, withRole, type BaseContext } from '../lib/db';
+import { SiteDocketSchema, type SiteDocket } from '../../src/shared/validation/schemas';
 
 export const onRequest = methodRouter({
-  async GET(context) {
+  GET: withRole(['admin', 'dispatcher', 'operator'], async (context: BaseContext, user: any) => {
     const db = getDb(context);
     const url = new URL(context.request.url);
     const jobId = url.searchParams.get('job_id');
@@ -29,15 +29,26 @@ export const onRequest = methodRouter({
 
     const { results } = await db.prepare(query).bind(...params).all();
     return jsonResponse(results);
-  },
+  }),
 
-  async POST(context) {
+  POST: withRole(['admin', 'dispatcher', 'operator'], async (context: BaseContext, user: any) => {
     const parsed = await parseBody(context.request, SiteDocketSchema);
     if ('error' in parsed) return parsed.error;
 
     const db = getDb(context);
+    const d = parsed.data as SiteDocket;
+
+    if (user.role === 'operator') {
+      const isAssigned = await db.prepare(
+        'SELECT 1 FROM job_resources WHERE job_id = ? AND personnel_id = ?'
+      ).bind(d.job_id, user.id).first();
+      
+      if (!isAssigned) {
+        return errorResponse('Forbidden: You are not assigned to this job', 403);
+      }
+    }
+
     const id = generateId();
-    const d = parsed.data;
     const timestamp = now();
 
     await db.prepare(`
@@ -80,5 +91,5 @@ export const onRequest = methodRouter({
     }
 
     return jsonResponse({ id }, 201);
-  },
+  }),
 });

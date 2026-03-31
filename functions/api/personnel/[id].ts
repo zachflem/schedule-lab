@@ -1,5 +1,5 @@
-import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now, type BaseContext } from '../../lib/db';
-import { PersonnelSchema } from '../../../src/shared/validation/schemas';
+import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now, withRole, type BaseContext } from '../../lib/db';
+import { PersonnelSchema, type Personnel } from '../../../src/shared/validation/schemas';
 
 export const onRequest = methodRouter({
   async GET(context: BaseContext) {
@@ -19,13 +19,13 @@ export const onRequest = methodRouter({
     return jsonResponse({ ...person, qualifications });
   },
 
-  async PUT(context: BaseContext) {
+  PUT: withRole(['admin', 'dispatcher'], async (context: BaseContext) => {
     const id = context.params.id as string;
     const parsed = await parseBody(context.request, PersonnelSchema);
     if ('error' in parsed) return parsed.error;
 
     const db = getDb(context);
-    const p = parsed.data;
+    const p = parsed.data as Personnel;
     const timestamp = now();
 
     const result = await db.prepare(`
@@ -52,13 +52,13 @@ export const onRequest = methodRouter({
     }
 
     return jsonResponse({ success: true });
-  },
+  }),
 
-  async DELETE(context: BaseContext) {
+  DELETE: withRole(['admin', 'dispatcher'], async (context: BaseContext) => {
     const id = context.params.id as string;
     const db = getDb(context);
     
     await db.prepare('DELETE FROM personnel WHERE id = ?').bind(id).run();
     return jsonResponse({ success: true });
-  }
+  })
 });

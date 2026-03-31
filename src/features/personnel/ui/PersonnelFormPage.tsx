@@ -16,6 +16,7 @@ export function PersonnelFormPage() {
     email: '',
     phone: '',
     can_login: false,
+    role: 'operator',
     qualifications: [],
   });
 
@@ -31,6 +32,7 @@ export function PersonnelFormPage() {
             email: '',
             phone: '',
             can_login: false,
+            role: 'operator',
             qualifications: [],
           });
           setLoading(false);
@@ -55,7 +57,10 @@ export function PersonnelFormPage() {
     setError(null);
 
     try {
-      const validated = PersonnelSchema.parse(formData);
+      const validated = PersonnelSchema.parse({
+        ...formData,
+        role: formData.role || 'operator'
+      });
       if (id && id !== 'new') {
         await api.put(`/personnel/${id}`, validated);
       } else {
@@ -117,7 +122,7 @@ export function PersonnelFormPage() {
       <div style={{ marginBottom: 'var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 className="docket-page__title">{id === 'new' ? 'Add Person' : 'Edit Personnel'}</h1>
         
-        {id !== 'new' && formData.email && (
+        {id !== 'new' && formData.email && formData.can_login && (
           <button 
             type="button" 
             className="btn btn--secondary btn--sm"
@@ -165,6 +170,18 @@ export function PersonnelFormPage() {
                 value={formData.phone || ''}
                 onChange={e => setFormData({ ...formData, phone: e.target.value })}
               />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Role</label>
+              <select
+                className="form-input"
+                value={formData.role || 'operator'}
+                onChange={e => setFormData({ ...formData, role: e.target.value as 'admin' | 'dispatcher' | 'operator' })}
+              >
+                <option value="admin">Admin</option>
+                <option value="dispatcher">Dispatcher</option>
+                <option value="operator">Operator</option>
+              </select>
             </div>
             <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginTop: '24px' }}>
               <input

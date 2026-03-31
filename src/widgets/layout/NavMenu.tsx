@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router';
+import { useAuth } from '@/shared/lib/auth';
 
 interface NavMenuProps {
   isOpen: boolean;
@@ -6,10 +7,14 @@ interface NavMenuProps {
 }
 
 export function NavMenu({ isOpen, onClose }: NavMenuProps) {
+  const { user } = useAuth();
+  const role = user?.role || 'operator';
+
   const menuItems = [
     {
       to: '/enquiries',
       label: 'Enquiries',
+      roles: ['admin', 'dispatcher'],
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -21,6 +26,7 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
     {
       to: '/jobs',
       label: 'Jobs',
+      roles: ['admin', 'dispatcher', 'operator'],
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -33,6 +39,7 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
     {
       to: '/schedule',
       label: 'Schedule',
+      roles: ['admin', 'dispatcher', 'operator'],
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
           <path d="M8 2v4" />
@@ -51,6 +58,7 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
     {
       to: '/docket?jobId=j01',
       label: 'Dockets',
+      roles: ['admin', 'dispatcher', 'operator'],
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -61,10 +69,11 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
         </svg>
       ),
     },
-    { type: 'separator' },
+    { type: 'separator', roles: ['admin', 'dispatcher'] },
     {
       to: '/customers',
       label: 'Customers',
+      roles: ['admin', 'dispatcher'],
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -77,6 +86,7 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
     {
       to: '/assets',
       label: 'Assets',
+      roles: ['admin', 'dispatcher'],
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
           <path d="m7.5 4.27 9 5.15" />
@@ -89,6 +99,7 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
     {
       to: '/personnel',
       label: 'Personnel',
+      roles: ['admin', 'dispatcher'],
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -98,10 +109,11 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
         </svg>
       ),
     },
-    { type: 'separator' },
+    { type: 'separator', roles: ['admin'] },
     {
       to: '/settings',
       label: 'Settings',
+      roles: ['admin'],
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
           <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -111,12 +123,17 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
     },
   ];
 
+  const filteredItems = menuItems.filter(item => {
+    if (!item.roles) return true;
+    return item.roles.includes(role);
+  });
+
   return (
     <>
       <div className={`menu-overlay ${isOpen ? 'open' : ''}`} onClick={onClose} />
       <div className={`nav-menu-container ${isOpen ? 'open' : ''}`}>
         <nav className="nav-menu">
-          {menuItems.map((item, index) => {
+          {filteredItems.map((item, index) => {
             if ('type' in item && item.type === 'separator') {
               return <div key={`sep-${index}`} className="nav-divider" />;
             }

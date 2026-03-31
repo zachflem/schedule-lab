@@ -1,16 +1,16 @@
-import { getDb, jsonResponse, errorResponse, methodRouter, now } from '../lib/db';
+import { getDb, jsonResponse, errorResponse, methodRouter, now, withRole } from '../lib/db';
 
 export const onRequest = methodRouter({
-  async GET(context) {
+  GET: withRole(['admin'], async (context) => {
     const db = getDb(context);
     const settings = await db.prepare(
       "SELECT * FROM platform_settings WHERE id = 'global'"
     ).first();
 
     return jsonResponse(settings || { id: 'global', company_name: 'ScheduleLab', primary_color: '#2563eb' });
-  },
+  }),
 
-  async PUT(context) {
+  PUT: withRole(['admin'], async (context) => {
     const db = getDb(context);
     const body = await context.request.json() as {
       company_name?: string;
@@ -39,5 +39,5 @@ export const onRequest = methodRouter({
     ).run();
 
     return jsonResponse({ id: 'global' });
-  },
+  }),
 });

@@ -1,10 +1,20 @@
-import { getDb, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../../lib/db';
+import { getDb, jsonResponse, errorResponse, parseBody, methodRouter, now, withRole } from '../../lib/db';
 import { JobSchema } from '../../../src/shared/validation/schemas';
 
 export const onRequest = methodRouter({
-  async GET(context) {
+  GET: withRole(['admin', 'dispatcher', 'operator'], async (context, user) => {
     const db = getDb(context);
     const id = context.params.id as string;
+
+    if (user.role === 'operator') {
+      const isAssigned = await db.prepare(
+        'SELECT 1 FROM job_resources WHERE job_id = ? AND personnel_id = ?'
+      ).bind(id, user.id).first();
+      
+      if (!isAssigned) {
+        return errorResponse('Forbidden: You are not assigned to this job', 403);
+      }
+    }
 
     const job = await db.prepare(`
       SELECT j.*, c.name as customer_name, p.name as project_name
@@ -27,9 +37,9 @@ export const onRequest = methodRouter({
     `).bind(id).all();
 
     return jsonResponse({ ...job, resources });
-  },
+  }),
 
-  async PUT(context) {
+  PUT: withRole(['admin', 'dispatcher'], async (context) => {
     const db = getDb(context);
     const id = context.params.id as string;
 
@@ -135,9 +145,9 @@ export const onRequest = methodRouter({
     await db.batch(batch);
 
     return jsonResponse({ id });
-  },
+  }),
 
-  async DELETE(context) {
+  DELETE: withRole(['admin', 'dispatcher'], async (context) => {
     const db = getDb(context);
     const id = context.params.id as string;
 
@@ -152,5 +162,5 @@ export const onRequest = methodRouter({
     ]);
 
     return jsonResponse({ deleted: true });
-  },
+  }),
 });

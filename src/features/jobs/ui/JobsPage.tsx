@@ -9,8 +9,11 @@ import { Spinner } from '@/shared/ui';
 import { JOB_ONLY_STATUSES, type JobStatus } from '@/shared/validation/schemas';
 import { api } from '@/shared/lib/api';
 import { useState, useMemo } from 'react';
+import { useAuth } from '@/shared/lib/auth';
 
 export function JobsPage() {
+  const { user } = useAuth();
+  const isAdminOrDispatcher = user?.role === 'admin' || user?.role === 'dispatcher';
   const { jobs, loading, error, loadJobs, updateJob, updateJobSchedule, removeJobSchedule } = useJobs();
   const location = useLocation();
   const isScheduleView = location.pathname === '/schedule';
@@ -23,7 +26,7 @@ export function JobsPage() {
   useEffect(() => {
     loadJobs({ status: selectedStatuses, include: 'resources' });
     
-    // Fetch all resources for Gantt rows
+    // Fetch all resources for Gantt rows if admin/dispatcher
     async function fetchResources() {
       try {
         const [assets, personnel] = await Promise.all([
@@ -35,8 +38,10 @@ export function JobsPage() {
         console.error('Failed to fetch resources', err);
       }
     }
-    fetchResources();
-  }, [loadJobs, selectedStatuses]);
+    if (isAdminOrDispatcher) {
+      fetchResources();
+    }
+  }, [loadJobs, selectedStatuses, isAdminOrDispatcher]);
 
 
   const assetTypes = useMemo(() => {
@@ -78,7 +83,7 @@ export function JobsPage() {
             </p>
         </div>
 
-        {isScheduleView && (
+        {isScheduleView && isAdminOrDispatcher && (
             <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
                 <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Asset Filter:</span>
@@ -112,18 +117,20 @@ export function JobsPage() {
 
       {isScheduleView ? (
         <>
-          <UnscheduledBucket 
-            jobs={filteredJobs} 
-            onSelectJob={(job) => {
-              setEditingJob(job);
-            }} 
-            onUnschedule={(jobId) => {
-              removeJobSchedule(jobId);
-            }}
-          />
+          {isAdminOrDispatcher && (
+            <UnscheduledBucket 
+              jobs={filteredJobs} 
+              onSelectJob={(job) => {
+                setEditingJob(job);
+              }} 
+              onUnschedule={(jobId) => {
+                removeJobSchedule(jobId);
+              }}
+            />
+          )}
 
           <div className="mb-4 flex justify-between items-center">
-              <h2 className="text-lg font-bold">Daily Schedule</h2>
+              <h2 className="text-lg font-bold">{isAdminOrDispatcher ? 'Daily Schedule' : 'My Schedule'}</h2>
               <div className="flex gap-2 text-xs">
                   <span className="flex items-center gap-1"><span className="w-3 h-3 bg-primary-100 border-l-2 border-primary-600"></span> Scheduled</span>
                   <span className="flex items-center gap-1"><span className="w-3 h-3 bg-gray-100 border-l-2 border-gray-400"></span> Confirmed</span>
@@ -133,9 +140,9 @@ export function JobsPage() {
           <CalendarView 
             jobs={filteredJobs} 
             resources={filteredResources}
-            onScheduleUpdate={(jobId, start, end) => {
+            onScheduleUpdate={isAdminOrDispatcher ? (jobId, start, end) => {
               updateJobSchedule(jobId, start, end);
-            }} 
+            } : undefined} 
           />
         </>
       ) : (

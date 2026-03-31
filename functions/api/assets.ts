@@ -1,8 +1,8 @@
-import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../lib/db';
+import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now, withRole } from '../lib/db';
 import { AssetSchema } from '../../src/shared/validation/schemas';
 
 export const onRequest = methodRouter({
-  async GET(context) {
+  GET: withRole(['admin', 'dispatcher'], async (context) => {
     const db = getDb(context);
     const url = new URL(context.request.url);
     const typeId = url.searchParams.get('asset_type_id');
@@ -19,9 +19,9 @@ export const onRequest = methodRouter({
 
     const { results } = await db.prepare(query).bind(...params).all();
     return jsonResponse(results);
-  },
+  }),
 
-  async POST(context) {
+  POST: withRole(['admin', 'dispatcher'], async (context, user) => {
     const rawBody = await context.request.json() as any;
     const result = AssetSchema.safeParse(rawBody);
     if (!result.success) return errorResponse(result.error.message, 422);
@@ -58,5 +58,5 @@ export const onRequest = methodRouter({
     ]);
 
     return jsonResponse({ id }, 201);
-  },
+  }),
 });
