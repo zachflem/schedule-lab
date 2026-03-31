@@ -8,7 +8,7 @@ interface CalendarViewProps {
     assets: any[];
     personnel: any[];
   };
-  onScheduleUpdate: (jobId: string, start: string, end: string) => void;
+  onScheduleUpdate?: (jobId: string, start: string, end: string) => void;
   daysToShow?: number;
 }
 
@@ -89,8 +89,10 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
     }
 
     const end = new Date(start.getTime() + durationMinutes * 60000);
-
-    onScheduleUpdate(jobId, start.toISOString(), end.toISOString());
+    
+    if (onScheduleUpdate) {
+      onScheduleUpdate(jobId, start.toISOString(), end.toISOString());
+    }
   };
 
   return (
