@@ -205,6 +205,8 @@ export const PersonnelSchema = z.object({
   email: z.string().email().optional().nullable(),
   phone: z.string().optional().nullable(),
   can_login: z.boolean().default(false),
+  auth_id: z.string().optional().nullable(),
+  last_login_date: z.string().optional().nullable(),
   qualifications: z.array(QualificationSchema).optional(),
 });
 export type Personnel = z.infer<typeof PersonnelSchema>;

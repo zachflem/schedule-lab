@@ -1,9 +1,12 @@
+import { useAuth } from '@/shared/lib/auth';
+
 interface HeaderProps {
   onMenuToggle: () => void;
   isMenuOpen: boolean;
 }
 
 export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
+  const { user, loading } = useAuth();
   return (
     <header className="header">
       <button 
@@ -37,7 +40,45 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
         </svg>
       </button>
       
+
       <div className="header-title">ScheduleLab</div>
+
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+        {loading ? (
+          <div className="spinner-small" />
+        ) : user ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-gray-600)' }}>
+              {user.name}
+            </span>
+            <div 
+              style={{ 
+                width: '32px', 
+                height: '32px', 
+                borderRadius: '50%', 
+                background: 'var(--color-primary-100)', 
+                color: 'var(--color-primary-700)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 700,
+                border: '1px solid var(--color-primary-200)'
+              }}
+            >
+              {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+            </div>
+          </div>
+        ) : (
+          <a 
+            href="/cdn-cgi/access/login" 
+            className="btn btn--sm btn--primary"
+            style={{ fontSize: 'var(--text-xs)', padding: 'var(--space-1) var(--space-3)' }}
+          >
+            Login
+          </a>
+        )}
+      </div>
     </header>
   );
 }

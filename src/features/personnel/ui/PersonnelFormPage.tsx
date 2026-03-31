@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { api } from '@/shared/lib/api';
-import { PersonnelSchema, type Personnel, type Qualification } from '@/shared/validation/schemas';
+import { toLocalDatetimeString } from '@/shared/lib/date';
 import { Spinner } from '@/shared/ui';
 
 export function PersonnelFormPage() {
@@ -138,6 +138,14 @@ export function PersonnelFormPage() {
               />
               <label htmlFor="can_login" className="form-label" style={{ marginBottom: 0 }}>Can login to system</label>
             </div>
+            {formData.last_login_date && (
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label" style={{ color: 'var(--color-gray-500)' }}>Last Login</label>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', fontStyle: 'italic' }}>
+                  {new Date(formData.last_login_date).toLocaleString()}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
