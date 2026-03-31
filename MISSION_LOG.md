@@ -10,21 +10,22 @@
 - [x] Discovery of missing Cloudflare Access middleware.
 - [x] Created technical implementation plan for Cloudflare Access integration.
 - [x] Implement `functions/_middleware.ts` for Cloudflare Access JWT validation.
-- [x] Extend `personnel` API and Schema to handle `auth_id` and `last_login_date`.
-- [x] Add `/api/me` endpoint for session identity and login tracking.
-- [x] Enhance Personnel UI with "Last Login" display.
-- [x] Add User Profile and Login UI to the main Header toolbar.
-- [x] Resolve TypeScript build failures (Added `@cloudflare/workers-types`, fixed `tsconfig.json`).
-- [x] Synchronized `package-lock.json` for Cloudflare CI/CD.
+- [x] Integrated Cloudflare Access headers in `_middleware.ts`.
+- [x] Implemented `/api/me` for user identity and last login tracking.
+- [x] Added User Profile UI to Header and Last Login to Personnel page.
+- [x] Resolved "Context" type mismatches in backend Functions by standardizing on `BaseContext`.
+- [x] Fixed frontend TypeScript lints (type-only imports, unused variables).
+- [~] Deployment in progress on Cloudflare Pages (`remix-dev` branch).
 
 ### In Progress
-- [ ] Final verification of Cloudflare Pages deployment.
+- [ ] Fixing 404 error at `/cdn-cgi/access/login` by enabling Cloudflare Access.
+- [ ] Configuring Zero Trust Access Application and initial policy.
 
-### Blockers / Open Questions
-- None.
+### Blockers
+- [!] Cloudflare API token requires expanded scopes (**Zero Trust: Edit**, **Access: Edit**).
 
 ### Next Steps
-1. Obtain user approval for the implementation plan.
-2. Implement backend middleware and identity endpoints.
-3. Update frontend to reflect the current user's session.
-4. Add user management controls to the Personnel screens.
+1. [ ] Request API token scope expansion from the user.
+2. [ ] Verify/Create Cloudflare Zero Trust Team Domain.
+3. [ ] Provision the Access Application for `schedule-lab.pages.dev`.
+4. [ ] Configure Access Policy to allow `Zachflem@gmail.com`.

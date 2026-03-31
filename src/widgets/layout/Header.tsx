@@ -78,6 +78,23 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
             Login
           </a>
         )}
+        
+        {user && (
+          <a 
+            href="/cdn-cgi/access/logout"
+            className="btn btn--sm btn--secondary"
+            style={{ 
+              fontSize: '10px', 
+              padding: '2px 8px', 
+              opacity: 0.7,
+              textDecoration: 'none',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}
+          >
+            Logout
+          </a>
+        )}
       </div>
     </header>
   );

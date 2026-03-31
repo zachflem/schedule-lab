@@ -1,4 +1,4 @@
-import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../lib/db';
+import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now, sendEmail } from '../lib/db';
 import { PersonnelSchema } from '../../src/shared/validation/schemas';
 
 export const onRequest = methodRouter({
@@ -55,6 +55,33 @@ export const onRequest = methodRouter({
           INSERT INTO personnel_qualifications (id, personnel_id, qualification_id, expiry_date, created_at)
           VALUES (?, ?, ?, ?, ?)
         `).bind(generateId(), id, q.id, q.expiry_date ?? null, timestamp).run();
+      }
+    }
+
+    // Automatically send invite if can_login is true and email exists
+    if (p.can_login && p.email) {
+      try {
+        // We call the invite logic (duplicated here for simplicity or we could refactor)
+        const appUrl = new URL(context.request.url).origin;
+        const subject = `Welcome to ScheduleLab, ${p.name}!`;
+        const content = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+            <h2 style="color: #2563eb; margin-top: 0;">Welcome to ScheduleLab</h2>
+            <p>Hi ${p.name},</p>
+            <p>You've been added to the ScheduleLab platform for <strong>Fleming Crane Hire</strong>.</p>
+            <div style="margin: 30px 0; text-align: center;">
+              <a href="${appUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                Go to ScheduleLab
+              </a>
+            </div>
+            <p style="color: #4b5563; font-size: 14px;"><strong>How to login:</strong> Use your email (${p.email}) to receive a secure one-time passcode.</p>
+          </div>
+        `;
+        
+        await sendEmail({ to: p.email, subject, content });
+        await db.prepare('UPDATE personnel SET invite_sent_at = ? WHERE id = ?').bind(timestamp, id).run();
+      } catch (err) {
+        console.error('Failed to send auto-invite:', err);
       }
     }
 

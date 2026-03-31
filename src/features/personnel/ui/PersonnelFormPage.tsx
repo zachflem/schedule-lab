@@ -94,12 +94,39 @@ export function PersonnelFormPage() {
     });
   };
 
+  const handleSendInvite = async () => {
+    if (!id || id === 'new') return;
+    setSaving(true);
+    try {
+      await api.post(`/personnel/${id}/invite`, {});
+      // Refresh to get update invite_sent_at
+      const data = await api.get<Personnel>(`/personnel/${id}`);
+      setFormData(data);
+      alert('Invitation sent successfully!');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send invitation');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) return <Spinner />;
 
   return (
     <div className="container" style={{ padding: 'var(--space-8)', maxWidth: '800px' }}>
-      <div style={{ marginBottom: 'var(--space-6)' }}>
+      <div style={{ marginBottom: 'var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 className="docket-page__title">{id === 'new' ? 'Add Person' : 'Edit Personnel'}</h1>
+        
+        {id !== 'new' && formData.email && (
+          <button 
+            type="button" 
+            className="btn btn--secondary btn--sm"
+            onClick={handleSendInvite}
+            disabled={saving}
+          >
+            {saving ? 'Sending...' : 'Send Invite'}
+          </button>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="flex-col gap-6" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>

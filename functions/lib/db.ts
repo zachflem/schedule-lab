@@ -73,3 +73,44 @@ export function methodRouter(handlers: Partial<Record<string, (ctx: EventContext
 export function now(): string {
   return new Date().toISOString();
 }
+
+/** 
+ * Send a transactional email via MailChannels.
+ * MailChannels is free for Cloudflare Workers/Pages and don't require an API key by default.
+ */
+export async function sendEmail({
+  to,
+  subject,
+  content,
+  fromName = 'ScheduleLab'
+}: {
+  to: string;
+  subject: string;
+  content: string;
+  fromName?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: to }] }],
+        from: {
+          email: `no-reply@schedule-lab.pages.dev`,
+          name: fromName,
+        },
+        subject,
+        content: [{ type: 'text/html', value: content }],
+      }),
+    });
+
+    if (response.ok) {
+      return { success: true };
+    } else {
+      const respText = await response.text();
+      return { success: false, error: respText || `MailChannels Error: ${response.status}` };
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown mail error' };
+  }
+}

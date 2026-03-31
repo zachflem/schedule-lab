@@ -208,6 +208,7 @@ export const PersonnelSchema = z.object({
   can_login: robustBoolean.default(false),
   auth_id: z.string().optional().nullable(),
   last_login_date: z.string().optional().nullable(),
+  invite_sent_at: z.string().optional().nullable(),
   qualifications: z.array(QualificationSchema).optional(),
 });
 export type Personnel = z.infer<typeof PersonnelSchema>;
