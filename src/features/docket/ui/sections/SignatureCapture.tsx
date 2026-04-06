@@ -5,16 +5,19 @@ import type { SignatureMetadata } from '@/shared/validation/schemas';
 interface SignatureCaptureProps {
   signatures: SignatureMetadata[];
   onChange: (sigs: SignatureMetadata[]) => void;
+  customerCopyEmail: string | undefined | null;
+  onCustomerCopyEmailChange: (email: string | null) => void;
   disabled: boolean;
 }
 
 const ROLES = ['Operator', 'Customer', 'Site Representative', 'Other'] as const;
 
-export function SignatureCapture({ signatures, onChange, disabled }: SignatureCaptureProps) {
+export function SignatureCapture({ signatures, onChange, customerCopyEmail, onCustomerCopyEmailChange, disabled }: SignatureCaptureProps) {
   const sigRef = useRef<SignatureCanvas>(null);
   const [name, setName] = useState('');
   const [role, setRole] = useState<string>('Operator');
   const [isSigning, setIsSigning] = useState(false);
+  const [isAdding, setIsAdding] = useState(signatures.length === 0);
 
   const captureSignature = async () => {
     if (!sigRef.current || sigRef.current.isEmpty() || !name.trim()) return;
@@ -47,6 +50,7 @@ export function SignatureCapture({ signatures, onChange, disabled }: SignatureCa
     onChange([...signatures, sig]);
     setName('');
     setIsSigning(false);
+    setIsAdding(false);
     sigRef.current?.clear();
   };
 
@@ -82,8 +86,19 @@ export function SignatureCapture({ signatures, onChange, disabled }: SignatureCa
         </div>
       ))}
 
+      {signatures.length > 0 && !disabled && !isAdding && (
+        <button
+          type="button"
+          className="btn btn--secondary"
+          onClick={() => setIsAdding(true)}
+          style={{ width: 'max-content' }}
+        >
+          [+] Request Additional Signature
+        </button>
+      )}
+
       {/* Add new signature */}
-      {!disabled && (
+      {!disabled && isAdding && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           <div className="form-grid">
             <div className="form-group">
@@ -128,11 +143,39 @@ export function SignatureCapture({ signatures, onChange, disabled }: SignatureCa
             <button
               type="button"
               className="btn btn--secondary"
-              onClick={() => { sigRef.current?.clear(); setIsSigning(false); }}
+              onClick={() => { sigRef.current?.clear(); setIsSigning(false); setIsAdding(false); }}
             >
-              Clear
+              Cancel
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Email Copy Checkbox */}
+      {!disabled && (
+        <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-3)', background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer' }}>
+            <input 
+              type="checkbox" 
+              checked={customerCopyEmail !== null && customerCopyEmail !== undefined} 
+              onChange={(e) => onCustomerCopyEmailChange(e.target.checked ? '' : null)} 
+            />
+            <span style={{ fontWeight: 500, fontSize: 'var(--text-sm)' }}>Email Copy?</span>
+          </label>
+          {customerCopyEmail !== null && customerCopyEmail !== undefined && (
+            <div style={{ marginTop: 'var(--space-3)' }}>
+              <input
+                type="email"
+                className="form-input"
+                placeholder="Enter email address..."
+                value={customerCopyEmail}
+                onChange={e => onCustomerCopyEmailChange(e.target.value)}
+              />
+              <p style={{ marginTop: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)' }}>
+                A copy will be sent to this email once the docket is validated.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

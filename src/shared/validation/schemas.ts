@@ -106,6 +106,7 @@ export const SiteDocketSchema = z.object({
   end_machine_hours: z.number().nullable().optional(),
   end_odometer: z.number().nullable().optional(),
   line_items: z.array(DocketLineItemSchema).optional(),
+  customer_copy_email: z.string().email('Valid email is required').optional().nullable(),
 });
 export type SiteDocket = z.infer<typeof SiteDocketSchema>;
 

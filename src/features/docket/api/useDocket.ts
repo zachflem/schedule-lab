@@ -76,6 +76,7 @@ export interface DocketFormState {
   saving: boolean;
   error: string | null;
   existingDocketId: string | null;
+  customer_copy_email: string | null;
 }
 
 const today = () => new Date().toISOString().split('T')[0];
@@ -105,6 +106,7 @@ export function useDocket(jobId: string | null) {
     saving: false,
     error: null,
     existingDocketId: null,
+    customer_copy_email: null,
   });
 
   // Load job + assets + existing docket
@@ -206,6 +208,7 @@ export function useDocket(jobId: string | null) {
             docketStatus: existing.docket_status || 'uncompleted',
             dispatcherNotes: existing.dispatcher_notes || null,
             existingDocketId: existing.id,
+            customer_copy_email: existing.customer_copy_email || null,
             loading: false,
           }));
         } else {
@@ -252,6 +255,7 @@ export function useDocket(jobId: string | null) {
       locked_at: lock ? nowIso : null,
       locked_by: lock ? 'current-user' : null,
       line_items: state.lineItems,
+      customer_copy_email: state.customer_copy_email,
     };
 
     try {

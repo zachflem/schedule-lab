@@ -212,6 +212,8 @@ export function DocketPage() {
             <SignatureCapture
               signatures={state.signatures}
               onChange={v => update('signatures', v)}
+              customerCopyEmail={state.customer_copy_email}
+              onCustomerCopyEmailChange={v => update('customer_copy_email', v)}
               disabled={disabled}
             />
           </Accordion>
