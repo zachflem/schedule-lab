@@ -1,0 +1,436 @@
+/* ── Dashboard Page Styles ─────────────────────────────── */
+
+.dashboard-page {
+  padding: var(--space-8) 0;
+}
+
+/* Greeting Banner */
+.dashboard-greeting {
+  margin-bottom: var(--space-8);
+}
+
+.dashboard-greeting h1 {
+  font-size: 1.875rem;
+  font-weight: 800;
+  color: var(--color-gray-900);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.dashboard-greeting p {
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+}
+
+/* ── Stats Grid ─────────────────────────────────────────── */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.stat-card {
+  background: white;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-gray-100);
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--stat-accent, var(--color-primary-500));
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.stat-card--primary { --stat-accent: var(--color-primary-500); }
+.stat-card--success { --stat-accent: var(--color-success-500); }
+.stat-card--warning { --stat-accent: var(--color-warning-500); }
+.stat-card--danger  { --stat-accent: var(--color-danger-500); }
+.stat-card--purple  { --stat-accent: #8b5cf6; }
+
+.stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-gray-400);
+}
+
+.stat-value {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--color-gray-900);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.stat-sub {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+}
+
+.stat-icon {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--stat-accent-light, var(--color-primary-50));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--stat-accent, var(--color-primary-500));
+}
+
+.stat-card--primary .stat-icon { --stat-accent-light: var(--color-primary-50); }
+.stat-card--success .stat-icon { --stat-accent-light: var(--color-success-50); }
+.stat-card--warning .stat-icon { --stat-accent-light: var(--color-warning-50); }
+.stat-card--danger .stat-icon  { --stat-accent-light: var(--color-danger-50); }
+.stat-card--purple .stat-icon  { --stat-accent-light: #f5f3ff; }
+
+/* ── Dashboard Body ─────────────────────────────────────── */
+
+.dashboard-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+
+@media (max-width: 900px) {
+  .dashboard-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Section Panel ──────────────────────────────────────── */
+
+.dashboard-panel {
+  background: white;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-gray-100);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dashboard-panel--full {
+  grid-column: 1 / -1;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.panel-title {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-gray-800);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.panel-title-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary-500);
+}
+
+.panel-action {
+  font-size: var(--text-xs);
+  color: var(--color-primary-600);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.panel-action:hover {
+  color: var(--color-primary-800);
+}
+
+.panel-body {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Enquiry Cards ───────────────────────────────────────── */
+
+.enquiry-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.enquiry-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-gray-50);
+  transition: background 0.15s;
+  cursor: default;
+}
+
+.enquiry-card:last-child {
+  border-bottom: none;
+}
+
+.enquiry-card:hover {
+  background: var(--color-gray-50);
+}
+
+.enquiry-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary-100), var(--color-primary-200));
+  color: var(--color-primary-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.enquiry-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.enquiry-customer {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-gray-800);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.enquiry-brief {
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.enquiry-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.enquiry-time {
+  font-size: 10px;
+  color: var(--color-gray-400);
+  white-space: nowrap;
+}
+
+/* ── Upcoming Jobs ───────────────────────────────────────── */
+
+.upcoming-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.upcoming-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-gray-50);
+  transition: background 0.15s;
+}
+
+.upcoming-item:last-child {
+  border-bottom: none;
+}
+
+.upcoming-item:hover {
+  background: var(--color-gray-50);
+}
+
+.upcoming-date-block {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-50);
+  border: 1px solid var(--color-primary-100);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.upcoming-day {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-primary-700);
+  line-height: 1;
+}
+
+.upcoming-month {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-primary-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.upcoming-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.upcoming-customer {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-gray-800);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.upcoming-detail {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  margin-top: 1px;
+}
+
+/* ── Status Badge Overrides ───────────────────────────────── */
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Empty States ────────────────────────────────────────── */
+
+.panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+  color: var(--color-gray-400);
+  text-align: center;
+  gap: var(--space-2);
+}
+
+.panel-empty svg {
+  opacity: 0.3;
+}
+
+.panel-empty p {
+  font-size: var(--text-sm);
+}
+
+/* ── Pipeline Bar Chart ──────────────────────────────────── */
+
+.pipeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0;
+}
+
+.pipeline-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-4) var(--space-3);
+  border-right: 1px solid var(--color-gray-50);
+  transition: background 0.15s;
+  cursor: default;
+}
+
+.pipeline-stage:last-child {
+  border-right: none;
+}
+
+.pipeline-stage:hover {
+  background: var(--color-gray-50);
+}
+
+.pipeline-count {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-gray-800);
+  line-height: 1;
+}
+
+.pipeline-count--highlight {
+  color: var(--color-primary-600);
+}
+
+.pipeline-bar-wrap {
+  width: 100%;
+  height: 4px;
+  background: var(--color-gray-100);
+  border-radius: 2px;
+  margin: var(--space-2) 0;
+  overflow: hidden;
+}
+
+.pipeline-bar {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--color-primary-400);
+  transition: width 0.6s ease;
+}
+
+.pipeline-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-gray-500);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Action Cards (New Enquiries) ─────────────────────────── */
+
+.action-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-danger-500);
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+}

@@ -11,6 +11,7 @@ import { PublicEnquiryPage } from '@/features/enquiries/ui/PublicEnquiryPage';
 import { EnquiriesPage } from '@/features/enquiries/ui/EnquiriesPage';
 import { JobsPage } from '@/features/jobs/ui/JobsPage';
 import { DocsPage } from '@/features/docs/ui/DocsPage';
+import { DashboardPage } from '@/features/dashboard/ui/DashboardPage';
 import { Layout } from '@/widgets/layout/Layout';
 
 export function AppRouter() {
@@ -18,6 +19,7 @@ export function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/docket" element={<DocketPage />} />
           <Route path="/customers" element={<CustomerListPage />} />
           <Route path="/customers/:id" element={<CustomerFormPage />} />
@@ -31,8 +33,8 @@ export function AppRouter() {
           <Route path="/jobs" element={<JobsPage />} />
           <Route path="/schedule" element={<JobsPage />} />
           <Route path="/docs" element={<DocsPage />} />
-          <Route path="/" element={<Navigate to="/docs" replace />} />
-          <Route path="*" element={<Navigate to="/docs" replace />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>
