@@ -32,6 +32,26 @@ export interface DashboardData {
     customer_name: string;
     updated_at: string;
   }[];
+  // Operator specific
+  assignedJobs?: {
+    id: string;
+    status_id: string;
+    location: string | null;
+    job_brief: string | null;
+    customer_name: string;
+    start_time: string | null;
+    end_time: string | null;
+  }[];
+  operatorDockets?: {
+    id: string;
+    job_id: string;
+    docket_status: string;
+    date: string;
+    dispatcher_notes: string | null;
+    location: string | null;
+    job_brief: string | null;
+    customer_name: string;
+  }[];
 }
 
 export function useDashboard() {

@@ -13,6 +13,44 @@ export const onRequest = async (context: BaseContext): Promise<Response> => {
 
   const db = getDb(context);
 
+  if (user.role === 'operator') {
+    // 1. My Assigned Jobs (Active & upcoming)
+    const { results: assignedJobs } = await db.prepare(`
+      SELECT j.id, j.status_id, j.location, j.job_brief, c.name as customer_name,
+             a.start_time, a.end_time
+      FROM jobs j
+      JOIN customers c ON j.customer_id = c.id
+      JOIN allocations a ON j.id = a.job_id
+      WHERE a.personnel_id = ?
+        AND j.status_id IN ('Job Scheduled', 'Allocated', 'Job Booked', 'Site Docket')
+      ORDER BY a.start_time ASC
+      LIMIT 10
+    `).bind(user.id).all();
+
+    // 2. My Dockets (Priority/Attention needed)
+    // - 'uncompleted': Hasn't been started
+    // - 'draft': Started but not submitted
+    // - 'incomplete': Sent back for revision
+    const { results: operatorDockets } = await db.prepare(`
+      SELECT sd.id, sd.job_id, sd.docket_status, sd.date, sd.dispatcher_notes,
+             j.location, j.job_brief, c.name as customer_name
+      FROM site_dockets sd
+      JOIN jobs j ON sd.job_id = j.id
+      JOIN customers c ON j.customer_id = c.id
+      WHERE (sd.submitted_by = ? OR sd.job_id IN (SELECT job_id FROM allocations WHERE personnel_id = ?))
+        AND sd.docket_status IN ('uncompleted', 'draft', 'incomplete')
+      ORDER BY sd.date DESC
+      LIMIT 10
+    `).bind(user.id, user.id).all();
+
+    return jsonResponse({
+      assignedJobs,
+      operatorDockets,
+    });
+  }
+
+  // --- Admin/Dispatcher Logic (Existing) ---
+
   // Job counts by status
   const { results: jobStatusCounts } = await db.prepare(`
     SELECT status_id, COUNT(*) as count

@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { useDashboard } from '../api/useDashboard';
 import { useAuth } from '@/shared/lib/auth';
 import { Spinner } from '@/shared/ui';
+import { OperatorDashboard } from './OperatorDashboard';
 import './DashboardPage.css';
 
 // Status dot color lookup
@@ -85,7 +86,17 @@ export function DashboardPage() {
     return 'Good evening';
   };
 
-  // --- Derived stats ---
+  if (loading && !data) return <Spinner />;
+
+  if (data && user?.role === 'operator') {
+    return (
+      <div className="container dashboard-page">
+        <OperatorDashboard data={data} userName={user?.name} />
+      </div>
+    );
+  }
+
+  // --- Admin/Dispatcher View ---
   const jobCounts = data?.jobStatusCounts ?? [];
   const enqCounts = data?.enquiryStatusCounts ?? [];
 
