@@ -115,6 +115,21 @@ export async function sendEmail({
   }
 }
 
+/**
+ * Helper to get a cookie value by name.
+ */
+export function getCookie(request: Request, name: string): string | null {
+  const cookieHeader = request.headers.get('Cookie');
+  if (!cookieHeader) return null;
+  
+  const cookies = cookieHeader.split(';').map(c => c.trim());
+  for (const cookie of cookies) {
+    const [key, value] = cookie.split('=');
+    if (key === name) return value;
+  }
+  return null;
+}
+
 /** 
  * Fetch the current authenticated user record from the database.
  */
@@ -123,7 +138,22 @@ export async function getUser(context: BaseContext): Promise<any | null> {
   if (!email) return null;
 
   const db = getDb(context);
-  return await db.prepare('SELECT * FROM personnel WHERE email = ? AND can_login = 1').bind(email).first();
+  // Using LOWER() for case-insensitive lookup to be robust.
+  const user = await db.prepare('SELECT * FROM personnel WHERE LOWER(email) = LOWER(?) AND can_login = 1').bind(email).first();
+  
+  if (user && (user as any).role === 'admin') {
+    const mockRole = getCookie(context.request, 'mock-role');
+    if (mockRole && ['admin', 'dispatcher', 'operator'].includes(mockRole)) {
+      return { 
+        ...user, 
+        role: mockRole, 
+        realRole: 'admin',
+        isMocked: mockRole !== 'admin'
+      };
+    }
+  }
+
+  return user;
 }
 
 /**

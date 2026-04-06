@@ -104,6 +104,7 @@ CREATE TABLE IF NOT EXISTS personnel (
   phone           TEXT,
   can_login       INTEGER DEFAULT 0,
   auth_id         TEXT,
+  role            TEXT DEFAULT 'operator',
   last_login_date TEXT,
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at      TEXT NOT NULL DEFAULT (datetime('now'))

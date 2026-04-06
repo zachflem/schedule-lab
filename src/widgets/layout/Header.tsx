@@ -1,4 +1,5 @@
 import { useAuth } from '@/shared/lib/auth';
+import { RolePill } from './RolePill';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -6,7 +7,7 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   return (
     <header className="header">
       <button 
@@ -44,6 +45,8 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
       <div className="header-title">ScheduleLab</div>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+        {user && <RolePill />}
+        
         {loading ? (
           <div className="spinner-small" />
         ) : user ? (
@@ -66,7 +69,7 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
                 border: '1px solid var(--color-primary-200)'
               }}
             >
-              {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+              {user.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
             </div>
           </div>
         ) : (
@@ -80,8 +83,8 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
         )}
         
         {user && (
-          <a 
-            href="/cdn-cgi/access/logout"
+          <button 
+            onClick={logout}
             className="btn btn--sm btn--secondary"
             style={{ 
               fontSize: '10px', 
@@ -93,7 +96,7 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
             }}
           >
             Logout
-          </a>
+          </button>
         )}
       </div>
     </header>
