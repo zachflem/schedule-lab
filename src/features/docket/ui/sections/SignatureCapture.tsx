@@ -5,22 +5,22 @@ import type { SignatureMetadata } from '@/shared/validation/schemas';
 interface SignatureCaptureProps {
   signatures: SignatureMetadata[];
   onChange: (sigs: SignatureMetadata[]) => void;
-  customerCopyEmail: string | undefined | null;
-  onCustomerCopyEmailChange: (email: string | null) => void;
   disabled: boolean;
 }
 
 const ROLES = ['Operator', 'Customer', 'Site Representative', 'Other'] as const;
 
-export function SignatureCapture({ signatures, onChange, customerCopyEmail, onCustomerCopyEmailChange, disabled }: SignatureCaptureProps) {
+export function SignatureCapture({ signatures, onChange, disabled }: SignatureCaptureProps) {
   const sigRef = useRef<SignatureCanvas>(null);
   const [name, setName] = useState('');
   const [role, setRole] = useState<string>('Operator');
   const [isSigning, setIsSigning] = useState(false);
   const [isAdding, setIsAdding] = useState(signatures.length === 0);
+  const [emailCopy, setEmailCopy] = useState<string | null>(null);
 
   const captureSignature = async () => {
     if (!sigRef.current || sigRef.current.isEmpty() || !name.trim()) return;
+    if (emailCopy !== null && !emailCopy.trim()) return;
 
     const blob = sigRef.current.toDataURL('image/png');
 
@@ -45,10 +45,12 @@ export function SignatureCapture({ signatures, onChange, customerCopyEmail, onCu
       signed_lat: lat,
       signed_lng: lng,
       device_info: navigator.userAgent,
+      email_copy_to: emailCopy,
     };
 
     onChange([...signatures, sig]);
     setName('');
+    setEmailCopy(null);
     setIsSigning(false);
     setIsAdding(false);
     sigRef.current?.clear();
@@ -74,6 +76,9 @@ export function SignatureCapture({ signatures, onChange, customerCopyEmail, onCu
             </div>
             <div>{sig.signatory_role}</div>
             <div>{new Date(sig.signed_at).toLocaleString()}</div>
+            {sig.email_copy_to && (
+              <div style={{ color: 'var(--color-primary-600)' }}>✉️ Copy to: {sig.email_copy_to}</div>
+            )}
             {sig.signed_lat && sig.signed_lng && (
               <div>📍 {sig.signed_lat.toFixed(4)}, {sig.signed_lng.toFixed(4)}</div>
             )}
@@ -131,12 +136,38 @@ export function SignatureCapture({ signatures, onChange, customerCopyEmail, onCu
             </div>
           </div>
 
+          {/* Email Copy Checkbox per signature */}
+          <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-3)', background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer' }}>
+              <input 
+                type="checkbox" 
+                checked={emailCopy !== null} 
+                onChange={(e) => setEmailCopy(e.target.checked ? '' : null)} 
+              />
+              <span style={{ fontWeight: 500, fontSize: 'var(--text-sm)' }}>Email Copy?</span>
+            </label>
+            {emailCopy !== null && (
+              <div style={{ marginTop: 'var(--space-3)' }}>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="Enter email address..."
+                  value={emailCopy}
+                  onChange={e => setEmailCopy(e.target.value)}
+                />
+                <p style={{ marginTop: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)' }}>
+                  A copy will be sent to this email once the docket is validated.
+                </p>
+              </div>
+            )}
+          </div>
+
           <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
             <button
               type="button"
               className="btn btn--primary"
               onClick={captureSignature}
-              disabled={!name.trim()}
+              disabled={!name.trim() || (emailCopy !== null && !emailCopy.trim())}
             >
               Capture Signature
             </button>
@@ -151,33 +182,6 @@ export function SignatureCapture({ signatures, onChange, customerCopyEmail, onCu
         </div>
       )}
 
-      {/* Email Copy Checkbox */}
-      {!disabled && (
-        <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-3)', background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer' }}>
-            <input 
-              type="checkbox" 
-              checked={customerCopyEmail !== null && customerCopyEmail !== undefined} 
-              onChange={(e) => onCustomerCopyEmailChange(e.target.checked ? '' : null)} 
-            />
-            <span style={{ fontWeight: 500, fontSize: 'var(--text-sm)' }}>Email Copy?</span>
-          </label>
-          {customerCopyEmail !== null && customerCopyEmail !== undefined && (
-            <div style={{ marginTop: 'var(--space-3)' }}>
-              <input
-                type="email"
-                className="form-input"
-                placeholder="Enter email address..."
-                value={customerCopyEmail}
-                onChange={e => onCustomerCopyEmailChange(e.target.value)}
-              />
-              <p style={{ marginTop: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)' }}>
-                A copy will be sent to this email once the docket is validated.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

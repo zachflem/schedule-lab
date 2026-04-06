@@ -10,8 +10,7 @@ export const onRequest = methodRouter({
       SELECT d.*, j.location, j.job_brief, j.asset_requirement,
              c.name as customer_name, c.site_contact_email as customer_email,
              c.site_contact_phone as customer_phone,
-             p.name as submitted_by_name,
-             d.customer_copy_email
+             p.name as submitted_by_name
       FROM site_dockets d
       JOIN jobs j ON d.job_id = j.id
       JOIN customers c ON j.customer_id = c.id
@@ -99,7 +98,6 @@ export const onRequest = methodRouter({
         docket_status = ?,
         ${clearDispatcherNotes ? 'dispatcher_notes = NULL,' : ''}
         submitted_by = COALESCE(submitted_by, ?),
-        customer_copy_email = ?,
         end_machine_hours = ?, end_odometer = ?, updated_at = ?
       WHERE id = ?
     `).bind(
@@ -111,7 +109,6 @@ export const onRequest = methodRouter({
       d.is_locked ? 1 : 0, d.locked_at ?? null, d.locked_by ?? null,
       newDocketStatus,
       user.id,
-      d.customer_copy_email ?? null,
       d.end_machine_hours ?? null, d.end_odometer ?? null, timestamp, id
     ).run();
 

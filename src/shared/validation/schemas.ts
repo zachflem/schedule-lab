@@ -15,6 +15,7 @@ export const SignatureMetadataSchema = z.object({
   signed_lng: z.number().optional(),
   signed_by_user_id: z.string().optional(),
   device_info: z.string().optional(),
+  email_copy_to: z.string().email('Valid email is required').optional().nullable(),
 });
 export type SignatureMetadata = z.infer<typeof SignatureMetadataSchema>;
 
@@ -106,7 +107,6 @@ export const SiteDocketSchema = z.object({
   end_machine_hours: z.number().nullable().optional(),
   end_odometer: z.number().nullable().optional(),
   line_items: z.array(DocketLineItemSchema).optional(),
-  customer_copy_email: z.string().email('Valid email is required').optional().nullable(),
 });
 export type SiteDocket = z.infer<typeof SiteDocketSchema>;
 

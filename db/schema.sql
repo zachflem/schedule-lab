@@ -270,8 +270,7 @@ CREATE TABLE IF NOT EXISTS site_dockets (
   end_odometer           REAL,
   -- Timestamps
   created_at             TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at             TEXT NOT NULL DEFAULT (datetime('now')),
-  customer_copy_email    TEXT
+  updated_at             TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- DOCKET LINE ITEMS
