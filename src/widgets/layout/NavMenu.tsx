@@ -69,7 +69,7 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
       ),
     },
     {
-      to: '/docket?jobId=j01',
+      to: '/dockets',
       label: 'Dockets',
       roles: ['admin', 'dispatcher', 'operator'],
       icon: (

@@ -1,5 +1,6 @@
-import { getDb, jsonResponse, errorResponse, parseBody, methodRouter, now, withRole } from '../../lib/db';
+import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now, withRole, getUser } from '../../lib/db';
 import { JobSchema } from '../../../src/shared/validation/schemas';
+import { sendJobScheduledEmail } from '../../lib/emails';
 
 export const onRequest = methodRouter({
   GET: withRole(['admin', 'dispatcher', 'operator'], async (context, user) => {
@@ -143,6 +144,25 @@ export const onRequest = methodRouter({
     if (batch.length === 0) return jsonResponse({ id, message: 'No changes' });
 
     await db.batch(batch);
+
+    // Send Job Scheduled notification if status just transitioned to 'Job Scheduled'
+    if (data.status_id === 'Job Scheduled') {
+      const previousJob = await db.prepare('SELECT status_id FROM jobs WHERE id = ?').bind(id).first<{ status_id: string }>();
+      if (previousJob && previousJob.status_id !== 'Job Scheduled') {
+        try {
+          await sendJobScheduledEmail(db, id);
+        } catch (err) {
+          console.error('[Email] Failed to send job scheduled notifications:', err);
+        }
+      }
+    } else if (data.start_time && data.end_time) {
+      // Auto-schedule also transitions → send email
+      try {
+        await sendJobScheduledEmail(db, id);
+      } catch (err) {
+        console.error('[Email] Failed to send job scheduled notifications:', err);
+      }
+    }
 
     return jsonResponse({ id });
   }),

@@ -70,6 +70,8 @@ export interface DocketFormState {
   signatures: SignatureMetadata[];
 
   isLocked: boolean;
+  docketStatus: string;
+  dispatcherNotes: string | null;
   loading: boolean;
   saving: boolean;
   error: string | null;
@@ -97,6 +99,8 @@ export function useDocket(jobId: string | null) {
     documentImages: [],
     signatures: [],
     isLocked: false,
+    docketStatus: 'uncompleted',
+    dispatcherNotes: null,
     loading: true,
     saving: false,
     error: null,
@@ -199,6 +203,8 @@ export function useDocket(jobId: string | null) {
                   : existing.signatures)
               : [],
             isLocked: !!existing.is_locked,
+            docketStatus: existing.docket_status || 'uncompleted',
+            dispatcherNotes: existing.dispatcher_notes || null,
             existingDocketId: existing.id,
             loading: false,
           }));
@@ -253,10 +259,10 @@ export function useDocket(jobId: string | null) {
         await api.put(`/dockets/${state.existingDocketId}`, payload);
       } else {
         const { id } = await api.post<{ id: string }>('/dockets', payload);
-        setState(s => ({ ...s, existingDocketId: id }));
+        setState(s => ({ ...s, existingDocketId: id, docketStatus: lock ? 'completed' : 'draft' }));
       }
       if (lock) {
-        setState(s => ({ ...s, isLocked: true }));
+        setState(s => ({ ...s, isLocked: true, docketStatus: 'completed' }));
       }
       setState(s => ({ ...s, saving: false }));
     } catch (err: unknown) {

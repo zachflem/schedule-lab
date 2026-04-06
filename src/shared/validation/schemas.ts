@@ -75,6 +75,10 @@ export const DocketLineItemSchema = z.object({
 });
 export type DocketLineItem = z.infer<typeof DocketLineItemSchema>;
 
+// ── Docket Status ──────────────────────────────────────
+export const DocketStatusEnum = z.enum(['uncompleted', 'draft', 'completed', 'incomplete', 'validated']);
+export type DocketStatus = z.infer<typeof DocketStatusEnum>;
+
 // ── Site Docket (the end-state artefact) ───────────────
 export const SiteDocketSchema = z.object({
   id: z.string().optional(),
@@ -96,6 +100,9 @@ export const SiteDocketSchema = z.object({
   is_locked: robustBoolean.default(false),
   locked_at: isoTimestamp.nullable().optional(),
   locked_by: z.string().nullable().optional(),
+  docket_status: DocketStatusEnum.default('uncompleted'),
+  dispatcher_notes: z.string().nullable().optional(),
+  submitted_by: z.string().nullable().optional(),
   end_machine_hours: z.number().nullable().optional(),
   end_odometer: z.number().nullable().optional(),
   line_items: z.array(DocketLineItemSchema).optional(),

@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router';
 import { Accordion, Spinner } from '@/shared/ui';
 import { useDocket } from '../api/useDocket';
+import { useAuth } from '@/shared/lib/auth';
 import { JobDetails } from './sections/JobDetails';
 import { SafetyChecklist } from './sections/SafetyChecklist';
 import { StartMetrics } from './sections/StartMetrics';
@@ -17,7 +18,10 @@ export function DocketPage() {
   const [searchParams] = useSearchParams();
   const jobId = searchParams.get('jobId');
   const { state, update, saveDocket } = useDocket(jobId);
-  const disabled = state.isLocked;
+  const { user } = useAuth();
+  
+  const isDispatcher = user?.role === 'dispatcher' || user?.role === 'admin';
+  const disabled = isDispatcher ? state.docketStatus === 'validated' : state.isLocked;
 
   if (state.loading) return <Spinner />;
 
@@ -70,12 +74,25 @@ export function DocketPage() {
               </p>
             )}
           </div>
-          {disabled && <span className="badge badge--locked">🔒 Locked</span>}
-          {!disabled && state.existingDocketId && <span className="badge badge--active">Draft</span>}
+          {state.docketStatus === 'validated' && <span className="badge badge--success">🔒 Validated</span>}
+          {state.docketStatus === 'completed' && <span className="badge badge--primary">Completed</span>}
+          {state.docketStatus === 'incomplete' && <span className="badge badge--danger">Needs Revision</span>}
+          {state.docketStatus === 'draft' && <span className="badge badge--warning">Draft</span>}
         </div>
 
+        {state.docketStatus === 'incomplete' && state.dispatcherNotes && (
+          <div style={{ padding: 'var(--space-4)', marginBottom: 'var(--space-4)', background: 'var(--color-danger-50)', border: '1px solid var(--color-danger-300)', borderRadius: 'var(--radius-md)' }}>
+            <h3 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-md)', color: 'var(--color-danger-800)' }}>
+              Revision Required
+            </h3>
+            <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-danger-900)' }}>
+              <strong>Dispatcher Notes:</strong> {state.dispatcherNotes}
+            </p>
+          </div>
+        )}
+
         {state.error && (
-          <div style={{ padding: 'var(--space-3)', marginBottom: 'var(--space-3)', background: 'var(--color-danger-50)', border: '1px solid var(--color-danger-500)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--color-danger-700)' }}>
+          <div style={{ padding: 'var(--space-3)', marginBottom: 'var(--space-3)', background: 'var(--color-danger-50)', border: '1px solid var(--color-danger-400)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--color-danger-700)' }}>
             {state.error}
           </div>
         )}

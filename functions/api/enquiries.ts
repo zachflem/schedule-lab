@@ -1,5 +1,6 @@
 import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../lib/db';
 import { EnquirySchema } from '../../src/shared/validation/schemas';
+import { sendNewEnquiryEmail } from '../lib/emails';
 
 export const onRequest = methodRouter({
   async GET(context) {
@@ -55,6 +56,22 @@ export const onRequest = methodRouter({
       e.asset_type_id ?? null, e.asset_requirement ?? null, e.po_number ?? null,
       timestamp, timestamp
     ).run();
+
+    try {
+      await sendNewEnquiryEmail(db, {
+        id,
+        enquiry_type: e.enquiry_type as string,
+        customer_name: e.customer_name,
+        contact_email: e.contact_email,
+        contact_phone: e.contact_phone,
+        location: e.location,
+        job_brief: e.job_brief,
+        preferred_date: e.preferred_date,
+        asset_requirement: e.asset_requirement,
+      });
+    } catch (err) {
+      console.error('[Email] Failed to send new enquiry email:', err);
+    }
 
     return jsonResponse({ id }, 201);
   },

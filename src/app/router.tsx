@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
+import { DocketsPage } from '@/features/docket/ui/DocketsPage';
 import { DocketPage } from '@/features/docket/ui/DocketPage';
 import { CustomerListPage } from '@/features/customers/ui/CustomerListPage';
 import { CustomerFormPage } from '@/features/customers/ui/CustomerFormPage';
@@ -20,6 +21,7 @@ export function AppRouter() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/dockets" element={<DocketsPage />} />
           <Route path="/docket" element={<DocketPage />} />
           <Route path="/customers" element={<CustomerListPage />} />
           <Route path="/customers/:id" element={<CustomerFormPage />} />

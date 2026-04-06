@@ -261,6 +261,10 @@ CREATE TABLE IF NOT EXISTS site_dockets (
   is_locked              INTEGER DEFAULT 0,
   locked_at              TEXT,
   locked_by              TEXT,
+  -- Docket workflow status
+  docket_status          TEXT NOT NULL DEFAULT 'uncompleted',
+  dispatcher_notes       TEXT,
+  submitted_by           TEXT REFERENCES personnel(id),
   -- Telemetry sync
   end_machine_hours      REAL,
   end_odometer           REAL,
@@ -292,6 +296,7 @@ CREATE INDEX IF NOT EXISTS idx_jobs_status       ON jobs(status_id);
 CREATE INDEX IF NOT EXISTS idx_projects_customer ON projects(customer_id);
 CREATE INDEX IF NOT EXISTS idx_dockets_job       ON site_dockets(job_id);
 CREATE INDEX IF NOT EXISTS idx_dockets_date      ON site_dockets(date);
+CREATE INDEX IF NOT EXISTS idx_dockets_status    ON site_dockets(docket_status);
 CREATE INDEX IF NOT EXISTS idx_alloc_job         ON allocations(job_id);
 CREATE INDEX IF NOT EXISTS idx_alloc_time        ON allocations(start_time, end_time);
 CREATE INDEX IF NOT EXISTS idx_job_res_job       ON job_resources(job_id);

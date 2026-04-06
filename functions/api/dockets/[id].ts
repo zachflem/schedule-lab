@@ -1,21 +1,32 @@
-import { getDb, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../../lib/db';
+import { getDb, jsonResponse, errorResponse, parseBody, methodRouter, now, withRole } from '../../lib/db';
 import { SiteDocketSchema } from '../../../src/shared/validation/schemas';
 
 export const onRequest = methodRouter({
-  async GET(context) {
+  GET: withRole(['admin', 'dispatcher', 'operator'], async (context, user) => {
     const db = getDb(context);
     const id = context.params.id as string;
 
     const docket = await db.prepare(`
       SELECT d.*, j.location, j.job_brief, j.asset_requirement,
-             c.name as customer_name, c.site_contact_email as customer_email, c.site_contact_phone as customer_phone
+             c.name as customer_name, c.site_contact_email as customer_email,
+             c.site_contact_phone as customer_phone,
+             p.name as submitted_by_name
       FROM site_dockets d
       JOIN jobs j ON d.job_id = j.id
       JOIN customers c ON j.customer_id = c.id
+      LEFT JOIN personnel p ON d.submitted_by = p.id
       WHERE d.id = ?
-    `).bind(id).first();
+    `).bind(id).first<any>();
 
     if (!docket) return errorResponse('Docket not found', 404);
+
+    // Operators can only access dockets for jobs they are assigned to
+    if (user.role === 'operator') {
+      const isAssigned = await db.prepare(
+        'SELECT 1 FROM job_resources WHERE job_id = ? AND personnel_id = ?'
+      ).bind(docket.job_id, user.id).first();
+      if (!isAssigned) return errorResponse('Forbidden: You are not assigned to this job', 403);
+    }
 
     // Fetch line items
     const { results: lineItems } = await db.prepare(
@@ -23,22 +34,59 @@ export const onRequest = methodRouter({
     ).bind(id).all();
 
     return jsonResponse({ ...docket, line_items: lineItems });
-  },
+  }),
 
-  async PUT(context) {
+  PUT: withRole(['admin', 'dispatcher', 'operator'], async (context, user) => {
     const db = getDb(context);
     const id = context.params.id as string;
 
-    // Check lock
-    const existing = await db.prepare('SELECT is_locked FROM site_dockets WHERE id = ?').bind(id).first<{ is_locked: number }>();
+    const existing = await db.prepare(
+      'SELECT is_locked, docket_status, job_id FROM site_dockets WHERE id = ?'
+    ).bind(id).first<{ is_locked: number; docket_status: string; job_id: string }>();
+
     if (!existing) return errorResponse('Docket not found', 404);
-    if (existing.is_locked) return errorResponse('Docket is locked and cannot be modified', 403);
+
+    // Validated dockets are permanently locked — no one can edit them
+    if (existing.docket_status === 'validated') {
+      return errorResponse('This docket has been validated and cannot be modified', 403);
+    }
+
+    // Operators can only edit their own assigned jobs
+    if (user.role === 'operator') {
+      const isAssigned = await db.prepare(
+        'SELECT 1 FROM job_resources WHERE job_id = ? AND personnel_id = ?'
+      ).bind(existing.job_id, user.id).first();
+      if (!isAssigned) return errorResponse('Forbidden: You are not assigned to this job', 403);
+    }
 
     const parsed = await parseBody(context.request, SiteDocketSchema);
     if ('error' in parsed) return parsed.error;
 
     const d = parsed.data;
     const timestamp = now();
+
+    // Determine new docket_status:
+    // - Operator resubmitting an incomplete docket → 'completed', clear dispatcher_notes
+    // - Operator saving draft → 'draft'
+    // - Operator submitting (locking) → 'completed'
+    // - Dispatcher editing (never locks via PUT, uses /validate endpoint) → keep current or 'completed'
+    let newDocketStatus = existing.docket_status;
+    let clearDispatcherNotes = false;
+
+    if (user.role === 'operator' || user.role === 'admin') {
+      if (d.is_locked) {
+        newDocketStatus = 'completed';
+        if (existing.docket_status === 'incomplete') clearDispatcherNotes = true;
+      } else {
+        newDocketStatus = 'draft';
+      }
+    } else if (user.role === 'dispatcher') {
+      // Dispatcher can freely edit but doesn't change status via PUT
+      // Status transitions happen via /validate and /reject endpoints
+      if (d.is_locked && existing.docket_status !== 'validated') {
+        newDocketStatus = 'completed';
+      }
+    }
 
     await db.prepare(`
       UPDATE site_dockets SET
@@ -47,6 +95,9 @@ export const onRequest = methodRouter({
         break_duration_minutes = ?, pre_start_safety_check = ?, hazards = ?,
         asset_metrics = ?, job_description_actual = ?, signatures = ?,
         is_locked = ?, locked_at = ?, locked_by = ?,
+        docket_status = ?,
+        ${clearDispatcherNotes ? 'dispatcher_notes = NULL,' : ''}
+        submitted_by = COALESCE(submitted_by, ?),
         end_machine_hours = ?, end_odometer = ?, updated_at = ?
       WHERE id = ?
     `).bind(
@@ -56,6 +107,8 @@ export const onRequest = methodRouter({
       JSON.stringify(d.hazards), JSON.stringify(d.asset_metrics),
       d.job_description_actual ?? null, JSON.stringify(d.signatures),
       d.is_locked ? 1 : 0, d.locked_at ?? null, d.locked_by ?? null,
+      newDocketStatus,
+      user.id,
       d.end_machine_hours ?? null, d.end_odometer ?? null, timestamp, id
     ).run();
 
@@ -77,12 +130,12 @@ export const onRequest = methodRouter({
       await db.batch(stmts);
     }
 
-    // If just locked, complete the job
-    if (d.is_locked) {
-      await db.prepare(`UPDATE jobs SET status_id = 'Completed', updated_at = ? WHERE id = ?`)
+    // Update job status when submitted
+    if (d.is_locked && existing.docket_status !== 'completed') {
+      await db.prepare(`UPDATE jobs SET status_id = 'Site Docket', updated_at = ? WHERE id = ?`)
         .bind(timestamp, d.job_id).run();
     }
 
     return jsonResponse({ id });
-  },
+  }),
 });
