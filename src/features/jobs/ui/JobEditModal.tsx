@@ -283,7 +283,7 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
               )}
 
               {loading ? <Spinner /> : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 'var(--space-4)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
 
                   {/* Assets */}
                   <div>
@@ -310,7 +310,7 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
                       </div>
                     )}
 
-                    <div style={{ border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)', height: '180px', overflowY: 'auto' }}>
+                    <div style={{ border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)', height: '160px', overflowY: 'auto' }}>
                       {isLocked ? (
                         <div style={{ padding: 'var(--space-2)' }}>
                           {allAssets.filter(a => selectedAssets.includes(a.id!)).map(a => (
@@ -359,7 +359,7 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
                       </div>
                     )}
 
-                    <div style={{ border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)', height: '180px', overflowY: 'auto' }}>
+                    <div style={{ border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)', height: '160px', overflowY: 'auto' }}>
                       {isLocked ? (
                         <div style={{ padding: 'var(--space-2)' }}>
                           {allPersonnel.filter(p => selectedPersonnel.includes(p.id!)).map(p => (
