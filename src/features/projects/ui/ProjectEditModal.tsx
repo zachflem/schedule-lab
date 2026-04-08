@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/shared/lib/api';
-import type { Project, Customer } from '@/shared/validation/schemas';
+import type { Project, Customer, ProjectJobTemplate } from '@/shared/validation/schemas';
 import { ProjectStatusEnum } from '@/shared/validation/schemas';
+import { ProjectTemplateModal } from './ProjectTemplateModal';
 
 interface ProjectModalProps {
   project?: any;
@@ -20,8 +21,6 @@ export function ProjectEditModal({ project, mode = 'edit', onClose, onUpdate, on
     status: 'Active',
     start_date: new Date().toISOString().split('T')[0],
     end_date: new Date().toISOString().split('T')[0],
-    recurrence_type: 'none',
-    recurrence_end_type: 'ongoing',
   } : {
     customer_id: project.customer_id,
     name: project.name,
@@ -30,27 +29,32 @@ export function ProjectEditModal({ project, mode = 'edit', onClose, onUpdate, on
     start_date: project.start_date,
     end_date: project.end_date,
     po_number: project.po_number,
-    recurrence_type: project.recurrence_type,
-    recurrence_interval_value: project.recurrence_interval_value,
-    recurrence_interval_unit: project.recurrence_interval_unit,
-    recurrence_downtime_value: project.recurrence_downtime_value,
-    recurrence_downtime_unit: project.recurrence_downtime_unit,
-    recurrence_weekdays: project.recurrence_weekdays ? (typeof project.recurrence_weekdays === 'string' ? JSON.parse(project.recurrence_weekdays) : project.recurrence_weekdays) : [],
-    recurrence_end_type: project.recurrence_end_type,
-    recurrence_end_date: project.recurrence_end_date,
-    default_start_time: project.default_start_time,
-    default_end_time: project.default_end_time,
   });
 
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [templates, setTemplates] = useState<ProjectJobTemplate[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'settings' | 'streams'>('settings');
+  const [editingTemplate, setEditingTemplate] = useState<Partial<ProjectJobTemplate> | null>(null);
+
+  const loadTemplates = async () => {
+    if (!project?.id) return;
+    try {
+      const data = await api.get<ProjectJobTemplate[]>(`/projects/${project.id}/templates`);
+      setTemplates(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
     if (isCreate) {
       api.get<Customer[]>('/customers').then(setCustomers).catch(console.error);
+    } else {
+      loadTemplates();
     }
-  }, [isCreate]);
+  }, [isCreate, project?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,12 +84,32 @@ export function ProjectEditModal({ project, mode = 'edit', onClose, onUpdate, on
   return (
     <div className="modal-overlay">
       <div className="modal-content" style={{ maxWidth: '600px', width: '95%' }}>
-        <div className="modal-header">
-          <h2>{isCreate ? 'Create New Project' : `Project Settings: ${project?.name}`}</h2>
-          <button className="btn-close" onClick={onClose} type="button">&times;</button>
+        <div className="modal-header flex-col items-start gap-4 pb-0">
+          <div className="flex justify-between w-full">
+            <h2>{isCreate ? 'Create New Project' : `Project: ${project?.name}`}</h2>
+            <button className="btn-close" onClick={onClose} type="button">&times;</button>
+          </div>
+          {!isCreate && (
+            <div className="flex gap-4 border-b w-full">
+              <button 
+                className={`pb-2 px-2 border-b-2 transition-colors ${activeTab === 'settings' ? 'border-primary text-primary font-bold' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+                onClick={() => setActiveTab('settings')}
+              >
+                Settings
+              </button>
+              <button 
+                id="tab-streams"
+                className={`pb-2 px-2 border-b-2 transition-colors ${activeTab === 'streams' ? 'border-primary text-primary font-bold' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+                onClick={() => setActiveTab('streams')}
+              >
+                Job Streams ({templates.length})
+              </button>
+            </div>
+          )}
         </div>
 
-        <form onSubmit={handleSubmit}>
+        {activeTab === 'settings' && (
+          <form onSubmit={handleSubmit}>
           <div className="modal-body py-4" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {error && (
               <div className="bg-red-50 text-red-600 p-3 rounded text-sm border border-red-100">
@@ -151,125 +175,6 @@ export function ProjectEditModal({ project, mode = 'edit', onClose, onUpdate, on
               </div>
             </div>
 
-            <div style={{ background: 'var(--color-primary-50)', padding: '16px', borderRadius: '8px', border: '1px solid var(--color-primary-100)' }}>
-              <div className="flex items-center gap-2 mb-4">
-                <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary-600)" strokeWidth="2.5" style={{ width: '16px', height: '16px' }}>
-                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /><polyline points="23 4 23 10 17 10" />
-                </svg>
-                <span className="font-bold text-xs uppercase tracking-wider text-primary">Recurrence Configuration</span>
-              </div>
-              
-              <div className="form-group mb-4">
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Recurrence Type</label>
-                <select
-                  className="form-input"
-                  value={formData.recurrence_type}
-                  onChange={e => setFormData((p: any) => ({ ...p, recurrence_type: e.target.value as any }))}
-                >
-                  <option value="none">Single Project (Manual Scheduling)</option>
-                  <option value="interval">Cycle Interval (Work / Downtime)</option>
-                  <option value="weekdays">Weekly Recurring (Set Days)</option>
-                </select>
-              </div>
-
-              {formData.recurrence_type === 'interval' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <div className="form-group">
-                      <label className="block text-xs font-semibold text-gray-500 mb-1">Active Duration</label>
-                      <div className="flex gap-2">
-                        <input type="number" className="form-input w-20" value={formData.recurrence_interval_value || ''} 
-                          onChange={e => setFormData((p: any) => ({ ...p, recurrence_interval_value: parseInt(e.target.value) }))} />
-                        <select className="form-input" value={formData.recurrence_interval_unit || 'days'}
-                          onChange={e => setFormData((p: any) => ({ ...p, recurrence_interval_unit: e.target.value as any }))}>
-                          <option value="days">Days</option>
-                          <option value="weeks">Weeks</option>
-                          <option value="months">Months</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="form-group">
-                      <label className="block text-xs font-semibold text-gray-500 mb-1">Downtime Gap</label>
-                      <div className="flex gap-2">
-                        <input type="number" className="form-input w-20" value={formData.recurrence_downtime_value ?? ''} 
-                          onChange={e => setFormData((p: any) => ({ ...p, recurrence_downtime_value: parseInt(e.target.value) }))} />
-                        <select className="form-input" value={formData.recurrence_downtime_unit || 'days'}
-                          onChange={e => setFormData((p: any) => ({ ...p, recurrence_downtime_unit: e.target.value as any }))}>
-                          <option value="days">Days</option>
-                          <option value="weeks">Weeks</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {formData.recurrence_type === 'weekdays' && (
-                <div className="form-group mb-4">
-                  <label className="block text-xs font-semibold text-gray-500 mb-2">Repeat on Weekdays</label>
-                  <div className="flex flex-wrap gap-2">
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                      <button
-                        key={day}
-                        type="button"
-                        onClick={() => {
-                          const current = formData.recurrence_weekdays || [];
-                          const updated = current.includes(day as any) 
-                            ? current.filter(d => d !== day) 
-                            : [...current, day as any];
-                          setFormData((p: any) => ({ ...p, recurrence_weekdays: updated }));
-                        }}
-                        className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                          formData.recurrence_weekdays?.includes(day as any)
-                            ? 'bg-primary text-white shadow-sm'
-                            : 'bg-white text-gray-400 border border-gray-200 hover:border-primary hover:text-primary'
-                        }`}
-                      >
-                        {day}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {formData.recurrence_type !== 'none' && (
-                <>
-                  <div className="mt-4 pt-4 border-t border-primary-100" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div className="form-group">
-                      <label className="block text-xs font-semibold text-gray-500 mb-1">Default Start Time</label>
-                      <input type="time" className="form-input" value={formData.default_start_time || '07:00'} 
-                        onChange={e => setFormData((p: any) => ({ ...p, default_start_time: e.target.value }))} />
-                    </div>
-                    <div className="form-group">
-                      <label className="block text-xs font-semibold text-gray-500 mb-1">Default End Time</label>
-                      <input type="time" className="form-input" value={formData.default_end_time || '17:00'} 
-                        onChange={e => setFormData((p: any) => ({ ...p, default_end_time: e.target.value }))} />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 form-group">
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">End Condition</label>
-                    <div className="flex gap-4 items-center">
-                      <label className="flex items-center gap-2 text-sm cursor-pointer">
-                        <input type="radio" name="end_type" checked={formData.recurrence_end_type === 'ongoing'} 
-                          onChange={() => setFormData((p: any) => ({ ...p, recurrence_end_type: 'ongoing' }))} />
-                        Ongoing
-                      </label>
-                      <label className="flex items-center gap-2 text-sm cursor-pointer">
-                        <input type="radio" name="end_type" checked={formData.recurrence_end_type === 'date'} 
-                          onChange={() => setFormData((p: any) => ({ ...p, recurrence_end_type: 'date' }))} />
-                        Ends on date
-                      </label>
-                    </div>
-                    {formData.recurrence_end_type === 'date' && (
-                      <input type="date" className="form-input mt-2" value={formData.recurrence_end_date || ''} 
-                        onChange={e => setFormData((p: any) => ({ ...p, recurrence_end_date: e.target.value }))} />
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="form-group">
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Project Starts</label>
@@ -301,6 +206,69 @@ export function ProjectEditModal({ project, mode = 'edit', onClose, onUpdate, on
             </button>
           </div>
         </form>
+        )}
+
+        {activeTab === 'streams' && (
+          <div className="modal-body py-4 flex flex-col gap-4 min-h-[300px]">
+            <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg border border-gray-100">
+              <div>
+                <h3 className="font-bold text-sm">Recurring Job Streams</h3>
+                <p className="text-xs text-gray-500">Configure parallel recurring job sequences (e.g. multiple assets or rosters)</p>
+              </div>
+              <button className="btn btn--sm btn--primary" onClick={() => setEditingTemplate({})}>+ Add Stream</button>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {templates.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 text-sm italic">
+                  No job streams configured yet.
+                </div>
+              ) : (
+                templates.map(t => (
+                  <div key={t.id} className="border border-gray-200 rounded-lg p-3 hover:border-primary-300 transition-colors bg-white">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-bold text-sm text-gray-800">{t.name}</div>
+                        <div className="text-xs text-gray-500 flex gap-2 mt-1">
+                          {t.job_type && <span className="bg-gray-100 px-2 py-0.5 rounded">{t.job_type}</span>}
+                          {t.asset_requirement && <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-100">{t.asset_requirement}</span>}
+                        </div>
+                      </div>
+                      <div className="bg-primary-50 text-primary-700 text-xs px-2 py-1 rounded font-bold border border-primary-100">
+                        {t.recurrence_type === 'none' ? 'Single Job' : t.recurrence_type === 'interval' ? 'Interval' : 'Weekly'}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {editingTemplate && (
+          <ProjectTemplateModal
+            template={editingTemplate}
+            projectDetails={project}
+            onClose={() => setEditingTemplate(null)}
+            onSave={async (data) => {
+              try {
+                // Determine if creating or updating
+                if (editingTemplate.id) {
+                  // Not fully implemented yet, but placeholders
+                  await api.put(`/projects/${project.id}/templates/${editingTemplate.id}`, data);
+                } else {
+                  await api.post(`/projects/${project.id}/templates`, data);
+                  // Generate right away if the user desires, or just generate behind the scenes
+                  await api.post(`/projects/${project.id}/generate-jobs`, {});
+                }
+                loadTemplates();
+                return { success: true };
+              } catch (err: any) {
+                return { success: false, error: err.message };
+              }
+            }}
+          />
+        )}
       </div>
     </div>
   );

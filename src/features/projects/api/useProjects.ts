@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/shared/lib/api';
-import type { Project } from '@/shared/validation/schemas';
+import type { Project, ProjectJobTemplate } from '@/shared/validation/schemas';
 
 export interface ProjectWithMetadata extends Project {
   customer_name: string;
   job_count: number;
+  template_count: number;
 }
 
 export function useProjects() {
@@ -64,6 +65,24 @@ export function useProjects() {
     }
   };
 
+  const getTemplates = async (projectId: string) => {
+    try {
+      const data = await api.get<ProjectJobTemplate[]>(`/projects/${projectId}/templates`);
+      return { success: true, data };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const createTemplate = async (projectId: string, data: Partial<ProjectJobTemplate>) => {
+    try {
+      const res = await api.post<{ id: string }>(`/projects/${projectId}/templates`, data);
+      return { success: true, id: res.id };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
   return {
     projects,
     loading,
@@ -73,5 +92,7 @@ export function useProjects() {
     updateProject,
     deleteProject,
     generateJobs,
+    getTemplates,
+    createTemplate,
   };
 }

@@ -10,7 +10,8 @@ export const onRequest = methodRouter({
 
     let query = `
       SELECT p.*, c.name as customer_name,
-        (SELECT COUNT(*) FROM jobs WHERE project_id = p.id) as job_count
+        (SELECT COUNT(*) FROM jobs WHERE project_id = p.id) as job_count,
+        (SELECT COUNT(*) FROM project_job_templates WHERE project_id = p.id) as template_count
       FROM projects p
       JOIN customers c ON p.customer_id = c.id
     `;
@@ -40,23 +41,11 @@ export const onRequest = methodRouter({
       INSERT INTO projects (
         id, customer_id, enquiry_id, name, description,
         status, start_date, end_date, po_number,
-        recurrence_type,
-        recurrence_interval_value, recurrence_interval_unit,
-        recurrence_downtime_value, recurrence_downtime_unit,
-        recurrence_weekdays,
-        recurrence_end_type, recurrence_end_date,
-        default_start_time, default_end_time,
         created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id, p.customer_id, p.enquiry_id ?? null, p.name, p.description ?? null,
       p.status, p.start_date, p.end_date, p.po_number ?? null,
-      p.recurrence_type ?? 'none',
-      p.recurrence_interval_value ?? null, p.recurrence_interval_unit ?? null,
-      p.recurrence_downtime_value ?? null, p.recurrence_downtime_unit ?? null,
-      p.recurrence_weekdays ? JSON.stringify(p.recurrence_weekdays) : null,
-      p.recurrence_end_type ?? 'ongoing', p.recurrence_end_date ?? null,
-      p.default_start_time ?? null, p.default_end_time ?? null,
       timestamp, timestamp
     ).run();
 

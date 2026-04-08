@@ -267,6 +267,24 @@ export const ProjectSchema = z.object({
   start_date: isoDate,
   end_date: isoDate,
   po_number: z.string().optional().nullable(),
+});
+export type Project = z.infer<typeof ProjectSchema>;
+
+export const ProjectJobTemplateStatusEnum = z.enum(['Active', 'Paused', 'Completed']);
+
+export const ProjectJobTemplateSchema = z.object({
+  id: z.string().optional(),
+  project_id: z.string().min(1, 'Project ID is required'),
+  name: z.string().min(1, 'Template name is required'),
+  job_type: z.string().optional().nullable(),
+  location: z.string().optional().nullable(),
+  asset_requirement: z.string().optional().nullable(),
+  max_weight: z.number().optional().nullable(),
+  hazards: z.string().optional().nullable(),
+  site_access: z.string().optional().nullable(),
+  task_description: z.string().optional().nullable(),
+  status: ProjectJobTemplateStatusEnum.default('Active'),
+  
   // Recurrence scheduling
   recurrence_type: z.enum(['interval', 'weekdays', 'none']).default('none'),
   recurrence_interval_value: z.number().int().positive().optional().nullable(),
@@ -276,11 +294,13 @@ export const ProjectSchema = z.object({
   recurrence_weekdays: z.array(RecurrenceWeekdayEnum).optional().nullable(),
   recurrence_end_type: z.enum(['date', 'ongoing']).default('ongoing'),
   recurrence_end_date: isoDate.optional().nullable(),
+  
   // Default working hours for generated job schedules (HH:MM)
   default_start_time: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
   default_end_time: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+  last_generated_date: z.string().optional().nullable(),
 });
-export type Project = z.infer<typeof ProjectSchema>;
+export type ProjectJobTemplate = z.infer<typeof ProjectJobTemplateSchema>;
 
 // ── Job ────────────────────────────────────────────────
 export const JobSchema = z.object({

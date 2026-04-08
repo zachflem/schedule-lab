@@ -161,6 +161,24 @@ CREATE TABLE IF NOT EXISTS projects (
   start_date                TEXT NOT NULL,
   end_date                  TEXT NOT NULL,
   po_number                 TEXT,
+  
+  created_at                TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at                TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- PROJECT JOB TEMPLATES (Recurring job streams within a project)
+CREATE TABLE IF NOT EXISTS project_job_templates (
+  id                        TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  project_id                TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  name                      TEXT NOT NULL, -- e.g. "Crane 1 Roster"
+  job_type                  TEXT,
+  location                  TEXT,
+  asset_requirement         TEXT,
+  max_weight                REAL,
+  hazards                   TEXT,
+  site_access               TEXT,
+  task_description          TEXT,
+  status                    TEXT NOT NULL DEFAULT 'Active' CHECK(status IN ('Active', 'Paused', 'Completed')),
   -- Recurrence scheduling
   recurrence_type           TEXT NOT NULL DEFAULT 'none'
     CHECK(recurrence_type IN ('interval', 'weekdays', 'none')),
@@ -175,6 +193,7 @@ CREATE TABLE IF NOT EXISTS projects (
   -- Default working hours for generated job schedules (HH:MM)
   default_start_time        TEXT,
   default_end_time          TEXT,
+  last_generated_date       TEXT, -- Tracks how far jobs have been generated
   
   created_at                TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at                TEXT NOT NULL DEFAULT (datetime('now'))
@@ -309,6 +328,7 @@ CREATE INDEX IF NOT EXISTS idx_jobs_customer     ON jobs(customer_id);
 CREATE INDEX IF NOT EXISTS idx_jobs_project      ON jobs(project_id);
 CREATE INDEX IF NOT EXISTS idx_jobs_status       ON jobs(status_id);
 CREATE INDEX IF NOT EXISTS idx_projects_customer ON projects(customer_id);
+CREATE INDEX IF NOT EXISTS idx_project_templates_project ON project_job_templates(project_id);
 CREATE INDEX IF NOT EXISTS idx_dockets_job       ON site_dockets(job_id);
 CREATE INDEX IF NOT EXISTS idx_dockets_date      ON site_dockets(date);
 CREATE INDEX IF NOT EXISTS idx_dockets_status    ON site_dockets(docket_status);

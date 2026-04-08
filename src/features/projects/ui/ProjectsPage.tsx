@@ -89,15 +89,15 @@ export function ProjectsPage() {
                   <td>{getStatusBadge(p.status)}</td>
                   <td>
                     <div className="flex items-center gap-1 text-sm">
-                      {p.recurrence_type === 'none' ? (
-                        <span className="text-gray-400">One-off</span>
+                      {p.template_count === 0 ? (
+                        <span className="text-gray-400">Single</span>
                       ) : (
                         <>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px' }}>
                             <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                           </svg>
                           <span className="font-medium text-primary">
-                            {p.recurrence_type === 'weekdays' ? 'Weekly' : 'Interval'}
+                            {p.template_count} Stream{p.template_count !== 1 ? 's' : ''}
                           </span>
                         </>
                       )}
@@ -114,7 +114,7 @@ export function ProjectsPage() {
                   {isAdminOrDispatcher && (
                     <td className="text-right">
                       <div className="flex justify-end gap-2">
-                        {p.recurrence_type !== 'none' && (
+                        {p.template_count > 0 && (
                           <button 
                             className="btn btn--sm btn--primary" 
                             disabled={generatingId === p.id}
@@ -131,9 +131,22 @@ export function ProjectsPage() {
                               }
                             }}
                           >
-                            {generatingId === p.id ? '...' : 'Generate Jobs'}
+                            {generatingId === p.id ? '...' : 'Generate '}
                           </button>
                         )}
+                        <button
+                          className="btn btn--sm btn--secondary"
+                          onClick={() => {
+                            setEditingProject(p);
+                            // We can use a small hack or pass a prop to open streams tab by default
+                            setTimeout(() => {
+                              const streamsBtn = document.getElementById('tab-streams');
+                              if (streamsBtn) streamsBtn.click();
+                            }, 50);
+                          }}
+                        >
+                          + Stream
+                        </button>
                         <button 
                           className="btn btn--sm btn--secondary" 
                           onClick={() => setEditingProject(p)}
