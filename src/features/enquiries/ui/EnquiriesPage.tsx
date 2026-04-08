@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useEnquiries } from '../api/useEnquiries';
-import { Spinner } from '@/shared/ui';
+import { Spinner, FilterModal } from '@/shared/ui';
 import { EnquiryDetailsModal } from './EnquiryDetailsModal';
 import { CreateEnquiryModal } from './CreateEnquiryModal';
 import { formatRecordId } from '@/shared/lib/format';
@@ -49,23 +49,18 @@ export function EnquiriesPage() {
         </button>
       </div>
 
-      <div className="filters mb-6 flex flex-wrap gap-4 items-center bg-gray-50 p-4 rounded-lg">
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 w-full mb-1">Filter by Status:</span>
-          {ENQUIRY_TABLE_STATUSES.map(status => (
-            <button
-              key={status}
-              onClick={() => toggleStatus(status)}
-              className={`btn btn--sm ${selectedStatuses.includes(status) ? 'btn--primary' : 'btn--secondary'}`}
-              style={{ borderRadius: '20px', padding: '2px 12px', fontSize: '11px' }}
-            >
-              {status}
-            </button>
-          ))}
-        </div>
-        
-        <button 
-          className="btn btn--secondary btn--sm ml-auto" 
+      <div className="filters mb-6" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        <FilterModal
+          title="Filter by Status"
+          buttonLabel="Status Filter"
+          options={ENQUIRY_TABLE_STATUSES.map(s => ({ value: s, label: s }))}
+          selected={selectedStatuses}
+          onToggle={toggleStatus}
+          onSelectAll={() => setSelectedStatuses([...ENQUIRY_TABLE_STATUSES])}
+          onClearAll={() => setSelectedStatuses([])}
+        />
+        <button
+          className="btn btn--secondary btn--sm"
           onClick={() => loadEnquiries({ status: selectedStatuses })}
         >
           Refresh

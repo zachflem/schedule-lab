@@ -5,7 +5,7 @@ import { UnscheduledBucket } from './UnscheduledBucket';
 import { CalendarView } from './CalendarView';
 import { JobTable } from './JobTable';
 import { JobEditModal } from './JobEditModal';
-import { Spinner } from '@/shared/ui';
+import { Spinner, FilterModal } from '@/shared/ui';
 import { JOB_ONLY_STATUSES, type JobStatus } from '@/shared/validation/schemas';
 import { api } from '@/shared/lib/api';
 import { useState, useMemo } from 'react';
@@ -101,18 +101,16 @@ export function JobsPage() {
 
       {error && <div className="alert alert--danger mb-6">{error}</div>}
 
-      <div className="filters mb-6 flex flex-wrap gap-2">
-        <span className="text-sm font-semibold self-center mr-2">Filter Status:</span>
-        {JOB_ONLY_STATUSES.map(status => (
-          <button
-            key={status}
-            onClick={() => toggleStatus(status)}
-            className={`btn btn--sm ${selectedStatuses.includes(status) ? 'btn--primary' : 'btn--secondary'}`}
-            style={{ borderRadius: '20px', padding: '2px 12px', fontSize: '12px' }}
-          >
-            {status}
-          </button>
-        ))}
+      <div className="filters mb-6">
+        <FilterModal
+          title="Filter by Status"
+          buttonLabel="Status Filter"
+          options={JOB_ONLY_STATUSES.map(s => ({ value: s, label: s }))}
+          selected={selectedStatuses}
+          onToggle={toggleStatus}
+          onSelectAll={() => setSelectedStatuses([...JOB_ONLY_STATUSES])}
+          onClearAll={() => setSelectedStatuses([])}
+        />
       </div>
 
       {isScheduleView ? (

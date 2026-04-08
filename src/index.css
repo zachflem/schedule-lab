@@ -134,6 +134,14 @@ input, select, textarea, button {
   padding: 0 var(--space-4);
 }
 
+@media (max-width: 640px) {
+  .container,
+  .container-fluid {
+    width: 100%;
+    padding: 0 var(--space-3);
+  }
+}
+
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
 .items-center { align-items: center; }
@@ -264,6 +272,24 @@ input, select, textarea, button {
 .border-primary-600 { border-color: var(--color-primary-600); }
 .text-primary-600 { color: var(--color-primary-600); }
 .text-primary-800 { color: var(--color-primary-800); }
+
+/* ── Spacing utilities (responsive) ───────────── */
+.p-6 { padding: var(--space-6); }
+.p-8 { padding: var(--space-8); }
+
+@media (max-width: 640px) {
+  .p-6 { padding: var(--space-3); }
+  .p-8 { padding: var(--space-3); }
+  .main-content { padding-top: var(--space-2); }
+}
+
+/* ── Dockets responsive table/cards ───────────── */
+.dockets-card-view { display: none; }
+
+@media (max-width: 720px) {
+  .dockets-table-view { display: none; }
+  .dockets-card-view { display: block; }
+}
 
 /* ── Gantt Enhancements ────────────────────────── */
 .sticky-left { 

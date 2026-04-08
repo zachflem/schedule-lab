@@ -6,6 +6,12 @@
   gap: var(--space-8);
 }
 
+@media (max-width: 640px) {
+  .operator-dashboard {
+    gap: var(--space-5);
+  }
+}
+
 /* ── Urgent Alerts ──────────────────────────────────────── */
 
 .urgent-alerts {
@@ -25,6 +31,13 @@
   gap: var(--space-4);
   transition: transform 0.15s ease;
   text-decoration: none;
+}
+
+@media (max-width: 640px) {
+  .alert-card {
+    padding: var(--space-3) var(--space-4);
+    gap: var(--space-3);
+  }
 }
 
 .alert-card:hover {
@@ -88,6 +101,13 @@
   gap: var(--space-4);
 }
 
+@media (max-width: 640px) {
+  .operator-jobs-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
 .operator-job-card {
   background: white;
   border: 1px solid var(--color-gray-100);
@@ -100,6 +120,14 @@
   text-decoration: none;
   transition: box-shadow 0.2s, transform 0.2s;
   position: relative;
+}
+
+@media (max-width: 640px) {
+  .operator-job-card {
+    padding: var(--space-4);
+    gap: var(--space-3);
+    border-radius: var(--radius-lg);
+  }
 }
 
 .operator-job-card:hover {

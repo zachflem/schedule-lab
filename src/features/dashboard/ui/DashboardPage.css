@@ -4,9 +4,21 @@
   padding: var(--space-8) 0;
 }
 
+@media (max-width: 640px) {
+  .dashboard-page {
+    padding: var(--space-4) 0;
+  }
+}
+
 /* Greeting Banner */
 .dashboard-greeting {
   margin-bottom: var(--space-8);
+}
+
+@media (max-width: 640px) {
+  .dashboard-greeting {
+    margin-bottom: var(--space-5);
+  }
 }
 
 .dashboard-greeting h1 {
@@ -15,6 +27,12 @@
   color: var(--color-gray-900);
   letter-spacing: -0.03em;
   line-height: 1.2;
+}
+
+@media (max-width: 640px) {
+  .dashboard-greeting h1 {
+    font-size: 1.5rem;
+  }
 }
 
 .dashboard-greeting p {
@@ -30,6 +48,14 @@
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-4);
   margin-bottom: var(--space-8);
+}
+
+@media (max-width: 640px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
 }
 
 .stat-card {
