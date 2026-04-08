@@ -107,7 +107,7 @@ export function JobsPage() {
           buttonLabel="Status Filter"
           options={JOB_ONLY_STATUSES.map(s => ({ value: s, label: s }))}
           selected={selectedStatuses}
-          onToggle={toggleStatus}
+          onToggle={(value) => toggleStatus(value as JobStatus)}
           onSelectAll={() => setSelectedStatuses([...JOB_ONLY_STATUSES])}
           onClearAll={() => setSelectedStatuses([])}
         />
