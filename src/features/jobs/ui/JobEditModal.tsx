@@ -16,6 +16,23 @@ interface JobEditModalProps {
   onApplyToFuture?: (projectId: string, data: any) => Promise<{ success: boolean; updated?: number; error?: string }>;
 }
 
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      fontSize: 'var(--text-xs)',
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      letterSpacing: '0.08em',
+      color: 'var(--color-gray-400)',
+      marginBottom: 'var(--space-4)',
+      paddingBottom: 'var(--space-2)',
+      borderBottom: '1px solid var(--color-gray-100)',
+    }}>
+      {children}
+    </div>
+  );
+}
+
 export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditModalProps) {
   const [formData, setFormData] = useState({
     status_id: job.status_id || 'Job Booked',
@@ -58,8 +75,6 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
         ]);
         setAllAssets(assetsData);
         setAllPersonnel(personnelData);
-        
-        // Initialize selections from existing resources
         if (job.resources) {
           setSelectedAssets(job.resources.filter(r => r.resource_type === 'Asset' && r.asset_id).map(r => r.asset_id));
           setSelectedPersonnel(job.resources.filter(r => r.resource_type === 'Personnel' && r.personnel_id).map(r => r.personnel_id));
@@ -73,26 +88,12 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
     fetchData();
   }, [job.resources]);
 
-  const toggleAssetType = (type: string) => {
-    setSelectedAssetTypes(prev => 
-      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-    );
-  };
-
-  const toggleQualification = (qual: string) => {
-    setSelectedQualifications(prev => 
-      prev.includes(qual) ? prev.filter(q => q !== qual) : [...prev, qual]
-    );
-  };
-
   const uniqueTypes = useMemo(() => {
-    const types = allAssets.map(a => a.asset_type_name || 'Other');
-    return Array.from(new Set(types)).sort();
+    return Array.from(new Set(allAssets.map(a => a.asset_type_name || 'Other'))).sort();
   }, [allAssets]);
 
   const uniqueQualifications = useMemo(() => {
-    const quals = allPersonnel.flatMap(p => p.qualifications?.map(q => q.name) || []);
-    return Array.from(new Set(quals)).sort();
+    return Array.from(new Set(allPersonnel.flatMap(p => p.qualifications?.map(q => q.name) || []))).sort();
   }, [allPersonnel]);
 
   const filteredAssets = useMemo(() => {
@@ -106,7 +107,7 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
   const filteredPersonnel = useMemo(() => {
     return allPersonnel.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(personnelSearch.toLowerCase());
-      const matchesQual = selectedQualifications.length === 0 || 
+      const matchesQual = selectedQualifications.length === 0 ||
         p.qualifications?.some(q => selectedQualifications.includes(q.name));
       return matchesSearch && matchesQual;
     });
@@ -119,42 +120,29 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
 
   const handleToggleAsset = (id: string) => {
     if (isLocked) return;
-    setSelectedAssets(prev => 
-      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
-    );
+    setSelectedAssets(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]);
   };
 
   const handleTogglePersonnel = (id: string) => {
     if (isLocked) return;
-    setSelectedPersonnel(prev => 
-      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-    );
+    setSelectedPersonnel(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check minimum hire period
     if (formData.start_time && formData.end_time && selectedAssets.length > 0) {
       const start = new Date(formData.start_time);
       const end = new Date(formData.end_time);
       const durationMinutes = (end.getTime() - start.getTime()) / 60000;
-
       const breachAssets = allAssets.filter(a =>
         selectedAssets.includes(a.id!) &&
         a.minimum_hire_period > 0 &&
         durationMinutes < a.minimum_hire_period
       );
-
       if (breachAssets.length > 0) {
-        const msg = `The following assets have a minimum hire period that is not met:
-${breachAssets.map(a => `- ${a.name}: ${a.minimum_hire_period} mins`).join('\n')}
-
-The current booking is only ${durationMinutes} minutes. Do you want to proceed anyway?`;
-
-        if (!window.confirm(msg)) {
-          return;
-        }
+        const msg = `The following assets have a minimum hire period that is not met:\n${breachAssets.map(a => `- ${a.name}: ${a.minimum_hire_period} mins`).join('\n')}\n\nThe current booking is only ${durationMinutes} minutes. Do you want to proceed anyway?`;
+        if (!window.confirm(msg)) return;
       }
     }
 
@@ -166,10 +154,8 @@ The current booking is only ${durationMinutes} minutes. Do you want to proceed a
         ...selectedAssets.map(id => ({ resource_type: 'Asset', asset_id: id })),
         ...selectedPersonnel.map(id => ({ resource_type: 'Personnel', personnel_id: id }))
       ];
-
       const result = await onSave(job.id!, { ...formData, resources });
       if (result.success) {
-        // If dispatcher chose to apply to all future project jobs
         if (applyToFuture && isPartOfProject && onApplyToFuture && job.project_id) {
           const futurePayload = {
             status_id: formData.status_id,
@@ -200,14 +186,27 @@ The current booking is only ${durationMinutes} minutes. Do you want to proceed a
     }
   };
 
+  // 2-column responsive grid (collapses to 1 on narrow modals / mobile)
+  const twoCol: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+    gap: 'var(--space-4)',
+  };
+  const spanFull: React.CSSProperties = { gridColumn: '1 / -1' };
+
   return (
     <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: '900px', width: '95%' }}>
+      <div className="modal-content" style={{ maxWidth: '680px', width: '95%' }}>
+
+        {/* Header */}
         <div className="modal-header">
           <div>
-            <h2>Edit Job: {job.customer_name}</h2>
+            <h2 style={{ fontSize: 'var(--text-xl)' }}>Edit Job</h2>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', marginTop: '2px', fontWeight: 600 }}>
+              {job.customer_name}
+            </div>
             {isPartOfProject && (
-              <div style={{ fontSize: '11px', color: 'var(--color-primary-600)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--color-primary-600)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '11px', height: '11px' }}>
                   <polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" />
                 </svg>
@@ -219,279 +218,219 @@ The current booking is only ${durationMinutes} minutes. Do you want to proceed a
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, overflow: 'hidden' }}>
-          <div className="modal-body" style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 350px', gap: '2rem' }}>
-            <div className="main-info">
-              {error && <div className="alert alert--danger mb-4">{error}</div>}
+          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
 
-              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+            {error && <div className="alert alert--danger">{error}</div>}
+
+            {/* ── Section 1: Job Info ─────────────────────── */}
+            <section>
+              <SectionHeader>Job Details</SectionHeader>
+              <div style={twoCol}>
+                <div className="form-group" style={spanFull}>
                   <label className="form-label">Status</label>
-                  <select 
-                    name="status_id" 
-                    value={formData.status_id} 
-                    onChange={handleChange}
-                    className="form-input"
-                    required
-                  >
+                  <select name="status_id" value={formData.status_id} onChange={handleChange} className="form-input" required>
                     {JobStatusEnum.options.map(status => (
                       <option key={status} value={status}>{status}</option>
                     ))}
                   </select>
                 </div>
-
-                <div className="form-group bg-blue-50/30 p-4 border border-blue-100 rounded-lg col-span-2 mb-4">
-                  <h4 className="text-sm font-bold text-blue-800 mb-3 border-b border-blue-100 pb-1 flex justify-between">
-                    <span>Scheduling & Timeline</span>
-                    {!formData.start_time && <span className="text-[10px] font-normal text-blue-500 bg-blue-50 px-2 rounded-full uppercase">Unscheduled</span>}
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="form-group">
-                      <label className="form-label text-[11px] uppercase tracking-tight text-gray-500">Start Date / Time</label>
-                      <input 
-                        type="datetime-local" 
-                        name="start_time" 
-                        value={formData.start_time} 
-                        onChange={handleChange} 
-                        className="form-input bg-white" 
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label text-[11px] uppercase tracking-tight text-gray-500">End Date / Time</label>
-                      <input 
-                        type="datetime-local" 
-                        name="end_time" 
-                        value={formData.end_time} 
-                        onChange={handleChange} 
-                        className="form-input bg-white" 
-                      />
-                    </div>
-                  </div>
-                  <div className="text-[10px] text-blue-600 mt-2 italic">
-                    Tip: Use these fields to manually schedule or adjust the job timeline.
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="form-label">Location</label>
-                  <input type="text" name="location" value={formData.location} onChange={handleChange} className="form-input" />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Site Contact Name</label>
-                  <input type="text" name="site_contact_name" value={formData.site_contact_name} onChange={handleChange} className="form-input" />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Site Contact Phone</label>
-                  <input type="text" name="site_contact_phone" value={formData.site_contact_phone} onChange={handleChange} className="form-input" />
-                </div>
-
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="form-label">Site Contact Email</label>
-                  <input type="email" name="site_contact_email" value={formData.site_contact_email} onChange={handleChange} className="form-input" />
-                </div>
-
                 <div className="form-group">
                   <label className="form-label">PO Number</label>
                   <input type="text" name="po_number" value={formData.po_number} onChange={handleChange} className="form-input" />
                 </div>
-
                 <div className="form-group">
                   <label className="form-label">Job Type</label>
                   <input type="text" name="job_type" value={formData.job_type} onChange={handleChange} className="form-input" />
                 </div>
+              </div>
+            </section>
 
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+            {/* ── Section 2: Location & Contact ──────────── */}
+            <section>
+              <SectionHeader>Location & Site Contact</SectionHeader>
+              <div style={twoCol}>
+                <div className="form-group" style={spanFull}>
+                  <label className="form-label">Location</label>
+                  <input type="text" name="location" value={formData.location} onChange={handleChange} className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Contact Name</label>
+                  <input type="text" name="site_contact_name" value={formData.site_contact_name} onChange={handleChange} className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Contact Phone</label>
+                  <input type="text" name="site_contact_phone" value={formData.site_contact_phone} onChange={handleChange} className="form-input" />
+                </div>
+                <div className="form-group" style={spanFull}>
+                  <label className="form-label">Contact Email</label>
+                  <input type="email" name="site_contact_email" value={formData.site_contact_email} onChange={handleChange} className="form-input" />
+                </div>
+                <div className="form-group" style={spanFull}>
                   <label className="form-label">Job Brief</label>
-                  <textarea name="job_brief" value={formData.job_brief} onChange={handleChange} className="form-input" rows={4} />
+                  <textarea name="job_brief" value={formData.job_brief} onChange={handleChange} className="form-input" rows={3} />
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="resource-sidebar border-l pl-6">
-              <h3 className="mb-4 text-lg font-bold">Allocations</h3>
-              
+            {/* ── Section 3: Allocations ─────────────────── */}
+            <section>
+              <SectionHeader>Allocations</SectionHeader>
+
               {isLocked && (
-                <div className="bg-amber-50 border border-amber-200 p-3 rounded text-sm text-amber-800 mb-4">
+                <div style={{ background: 'var(--color-warning-50)', border: '1px solid var(--color-warning-500)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--color-warning-600)', marginBottom: 'var(--space-4)' }}>
                   <strong>Locked:</strong> Unschedule this job on the schedule page to modify allocations.
                 </div>
               )}
 
               {loading ? <Spinner /> : (
-                <div className="flex flex-col gap-6">
-                  {/* Assets Section */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 'var(--space-4)' }}>
+
+                  {/* Assets */}
                   <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="font-semibold text-sm">Assets ({selectedAssets.length})</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                      <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-gray-700)' }}>
+                        Assets
+                        <span style={{ marginLeft: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, background: 'var(--color-primary-100)', color: 'var(--color-primary-700)', borderRadius: '999px', padding: '0 6px' }}>
+                          {selectedAssets.length}
+                        </span>
+                      </label>
                       {!isLocked && (
-                        <input 
-                          type="text" 
-                          placeholder="Search..." 
-                          className="text-xs p-1 border rounded w-32"
-                          value={assetSearch}
-                          onChange={(e) => setAssetSearch(e.target.value)}
-                        />
+                        <input type="text" placeholder="Search…" className="form-input" style={{ width: '120px', padding: '3px 8px', fontSize: 'var(--text-xs)' }} value={assetSearch} onChange={(e) => setAssetSearch(e.target.value)} />
                       )}
                     </div>
 
-                    {!isLocked && (
-                      <div className="filters mb-2 flex flex-wrap gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedAssetTypes([])}
-                          className={`btn btn--sm ${selectedAssetTypes.length === 0 ? 'btn--primary' : 'btn--secondary'}`}
-                          style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}
-                        >
-                          All
-                        </button>
+                    {!isLocked && uniqueTypes.length > 1 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: 'var(--space-2)' }}>
+                        <button type="button" onClick={() => setSelectedAssetTypes([])} className={`btn btn--sm ${selectedAssetTypes.length === 0 ? 'btn--primary' : 'btn--secondary'}`} style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}>All</button>
                         {uniqueTypes.map(type => (
-                          <button
-                            key={type}
-                            type="button"
-                            onClick={() => toggleAssetType(type)}
-                            className={`btn btn--sm ${selectedAssetTypes.includes(type) ? 'btn--primary' : 'btn--secondary'}`}
-                            style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}
-                          >
+                          <button key={type} type="button" onClick={() => setSelectedAssetTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type])} className={`btn btn--sm ${selectedAssetTypes.includes(type) ? 'btn--primary' : 'btn--secondary'}`} style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}>
                             {type}
                           </button>
                         ))}
                       </div>
                     )}
 
-                    <div className="border rounded h-40 overflow-y-auto">
+                    <div style={{ border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)', height: '180px', overflowY: 'auto' }}>
                       {isLocked ? (
-                        <div className="p-2 space-y-1">
+                        <div style={{ padding: 'var(--space-2)' }}>
                           {allAssets.filter(a => selectedAssets.includes(a.id!)).map(a => (
-                            <div key={a.id} className="text-sm py-1 border-b last:border-0">{a.name}</div>
+                            <div key={a.id} style={{ fontSize: 'var(--text-sm)', padding: '6px 0', borderBottom: '1px solid var(--color-gray-100)' }}>{a.name}</div>
                           ))}
-                          {selectedAssets.length === 0 && <div className="text-xs text-gray-400 p-2 italic">No assets allocated</div>}
+                          {selectedAssets.length === 0 && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', padding: 'var(--space-3)', textAlign: 'center' }}>No assets allocated</div>}
                         </div>
+                      ) : filteredAssets.length === 0 ? (
+                        <div style={{ padding: 'var(--space-4)', textAlign: 'center', color: 'var(--color-gray-400)', fontSize: 'var(--text-sm)' }}>No assets found</div>
                       ) : (
-                        <>
-                          {filteredAssets.map(a => (
-                            <label key={a.id} className="flex items-center p-2 hover:bg-gray-50 cursor-pointer border-b last:border-0">
-                              <input 
-                                type="checkbox" 
-                                checked={selectedAssets.includes(a.id!)} 
-                                onChange={() => handleToggleAsset(a.id!)}
-                                className="mr-2"
-                              />
-                              <div className="flex flex-col">
-                                <span className="text-sm">{a.name}</span>
-                                <span className="text-[10px] text-gray-500">{a.asset_type_name}</span>
-                              </div>
-                            </label>
-                          ))}
-                          {filteredAssets.length === 0 && (
-                            <div className="p-4 text-center text-gray-400 text-sm">No assets found</div>
-                          )}
-                        </>
+                        filteredAssets.map(a => (
+                          <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: '8px var(--space-3)', borderBottom: '1px solid var(--color-gray-50)', cursor: 'pointer', background: selectedAssets.includes(a.id!) ? 'var(--color-primary-50)' : 'white', transition: 'background var(--transition-fast)' }}>
+                            <input type="checkbox" checked={selectedAssets.includes(a.id!)} onChange={() => handleToggleAsset(a.id!)} style={{ flexShrink: 0 }} />
+                            <div>
+                              <div style={{ fontSize: 'var(--text-sm)', fontWeight: selectedAssets.includes(a.id!) ? 600 : 400 }}>{a.name}</div>
+                              <div style={{ fontSize: '10px', color: 'var(--color-gray-400)' }}>{a.asset_type_name}</div>
+                            </div>
+                          </label>
+                        ))
                       )}
                     </div>
                   </div>
 
-                  {/* Personnel Section */}
+                  {/* Personnel */}
                   <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="font-semibold text-sm">Personnel ({selectedPersonnel.length})</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                      <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-gray-700)' }}>
+                        Personnel
+                        <span style={{ marginLeft: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, background: 'var(--color-primary-100)', color: 'var(--color-primary-700)', borderRadius: '999px', padding: '0 6px' }}>
+                          {selectedPersonnel.length}
+                        </span>
+                      </label>
                       {!isLocked && (
-                        <input 
-                          type="text" 
-                          placeholder="Search..." 
-                          className="text-xs p-1 border rounded w-32"
-                          value={personnelSearch}
-                          onChange={(e) => setPersonnelSearch(e.target.value)}
-                        />
+                        <input type="text" placeholder="Search…" className="form-input" style={{ width: '120px', padding: '3px 8px', fontSize: 'var(--text-xs)' }} value={personnelSearch} onChange={(e) => setPersonnelSearch(e.target.value)} />
                       )}
                     </div>
 
-                    {!isLocked && (
-                      <div className="filters mb-2 flex flex-wrap gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedQualifications([])}
-                          className={`btn btn--sm ${selectedQualifications.length === 0 ? 'btn--primary' : 'btn--secondary'}`}
-                          style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}
-                        >
-                          All
-                        </button>
+                    {!isLocked && uniqueQualifications.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: 'var(--space-2)' }}>
+                        <button type="button" onClick={() => setSelectedQualifications([])} className={`btn btn--sm ${selectedQualifications.length === 0 ? 'btn--primary' : 'btn--secondary'}`} style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}>All</button>
                         {uniqueQualifications.map(qual => (
-                          <button
-                            key={qual}
-                            type="button"
-                            onClick={() => toggleQualification(qual)}
-                            className={`btn btn--sm ${selectedQualifications.includes(qual) ? 'btn--primary' : 'btn--secondary'}`}
-                            style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}
-                          >
+                          <button key={qual} type="button" onClick={() => setSelectedQualifications(prev => prev.includes(qual) ? prev.filter(q => q !== qual) : [...prev, qual])} className={`btn btn--sm ${selectedQualifications.includes(qual) ? 'btn--primary' : 'btn--secondary'}`} style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}>
                             {qual}
                           </button>
                         ))}
                       </div>
                     )}
 
-                    <div className="border rounded h-40 overflow-y-auto">
+                    <div style={{ border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)', height: '180px', overflowY: 'auto' }}>
                       {isLocked ? (
-                        <div className="p-2 space-y-1">
+                        <div style={{ padding: 'var(--space-2)' }}>
                           {allPersonnel.filter(p => selectedPersonnel.includes(p.id!)).map(p => (
-                            <div key={p.id} className="text-sm py-1 border-b last:border-0">{p.name}</div>
+                            <div key={p.id} style={{ fontSize: 'var(--text-sm)', padding: '6px 0', borderBottom: '1px solid var(--color-gray-100)' }}>{p.name}</div>
                           ))}
-                          {selectedPersonnel.length === 0 && <div className="text-xs text-gray-400 p-2 italic">No personnel allocated</div>}
+                          {selectedPersonnel.length === 0 && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', padding: 'var(--space-3)', textAlign: 'center' }}>No personnel allocated</div>}
                         </div>
+                      ) : filteredPersonnel.length === 0 ? (
+                        <div style={{ padding: 'var(--space-4)', textAlign: 'center', color: 'var(--color-gray-400)', fontSize: 'var(--text-sm)' }}>No personnel found</div>
                       ) : (
-                        <>
-                          {filteredPersonnel.map(p => (
-                            <label key={p.id} className="flex items-center p-2 hover:bg-gray-50 cursor-pointer border-b last:border-0">
-                              <input 
-                                type="checkbox" 
-                                checked={selectedPersonnel.includes(p.id!)} 
-                                onChange={() => handleTogglePersonnel(p.id!)}
-                                className="mr-2"
-                              />
-                              <div className="flex flex-col">
-                                <span className="text-sm">{p.name}</span>
-                                <span className="text-[10px] text-gray-500">
-                                  {p.qualifications?.map(q => q.name).join(', ') || 'No qualifications'}
-                                </span>
+                        filteredPersonnel.map(p => (
+                          <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: '8px var(--space-3)', borderBottom: '1px solid var(--color-gray-50)', cursor: 'pointer', background: selectedPersonnel.includes(p.id!) ? 'var(--color-primary-50)' : 'white', transition: 'background var(--transition-fast)' }}>
+                            <input type="checkbox" checked={selectedPersonnel.includes(p.id!)} onChange={() => handleTogglePersonnel(p.id!)} style={{ flexShrink: 0 }} />
+                            <div>
+                              <div style={{ fontSize: 'var(--text-sm)', fontWeight: selectedPersonnel.includes(p.id!) ? 600 : 400 }}>{p.name}</div>
+                              <div style={{ fontSize: '10px', color: 'var(--color-gray-400)' }}>
+                                {p.qualifications?.map(q => q.name).join(', ') || 'No qualifications'}
                               </div>
-                            </label>
-                          ))}
-                          {filteredPersonnel.length === 0 && (
-                            <div className="p-4 text-center text-gray-400 text-sm">No personnel found</div>
-                          )}
-                        </>
+                            </div>
+                          </label>
+                        ))
                       )}
                     </div>
                   </div>
+
                 </div>
               )}
-            </div>
+            </section>
+
+            {/* ── Section 4: Schedule ────────────────────── */}
+            <section>
+              <SectionHeader>
+                Schedule
+                {!formData.start_time && (
+                  <span style={{ marginLeft: 'var(--space-2)', fontSize: '10px', fontWeight: 700, background: 'var(--color-warning-50)', color: 'var(--color-warning-600)', border: '1px solid var(--color-warning-500)', borderRadius: '999px', padding: '1px 8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Unscheduled
+                  </span>
+                )}
+              </SectionHeader>
+              <div style={twoCol}>
+                <div className="form-group">
+                  <label className="form-label">Start Date / Time</label>
+                  <input type="datetime-local" name="start_time" value={formData.start_time} onChange={handleChange} className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">End Date / Time</label>
+                  <input type="datetime-local" name="end_time" value={formData.end_time} onChange={handleChange} className="form-input" />
+                </div>
+              </div>
+            </section>
+
           </div>
 
-          <div className="modal-footer flex flex-col gap-2">
+          {/* Footer */}
+          <div className="modal-footer" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             {futureUpdateMsg && (
-              <div style={{ padding: '8px 12px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: '6px', fontSize: '12px', color: '#166534', textAlign: 'center' }}>
+              <div style={{ padding: 'var(--space-2) var(--space-3)', background: 'var(--color-success-50)', border: '1px solid var(--color-success-500)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--color-success-700)', textAlign: 'center' }}>
                 {futureUpdateMsg}
               </div>
             )}
             {isPartOfProject && !isLocked && (
-              <label className="flex items-center gap-2 cursor-pointer self-start" style={{ fontSize: '12px', color: '#374151' }}>
-                <input
-                  type="checkbox"
-                  checked={applyToFuture}
-                  onChange={e => setApplyToFuture(e.target.checked)}
-                />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer', fontSize: 'var(--text-sm)', color: 'var(--color-gray-700)' }}>
+                <input type="checkbox" checked={applyToFuture} onChange={e => setApplyToFuture(e.target.checked)} />
                 <span>Apply changes to all <strong>future</strong> jobs in this project</span>
               </label>
             )}
-            <div className="flex justify-end gap-3">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
               <button type="button" className="btn btn--secondary" onClick={onClose} disabled={isSubmitting}>Cancel</button>
-              <button
-                type="submit"
-                className="btn btn--primary"
-                disabled={isSubmitting}
-              >
+              <button type="submit" className="btn btn--primary" disabled={isSubmitting}>
                 {isSubmitting
-                  ? (applyToFuture ? 'Applying to project...' : 'Saving...')
+                  ? (applyToFuture ? 'Applying to project…' : 'Saving…')
                   : applyToFuture ? 'Save & Apply to Future Jobs' : 'Save Changes'
                 }
               </button>
