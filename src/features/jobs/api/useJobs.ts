@@ -5,6 +5,7 @@ import type { Job } from '@/shared/validation/schemas';
 export interface JobWithResources extends Job {
   customer_name: string;
   project_name?: string;
+  project_id?: string;
   start_time?: string;
   end_time?: string;
   resources?: any[];
@@ -64,6 +65,17 @@ export function useJobs() {
     }
   };
 
+  const applyToFutureJobs = async (projectId: string, data: any) => {
+    try {
+      const result = await api.put(`/projects/${projectId}/future-jobs`, data) as any;
+      await loadJobs(); // Refresh after bulk update
+      return { success: true, updated: result?.updated ?? 0 };
+    } catch (err: any) {
+      setError(err.message || 'Failed to update future jobs');
+      return { success: false, error: err.message };
+    }
+  };
+
   const removeJobSchedule = async (id: string) => {
     try {
       await api.delete(`/jobs/${id}/schedule`);
@@ -85,5 +97,6 @@ export function useJobs() {
     updateJob,
     updateJobSchedule,
     removeJobSchedule,
+    applyToFutureJobs,
   };
 }

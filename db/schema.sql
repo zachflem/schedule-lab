@@ -151,18 +151,33 @@ CREATE TABLE IF NOT EXISTS enquiries (
 
 -- PROJECTS (container for multi-job engagements)
 CREATE TABLE IF NOT EXISTS projects (
-  id           TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-  customer_id  TEXT NOT NULL REFERENCES customers(id),
-  enquiry_id   TEXT REFERENCES enquiries(id),
-  name         TEXT NOT NULL,
-  description  TEXT,
-  status       TEXT NOT NULL DEFAULT 'Active'
+  id                        TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  customer_id               TEXT NOT NULL REFERENCES customers(id),
+  enquiry_id                TEXT REFERENCES enquiries(id),
+  name                      TEXT NOT NULL,
+  description               TEXT,
+  status                    TEXT NOT NULL DEFAULT 'Active'
     CHECK(status IN ('Active','On Hold','Completed','Cancelled')),
-  start_date   TEXT NOT NULL,
-  end_date     TEXT NOT NULL,
-  po_number    TEXT,
-  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+  start_date                TEXT NOT NULL,
+  end_date                  TEXT NOT NULL,
+  po_number                 TEXT,
+  -- Recurrence scheduling
+  recurrence_type           TEXT NOT NULL DEFAULT 'none'
+    CHECK(recurrence_type IN ('interval', 'weekdays', 'none')),
+  recurrence_interval_value INTEGER,
+  recurrence_interval_unit  TEXT,
+  recurrence_downtime_value INTEGER,
+  recurrence_downtime_unit  TEXT,
+  recurrence_weekdays       TEXT, -- JSON array of Mon, Tue, etc.
+  recurrence_end_type       TEXT NOT NULL DEFAULT 'ongoing'
+    CHECK(recurrence_end_type IN ('date', 'ongoing')),
+  recurrence_end_date       TEXT,
+  -- Default working hours for generated job schedules (HH:MM)
+  default_start_time        TEXT,
+  default_end_time          TEXT,
+  
+  created_at                TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at                TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- JOBS (core entity — standalone or within a project)

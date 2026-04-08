@@ -252,6 +252,11 @@ export const ENQUIRY_TABLE_STATUSES = [
 // ── Project ────────────────────────────────────────────
 export const ProjectStatusEnum = z.enum(['Active', 'On Hold', 'Completed', 'Cancelled']);
 
+export const RecurrenceWeekdayEnum = z.enum(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']);
+export type RecurrenceWeekday = z.infer<typeof RecurrenceWeekdayEnum>;
+
+export const RecurrenceUnitEnum = z.enum(['hours','days','weeks','months']);
+
 export const ProjectSchema = z.object({
   id: z.string().optional(),
   customer_id: z.string().min(1, 'Customer is required'),
@@ -262,6 +267,18 @@ export const ProjectSchema = z.object({
   start_date: isoDate,
   end_date: isoDate,
   po_number: z.string().optional().nullable(),
+  // Recurrence scheduling
+  recurrence_type: z.enum(['interval', 'weekdays', 'none']).default('none'),
+  recurrence_interval_value: z.number().int().positive().optional().nullable(),
+  recurrence_interval_unit: RecurrenceUnitEnum.optional().nullable(),
+  recurrence_downtime_value: z.number().int().min(0).optional().nullable(),
+  recurrence_downtime_unit: RecurrenceUnitEnum.optional().nullable(),
+  recurrence_weekdays: z.array(RecurrenceWeekdayEnum).optional().nullable(),
+  recurrence_end_type: z.enum(['date', 'ongoing']).default('ongoing'),
+  recurrence_end_date: isoDate.optional().nullable(),
+  // Default working hours for generated job schedules (HH:MM)
+  default_start_time: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+  default_end_time: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
 });
 export type Project = z.infer<typeof ProjectSchema>;
 

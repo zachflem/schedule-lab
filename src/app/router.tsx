@@ -13,6 +13,7 @@ import { EnquiriesPage } from '@/features/enquiries/ui/EnquiriesPage';
 import { JobsPage } from '@/features/jobs/ui/JobsPage';
 import { DocsPage } from '@/features/docs/ui/DocsPage';
 import { DashboardPage } from '@/features/dashboard/ui/DashboardPage';
+import { ProjectsPage } from '@/features/projects/ui/ProjectsPage';
 import { Layout } from '@/widgets/layout/Layout';
 
 export function AppRouter() {
@@ -32,6 +33,7 @@ export function AppRouter() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/enquiries" element={<EnquiriesPage />} />
           <Route path="/enquiry" element={<PublicEnquiryPage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/jobs" element={<JobsPage />} />
           <Route path="/schedule" element={<JobsPage />} />
           <Route path="/docs" element={<DocsPage />} />

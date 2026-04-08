@@ -14,7 +14,7 @@ import { useAuth } from '@/shared/lib/auth';
 export function JobsPage() {
   const { user } = useAuth();
   const isAdminOrDispatcher = user?.role === 'admin' || user?.role === 'dispatcher';
-  const { jobs, loading, error, loadJobs, updateJob, updateJobSchedule, removeJobSchedule } = useJobs();
+  const { jobs, loading, error, loadJobs, updateJob, updateJobSchedule, removeJobSchedule, applyToFutureJobs } = useJobs();
   const location = useLocation();
   const isScheduleView = location.pathname === '/schedule';
   
@@ -162,6 +162,13 @@ export function JobsPage() {
             if (res.success) {
                // Load jobs again with current filters to ensure consistency
                loadJobs({ status: selectedStatuses, include: 'resources' });
+            }
+            return res;
+          }}
+          onApplyToFuture={async (projectId, data) => {
+            const res = await applyToFutureJobs(projectId, data);
+            if (res.success) {
+              loadJobs({ status: selectedStatuses, include: 'resources' });
             }
             return res;
           }}

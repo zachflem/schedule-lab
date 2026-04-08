@@ -13,9 +13,10 @@ interface JobEditModalProps {
   job: JobWithResources;
   onClose: () => void;
   onSave: (id: string, data: any) => Promise<{ success: boolean; error?: string }>;
+  onApplyToFuture?: (projectId: string, data: any) => Promise<{ success: boolean; updated?: number; error?: string }>;
 }
 
-export function JobEditModal({ job, onClose, onSave }: JobEditModalProps) {
+export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditModalProps) {
   const [formData, setFormData] = useState({
     status_id: job.status_id || 'Job Booked',
     location: job.location || '',
@@ -34,6 +35,10 @@ export function JobEditModal({ job, onClose, onSave }: JobEditModalProps) {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [applyToFuture, setApplyToFuture] = useState(false);
+  const [futureUpdateMsg, setFutureUpdateMsg] = useState<string | null>(null);
+
+  const isPartOfProject = !!job.project_id;
 
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [selectedPersonnel, setSelectedPersonnel] = useState<string[]>([]);
@@ -128,25 +133,25 @@ export function JobEditModal({ job, onClose, onSave }: JobEditModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Check minimum hire period
     if (formData.start_time && formData.end_time && selectedAssets.length > 0) {
       const start = new Date(formData.start_time);
       const end = new Date(formData.end_time);
       const durationMinutes = (end.getTime() - start.getTime()) / 60000;
-      
-      const breachAssets = allAssets.filter(a => 
-        selectedAssets.includes(a.id!) && 
-        a.minimum_hire_period > 0 && 
+
+      const breachAssets = allAssets.filter(a =>
+        selectedAssets.includes(a.id!) &&
+        a.minimum_hire_period > 0 &&
         durationMinutes < a.minimum_hire_period
       );
-      
+
       if (breachAssets.length > 0) {
         const msg = `The following assets have a minimum hire period that is not met:
 ${breachAssets.map(a => `- ${a.name}: ${a.minimum_hire_period} mins`).join('\n')}
 
 The current booking is only ${durationMinutes} minutes. Do you want to proceed anyway?`;
-        
+
         if (!window.confirm(msg)) {
           return;
         }
@@ -155,14 +160,35 @@ The current booking is only ${durationMinutes} minutes. Do you want to proceed a
 
     setIsSubmitting(true);
     setError(null);
+    setFutureUpdateMsg(null);
     try {
       const resources = [
         ...selectedAssets.map(id => ({ resource_type: 'Asset', asset_id: id })),
         ...selectedPersonnel.map(id => ({ resource_type: 'Personnel', personnel_id: id }))
       ];
-      
+
       const result = await onSave(job.id!, { ...formData, resources });
       if (result.success) {
+        // If dispatcher chose to apply to all future project jobs
+        if (applyToFuture && isPartOfProject && onApplyToFuture && job.project_id) {
+          const futurePayload = {
+            status_id: formData.status_id,
+            location: formData.location || null,
+            site_contact_name: formData.site_contact_name || null,
+            site_contact_email: formData.site_contact_email || null,
+            site_contact_phone: formData.site_contact_phone || null,
+            job_brief: formData.job_brief || null,
+            po_number: formData.po_number || null,
+            job_type: formData.job_type || null,
+            resources,
+          };
+          const futureResult = await onApplyToFuture(job.project_id, futurePayload);
+          if (futureResult.success) {
+            setFutureUpdateMsg(`✓ Applied to ${futureResult.updated} future job${futureResult.updated !== 1 ? 's' : ''} in this project.`);
+            setTimeout(onClose, 1500);
+            return;
+          }
+        }
         onClose();
       } else {
         setError(result.error || 'Failed to update job');
@@ -178,7 +204,17 @@ The current booking is only ${durationMinutes} minutes. Do you want to proceed a
     <div className="modal-overlay">
       <div className="modal-content" style={{ maxWidth: '900px', width: '95%' }}>
         <div className="modal-header">
-          <h2>Edit Job: {job.customer_name}</h2>
+          <div>
+            <h2>Edit Job: {job.customer_name}</h2>
+            {isPartOfProject && (
+              <div style={{ fontSize: '11px', color: 'var(--color-primary-600)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '11px', height: '11px' }}>
+                  <polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" />
+                </svg>
+                Part of a recurring project
+              </div>
+            )}
+          </div>
           <button className="btn-close" onClick={onClose}>&times;</button>
         </div>
 
@@ -431,15 +467,35 @@ The current booking is only ${durationMinutes} minutes. Do you want to proceed a
             </div>
           </div>
 
-          <div className="modal-footer flex justify-end gap-3">
-            <button type="button" className="btn btn--secondary" onClick={onClose} disabled={isSubmitting}>Cancel</button>
-            <button 
-              type="submit" 
-              className="btn btn--primary" 
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
-            </button>
+          <div className="modal-footer flex flex-col gap-2">
+            {futureUpdateMsg && (
+              <div style={{ padding: '8px 12px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: '6px', fontSize: '12px', color: '#166534', textAlign: 'center' }}>
+                {futureUpdateMsg}
+              </div>
+            )}
+            {isPartOfProject && !isLocked && (
+              <label className="flex items-center gap-2 cursor-pointer self-start" style={{ fontSize: '12px', color: '#374151' }}>
+                <input
+                  type="checkbox"
+                  checked={applyToFuture}
+                  onChange={e => setApplyToFuture(e.target.checked)}
+                />
+                <span>Apply changes to all <strong>future</strong> jobs in this project</span>
+              </label>
+            )}
+            <div className="flex justify-end gap-3">
+              <button type="button" className="btn btn--secondary" onClick={onClose} disabled={isSubmitting}>Cancel</button>
+              <button
+                type="submit"
+                className="btn btn--primary"
+                disabled={isSubmitting}
+              >
+                {isSubmitting
+                  ? (applyToFuture ? 'Applying to project...' : 'Saving...')
+                  : applyToFuture ? 'Save & Apply to Future Jobs' : 'Save Changes'
+                }
+              </button>
+            </div>
           </div>
         </form>
       </div>
