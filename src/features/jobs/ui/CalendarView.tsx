@@ -41,15 +41,24 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
   }, []);
 
   useEffect(() => {
-    // Small timeout to ensure layout has stabilized
-    const timer = setTimeout(() => {
-      if (scrollContainerRef.current) {
-          const middayOffset = 24 * SLOT_WIDTH + DATE_COL_WIDTH;
-          const containerWidth = scrollContainerRef.current.clientWidth;
-          scrollContainerRef.current.scrollLeft = middayOffset - (containerWidth / 2);
-      }
-    }, 150); // Increased slightly for reliability
-    return () => clearTimeout(timer);
+    // Use double-RAF so the browser has finished layout before we scroll.
+    // Override scroll-behavior to 'auto' so the jump is instant — a smooth
+    // animation triggered mid-render gets cancelled by subsequent re-renders
+    // (e.g. when the jobs API response arrives), leaving the view at midnight.
+    let raf1: number, raf2: number;
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        const el = scrollContainerRef.current;
+        if (!el) return;
+        const middayOffset = 24 * SLOT_WIDTH + DATE_COL_WIDTH;
+        const containerWidth = el.clientWidth;
+        el.style.scrollBehavior = 'auto';
+        el.scrollLeft = middayOffset - containerWidth / 2;
+        // Restore smooth scrolling for user-initiated scrolls
+        requestAnimationFrame(() => { el.style.scrollBehavior = ''; });
+      });
+    });
+    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
   }, []);
 
   const handleDrop = (e: React.DragEvent, date: Date, blockIndex: number) => {
