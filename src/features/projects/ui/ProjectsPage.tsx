@@ -32,31 +32,28 @@ export function ProjectsPage() {
   };
 
   return (
-    <div className="projects-page py-6">
-      <div className="page-header flex justify-between items-center mb-6">
+    <div className="container-fluid p-6">
+      <div className="page-header mb-6" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 className="text-2xl font-bold font-heading">Recurring Projects</h1>
-          <p className="text-gray-500 text-sm">Parent engagements and recurrence management</p>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Recurring Projects</h1>
+          <p className="text-gray-500 text-sm">Manage parent engagements and recurring job streams.</p>
         </div>
-        
-        <div className="flex gap-4">
-          <input
-            type="text"
-            placeholder="Search projects or customers..."
-            className="form-input"
-            value={searchTerm}
-            style={{ minWidth: '300px' }}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {isAdminOrDispatcher && (
-            <button className="btn btn--primary flex items-center gap-2" onClick={() => setIsCreating(true)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '18px', height: '18px' }}>
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              New Project
-            </button>
-          )}
-        </div>
+        {isAdminOrDispatcher && (
+          <button className="btn btn--primary" onClick={() => setIsCreating(true)} style={{ flexShrink: 0 }}>
+            New Project
+          </button>
+        )}
+      </div>
+
+      <div className="filters mb-6" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        <input
+          type="text"
+          placeholder="Search projects or customers…"
+          className="form-input"
+          value={searchTerm}
+          style={{ maxWidth: '320px' }}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
       {loading ? <Spinner /> : error ? (

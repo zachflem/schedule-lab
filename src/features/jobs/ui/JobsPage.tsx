@@ -73,35 +73,22 @@ export function JobsPage() {
 
   return (
     <div className="container-fluid jobs-page p-6">
-      <div className="page-header mb-6 flex justify-between items-end">
+      <div className="page-header mb-6" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">{isScheduleView ? 'Project Schedule' : 'Jobs Management'}</h1>
-            <p className="text-gray-500 text-sm">
-            {isScheduleView 
-                ? 'Manage asset timelines and personnel allocations.' 
-                : 'List and manage all jobs in the system.'}
-            </p>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+            {isScheduleView ? 'Schedule' : 'Jobs'}
+          </h1>
+          <p className="text-gray-500 text-sm">
+            {isScheduleView
+              ? 'Manage asset timelines and personnel allocations.'
+              : 'List and manage all jobs in the system.'}
+          </p>
         </div>
-
-        {isScheduleView && isAdminOrDispatcher && (
-            <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Asset Filter:</span>
-                    <select 
-                        className="text-xs border-0 bg-transparent font-bold text-primary-600 cursor-pointer focus:ring-0"
-                        value={selectedAssetType}
-                        onChange={(e) => setSelectedAssetType(e.target.value)}
-                    >
-                        {assetTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                </div>
-            </div>
-        )}
       </div>
 
       {error && <div className="alert alert--danger mb-6">{error}</div>}
 
-      <div className="filters mb-6">
+      <div className="filters mb-6" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
         <FilterModal
           title="Filter by Status"
           buttonLabel="Status Filter"
@@ -111,6 +98,16 @@ export function JobsPage() {
           onSelectAll={() => setSelectedStatuses([...JOB_ONLY_STATUSES])}
           onClearAll={() => setSelectedStatuses([])}
         />
+        {isScheduleView && isAdminOrDispatcher && (
+          <select
+            className="form-input"
+            value={selectedAssetType}
+            onChange={(e) => setSelectedAssetType(e.target.value)}
+            style={{ width: 'auto' }}
+          >
+            {assetTypes.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        )}
       </div>
 
       {isScheduleView ? (
