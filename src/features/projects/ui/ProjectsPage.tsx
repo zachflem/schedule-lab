@@ -65,109 +65,107 @@ export function ProjectsPage() {
           <button className="btn btn--secondary mt-4" onClick={() => loadProjects()}>Retry</button>
         </div>
       ) : (
-        <div className="card overflow-hidden">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Project Name</th>
-                <th>Customer</th>
-                <th>Status</th>
-                <th>Recurrence</th>
-                <th>Jobs</th>
-                <th>Period</th>
-                {isAdminOrDispatcher && <th className="text-right">Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProjects.map(p => (
-                <tr key={p.id}>
-                  <td>
-                    <div className="font-bold">{p.name}</div>
-                    <div className="text-xs text-secondary truncate max-w-xs">{p.description}</div>
-                  </td>
-                  <td>{p.customer_name}</td>
-                  <td>{getStatusBadge(p.status)}</td>
-                  <td>
-                    <div className="flex items-center gap-1 text-sm">
-                      {p.template_count === 0 ? (
-                        <span className="text-gray-400">Single</span>
-                      ) : (
-                        <>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px' }}>
-                            <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                          </svg>
-                          <span className="font-medium text-primary">
-                            {p.template_count} Stream{p.template_count !== 1 ? 's' : ''}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <span className="px-2 py-1 bg-gray-100 rounded text-xs font-bold">
-                      {p.job_count} job{p.job_count !== 1 ? 's' : ''}
-                    </span>
-                  </td>
-                  <td className="text-sm">
-                    {p.start_date} → {p.end_date || 'Ongoing'}
-                  </td>
-                  {isAdminOrDispatcher && (
-                    <td className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {p.template_count > 0 && (
-                          <button 
-                            className="btn btn--sm btn--primary" 
-                            disabled={generatingId === p.id}
-                            onClick={async () => {
-                              if (!p.id) return;
-                              setGeneratingId(p.id);
-                              const res = await generateJobs(p.id);
-                              setGeneratingId(null);
-                              if (res.success) {
-                                alert(res.message);
-                                loadProjects();
-                              } else {
-                                alert('Error: ' + res.error);
-                              }
-                            }}
-                          >
-                            {generatingId === p.id ? '...' : 'Generate '}
-                          </button>
+        <>
+          {/* Desktop table */}
+          <div className="list-table-view card overflow-hidden">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Project Name</th>
+                  <th>Customer</th>
+                  <th>Status</th>
+                  <th>Recurrence</th>
+                  <th>Jobs</th>
+                  <th>Period</th>
+                  {isAdminOrDispatcher && <th className="text-right">Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProjects.map(p => (
+                  <tr key={p.id}>
+                    <td>
+                      <div className="font-bold">{p.name}</div>
+                      <div className="text-xs text-secondary truncate max-w-xs">{p.description}</div>
+                    </td>
+                    <td>{p.customer_name}</td>
+                    <td>{getStatusBadge(p.status)}</td>
+                    <td>
+                      <div className="flex items-center gap-1 text-sm">
+                        {p.template_count === 0 ? (
+                          <span className="text-gray-400">Single</span>
+                        ) : (
+                          <>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px' }}>
+                              <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                            </svg>
+                            <span className="font-medium text-primary">{p.template_count} Stream{p.template_count !== 1 ? 's' : ''}</span>
+                          </>
                         )}
-                        <button
-                          className="btn btn--sm btn--secondary"
-                          onClick={() => {
-                            setEditingProject(p);
-                            // We can use a small hack or pass a prop to open streams tab by default
-                            setTimeout(() => {
-                              const streamsBtn = document.getElementById('tab-streams');
-                              if (streamsBtn) streamsBtn.click();
-                            }, 50);
-                          }}
-                        >
-                          + Stream
-                        </button>
-                        <button 
-                          className="btn btn--sm btn--secondary" 
-                          onClick={() => setEditingProject(p)}
-                        >
-                          Settings
-                        </button>
                       </div>
                     </td>
-                  )}
-                </tr>
-              ))}
-              {filteredProjects.length === 0 && (
-                <tr>
-                  <td colSpan={isAdminOrDispatcher ? 7 : 6} className="text-center py-12 text-gray-400">
-                    No matching projects found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                    <td>
+                      <span className="px-2 py-1 bg-gray-100 rounded text-xs font-bold">
+                        {p.job_count} job{p.job_count !== 1 ? 's' : ''}
+                      </span>
+                    </td>
+                    <td className="text-sm">{p.start_date} → {p.end_date || 'Ongoing'}</td>
+                    {isAdminOrDispatcher && (
+                      <td className="text-right">
+                        <div className="flex justify-end gap-2">
+                          {p.template_count > 0 && (
+                            <button className="btn btn--sm btn--primary" disabled={generatingId === p.id} onClick={async () => { if (!p.id) return; setGeneratingId(p.id); const res = await generateJobs(p.id); setGeneratingId(null); if (res.success) { alert(res.message); loadProjects(); } else { alert('Error: ' + res.error); } }}>
+                              {generatingId === p.id ? '...' : 'Generate'}
+                            </button>
+                          )}
+                          <button className="btn btn--sm btn--secondary" onClick={() => { setEditingProject(p); setTimeout(() => { const b = document.getElementById('tab-streams'); if (b) b.click(); }, 50); }}>+ Stream</button>
+                          <button className="btn btn--sm btn--secondary" onClick={() => setEditingProject(p)}>Settings</button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+                {filteredProjects.length === 0 && (
+                  <tr>
+                    <td colSpan={isAdminOrDispatcher ? 7 : 6} className="text-center py-12 text-gray-400">No matching projects found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile card view */}
+          <div className="list-card-view">
+            {filteredProjects.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--color-gray-400)' }}>No matching projects found.</div>
+            ) : filteredProjects.map(p => (
+              <div key={p.id} className="card" style={{ padding: 'var(--space-4)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-2)' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-gray-900)' }}>{p.name}</div>
+                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)' }}>{p.customer_name}</div>
+                  </div>
+                  {getStatusBadge(p.status)}
+                </div>
+                <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-3)', fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)' }}>
+                  <span>{p.start_date} → {p.end_date || 'Ongoing'}</span>
+                  <span>·</span>
+                  <span>{p.job_count} job{p.job_count !== 1 ? 's' : ''}</span>
+                  {p.template_count > 0 && <span>· {p.template_count} stream{p.template_count !== 1 ? 's' : ''}</span>}
+                </div>
+                {isAdminOrDispatcher && (
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+                    {p.template_count > 0 && (
+                      <button className="btn btn--sm btn--primary" disabled={generatingId === p.id} onClick={async () => { if (!p.id) return; setGeneratingId(p.id); const res = await generateJobs(p.id); setGeneratingId(null); if (res.success) { alert(res.message); loadProjects(); } else { alert('Error: ' + res.error); } }}>
+                        {generatingId === p.id ? '...' : 'Generate'}
+                      </button>
+                    )}
+                    <button className="btn btn--sm btn--secondary" onClick={() => setEditingProject(p)}>Settings</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {editingProject && (

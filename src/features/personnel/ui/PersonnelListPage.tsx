@@ -26,7 +26,7 @@ export function PersonnelListPage() {
   if (loading) return <Spinner />;
 
   return (
-    <div className="container" style={{ padding: 'var(--space-8)' }}>
+    <div className="container p-8">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
         <h1 className="docket-page__title">Personnel & Operators</h1>
         <Link to="/personnel/new" className="btn btn--primary">Add Person</Link>
@@ -38,7 +38,8 @@ export function PersonnelListPage() {
         </div>
       )}
 
-      <div className="card" style={{ overflow: 'hidden' }}>
+      {/* Desktop table */}
+      <div className="list-table-view card" style={{ overflow: 'hidden' }}>
         <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: 'var(--color-gray-50)', borderBottom: '1px solid var(--color-gray-200)' }}>
@@ -53,84 +54,84 @@ export function PersonnelListPage() {
             {personnel.map(person => (
               <tr key={person.id} style={{ borderBottom: '1px solid var(--color-gray-100)' }}>
                 <td style={{ padding: 'var(--space-3)', fontWeight: 600 }}>{person.name}</td>
-                
                 <td style={{ padding: 'var(--space-3)', color: 'var(--color-gray-600)', fontSize: 'var(--text-sm)' }}>
                   <div>{person.email}</div>
                   <div style={{ color: 'var(--color-gray-400)' }}>{person.phone}</div>
                 </td>
-
                 <td style={{ padding: 'var(--space-3)', color: 'var(--color-gray-600)', fontSize: 'var(--text-sm)' }}>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                     {person.qualifications && person.qualifications.length > 0 ? (
                       person.qualifications.map((q: any) => {
                         const expiry = q.expiry_date ? new Date(q.expiry_date) : null;
-                        const today = new Date();
-                        const diffDays = expiry ? Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
-
-                        let color = { bg: 'var(--color-blue-50)', text: 'var(--color-blue-700)' };
-                        if (diffDays !== null) {
-                          if (diffDays <= 30) {
-                            color = { bg: 'var(--color-danger-50)', text: 'var(--color-danger-700)' };
-                          } else if (diffDays <= 90) {
-                            color = { bg: 'var(--color-warning-50)', text: 'var(--color-warning-600)' };
-                          } else {
-                            color = { bg: 'var(--color-success-50)', text: 'var(--color-success-700)' };
-                          }
-                        }
-
+                        const diffDays = expiry ? Math.ceil((expiry.getTime() - Date.now()) / 86400000) : null;
+                        const color = diffDays === null ? { bg: 'var(--color-primary-50)', text: 'var(--color-primary-700)' }
+                          : diffDays <= 30 ? { bg: 'var(--color-danger-50)', text: 'var(--color-danger-700)' }
+                          : diffDays <= 90 ? { bg: 'var(--color-warning-50)', text: 'var(--color-warning-600)' }
+                          : { bg: 'var(--color-success-50)', text: 'var(--color-success-700)' };
                         return (
-                          <span key={q.id} title={expiry ? `Expires: ${expiry.toLocaleDateString()}` : undefined} style={{ 
-                            padding: '2px 6px', 
-                            background: color.bg, 
-                            color: color.text, 
-                            borderRadius: '4px',
-                            fontSize: '10px',
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '2px',
-                            border: `1px solid ${color.text}20`
-                          }}>
-                            {q.name}
-                            {expiry && <span style={{ opacity: 0.6, fontSize: '8px' }}>({q.expiry_date})</span>}
+                          <span key={q.id} title={expiry ? `Expires: ${expiry.toLocaleDateString()}` : undefined} style={{ padding: '2px 6px', background: color.bg, color: color.text, borderRadius: '4px', fontSize: '10px', fontWeight: 600 }}>
+                            {q.name}{expiry && <span style={{ opacity: 0.6, fontSize: '8px' }}> ({q.expiry_date})</span>}
                           </span>
                         );
                       })
-                    ) : (
-                      <span style={{ color: 'var(--color-gray-300)' }}>No qualifications</span>
-                    )}
+                    ) : <span style={{ color: 'var(--color-gray-300)' }}>None</span>}
                   </div>
                 </td>
-
                 <td style={{ padding: 'var(--space-3)', textAlign: 'center' }}>
-                  <span style={{ 
-                    padding: '2px 8px', 
-                    borderRadius: '12px', 
-                    fontSize: 'var(--text-xs)', 
-                    fontWeight: 600,
-                    background: person.can_login ? 'var(--color-green-100)' : 'var(--color-gray-100)',
-                    color: person.can_login ? 'var(--color-green-700)' : 'var(--color-gray-600)'
-                  }}>
+                  <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: 'var(--text-xs)', fontWeight: 600, background: person.can_login ? 'var(--color-success-50)' : 'var(--color-gray-100)', color: person.can_login ? 'var(--color-success-700)' : 'var(--color-gray-600)' }}>
                     {person.can_login ? 'Yes' : 'No'}
                   </span>
                 </td>
-
                 <td style={{ padding: 'var(--space-3)', textAlign: 'right' }}>
-                  <Link to={`/personnel/${person.id}`} className="button button-sm" style={{ background: 'var(--color-white)', border: '1px solid var(--color-gray-200)' }}>
-                    Edit
-                  </Link>
+                  <Link to={`/personnel/${person.id}`} className="btn btn--secondary btn--sm">Edit</Link>
                 </td>
               </tr>
             ))}
-            {personnel.length === 0 && !loading && (
-              <tr>
-                <td colSpan={5} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-gray-400)' }}>
-                  No personnel records found.
-                </td>
-              </tr>
+            {personnel.length === 0 && (
+              <tr><td colSpan={5} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-gray-400)' }}>No personnel records found.</td></tr>
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile card view */}
+      <div className="list-card-view">
+        {personnel.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--color-gray-400)' }}>No personnel records found.</div>
+        ) : personnel.map(person => (
+          <div key={person.id} className="card" style={{ padding: 'var(--space-4)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-2)' }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-gray-900)' }}>{person.name}</div>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', marginTop: '2px' }}>{person.email}</div>
+                {person.phone && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)' }}>{person.phone}</div>}
+              </div>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: 'var(--text-xs)', fontWeight: 600, background: person.can_login ? 'var(--color-success-50)' : 'var(--color-gray-100)', color: person.can_login ? 'var(--color-success-700)' : 'var(--color-gray-600)' }}>
+                  {person.can_login ? 'Login' : 'No login'}
+                </span>
+                <Link to={`/personnel/${person.id}`} className="btn btn--secondary btn--sm">Edit</Link>
+              </div>
+            </div>
+            {person.qualifications && person.qualifications.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: 'var(--space-2)' }}>
+                {person.qualifications.map((q: any) => {
+                  const expiry = q.expiry_date ? new Date(q.expiry_date) : null;
+                  const diffDays = expiry ? Math.ceil((expiry.getTime() - Date.now()) / 86400000) : null;
+                  const color = diffDays === null ? { bg: 'var(--color-primary-50)', text: 'var(--color-primary-700)' }
+                    : diffDays <= 30 ? { bg: 'var(--color-danger-50)', text: 'var(--color-danger-700)' }
+                    : diffDays <= 90 ? { bg: 'var(--color-warning-50)', text: 'var(--color-warning-600)' }
+                    : { bg: 'var(--color-success-50)', text: 'var(--color-success-700)' };
+                  return (
+                    <span key={q.id} style={{ padding: '2px 6px', background: color.bg, color: color.text, borderRadius: '4px', fontSize: '10px', fontWeight: 600 }}>
+                      {q.name}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

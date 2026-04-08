@@ -69,7 +69,8 @@ export function EnquiriesPage() {
 
       {error && <div className="alert alert--danger mb-6">{error}</div>}
 
-      <div className="data-table-container">
+      {/* Desktop table */}
+      <div className="list-table-view data-table-container">
         <table className="data-table">
           <thead>
             <tr>
@@ -92,9 +93,7 @@ export function EnquiriesPage() {
             ) : (
               enquiries.map(enquiry => (
                 <tr key={enquiry.id}>
-                  <td className="font-mono text-xs text-secondary">
-                    {formatRecordId(enquiry.id!, enquiry.status)}
-                  </td>
+                  <td className="font-mono text-xs text-secondary">{formatRecordId(enquiry.id!, enquiry.status)}</td>
                   <td>
                     <div className="font-semibold">{enquiry.customer_name}</div>
                     <div className="text-xs text-secondary">{enquiry.location || '—'}</div>
@@ -108,20 +107,10 @@ export function EnquiriesPage() {
                   <td className="text-sm truncate max-w-xs">{enquiry.job_brief || '—'}</td>
                   <td>
                     <div className="flex gap-2">
-                      <button 
-                        className="btn btn--secondary btn--sm"
-                        onClick={() => setSelectedEnquiry(enquiry)}
-                        disabled={enquiry.status === 'Converted'}
-                      >
+                      <button className="btn btn--secondary btn--sm" onClick={() => setSelectedEnquiry(enquiry)} disabled={enquiry.status === 'Converted'}>
                         {enquiry.status === 'Converted' ? 'Processed' : 'Process'}
                       </button>
-                      <select
-                        className="status-select text-xs"
-                        style={{ width: 'auto', padding: 'var(--space-1) var(--space-2)' }}
-                        value={enquiry.status}
-                        onChange={(e) => updateEnquiryStatus(enquiry.id!, e.target.value)}
-                        disabled={enquiry.status === 'Converted'}
-                      >
+                      <select className="status-select text-xs" style={{ width: 'auto', padding: 'var(--space-1) var(--space-2)' }} value={enquiry.status} onChange={(e) => updateEnquiryStatus(enquiry.id!, e.target.value)} disabled={enquiry.status === 'Converted'}>
                         {ENQUIRY_TABLE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
@@ -131,6 +120,40 @@ export function EnquiriesPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile card view */}
+      <div className="list-card-view">
+        {enquiries.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--color-gray-500)' }}>No enquiries found matching the filters.</div>
+        ) : enquiries.map(enquiry => (
+          <div key={enquiry.id} className="card" style={{ padding: 'var(--space-4)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-2)' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-gray-900)' }}>{enquiry.customer_name}</div>
+                {enquiry.location && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)' }}>{enquiry.location}</div>}
+              </div>
+              {getStatusBadge(enquiry.status)}
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', marginBottom: 'var(--space-2)' }}>
+              {enquiry.preferred_date && <span>{enquiry.preferred_date} · </span>}
+              {enquiry.site_contact_name}
+            </div>
+            {enquiry.job_brief && (
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', marginBottom: 'var(--space-3)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                {enquiry.job_brief}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', justifyContent: 'space-between' }}>
+              <select className="status-select text-xs form-input" style={{ flex: 1, padding: 'var(--space-1) var(--space-2)', fontSize: 'var(--text-xs)' }} value={enquiry.status} onChange={(e) => updateEnquiryStatus(enquiry.id!, e.target.value)} disabled={enquiry.status === 'Converted'}>
+                {ENQUIRY_TABLE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <button className="btn btn--primary btn--sm" onClick={() => setSelectedEnquiry(enquiry)} disabled={enquiry.status === 'Converted'}>
+                {enquiry.status === 'Converted' ? 'Processed' : 'Process'}
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
 
       {selectedEnquiry && (

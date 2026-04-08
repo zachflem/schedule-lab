@@ -283,11 +283,23 @@ input, select, textarea, button {
   .main-content { padding-top: var(--space-2); }
 }
 
-/* ── Dockets responsive table/cards ───────────── */
-.dockets-card-view { display: none; }
+/* ── Responsive list views (table ↔ cards) ────── */
+.list-table-view { display: block; }
+.list-card-view  { display: none; }
 
-@media (max-width: 720px) {
+/* Dockets aliases (backward compat) */
+.dockets-table-view { display: block; }
+.dockets-card-view  { display: none; }
+
+@media (max-width: 768px) {
+  .list-table-view,
   .dockets-table-view { display: none; }
+
+  .list-card-view {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
   .dockets-card-view { display: block; }
 }
 

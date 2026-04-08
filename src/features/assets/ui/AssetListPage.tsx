@@ -29,49 +29,36 @@ export function AssetListPage() {
   }, []);
 
   const calculateNextService = (asset: AssetWithMetadata) => {
-    const current = asset.service_interval_type === 'hours' 
-      ? asset.current_machine_hours 
+    const current = asset.service_interval_type === 'hours'
+      ? asset.current_machine_hours
       : asset.current_odometer;
-    
     const nextServiceValue = asset.last_service_meter_reading + asset.service_interval_value;
     const remaining = nextServiceValue - current;
-    
-    return {
-      next: nextServiceValue,
-      remaining,
-      unit: asset.service_interval_type === 'hours' ? 'hrs' : 'km'
-    };
+    return { next: nextServiceValue, remaining, unit: asset.service_interval_type === 'hours' ? 'hrs' : 'km' };
   };
 
   if (loading) return <Spinner />;
 
   return (
-    <div className="container" style={{ padding: 'var(--space-8)' }}>
-      <div style={{ marginBottom: 'var(--space-8)' }}>
+    <div className="container p-8">
+      <div style={{ marginBottom: 'var(--space-6)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h1 className="docket-page__title" style={{ marginBottom: 'var(--space-1)' }}>Asset Fleet</h1>
-            <p style={{ color: 'var(--color-gray-500)', fontSize: 'var(--text-sm)' }}>
-              Manage machines, trucks, and other equipment metrics.
-            </p>
+            <p style={{ color: 'var(--color-gray-500)', fontSize: 'var(--text-sm)' }}>Manage machines, trucks, and other equipment metrics.</p>
           </div>
           <Link to="/assets/new" className="btn btn--primary">Add Asset</Link>
         </div>
       </div>
 
       {error && (
-        <div style={{ 
-          padding: 'var(--space-4)', 
-          background: 'var(--color-danger-50)', 
-          color: 'var(--color-danger-700)', 
-          borderRadius: 'var(--radius-md)', 
-          marginBottom: 'var(--space-4)' 
-        }}>
+        <div style={{ padding: 'var(--space-4)', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)' }}>
           {error}
         </div>
       )}
 
-      <div className="card" style={{ overflow: 'hidden' }}>
+      {/* Desktop table */}
+      <div className="list-table-view card" style={{ overflow: 'hidden' }}>
         <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: 'var(--color-gray-50)', borderBottom: '1px solid var(--color-gray-200)' }}>
@@ -87,15 +74,12 @@ export function AssetListPage() {
               const service = calculateNextService(asset);
               const isOverdue = service.remaining <= 0;
               const isNearing = service.remaining > 0 && service.remaining < (asset.service_interval_value * 0.2);
-
               return (
                 <tr key={asset.id} style={{ borderBottom: '1px solid var(--color-gray-100)' }}>
                   <td style={{ padding: 'var(--space-4)' }}>
                     <div style={{ fontWeight: 600, color: 'var(--color-gray-900)' }}>{asset.name}</div>
                     {asset.required_qualification_name && (
-                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)' }}>
-                        Req: {asset.required_qualification_name}
-                      </div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)' }}>Req: {asset.required_qualification_name}</div>
                     )}
                   </td>
                   <td style={{ padding: 'var(--space-4)' }}>
@@ -104,22 +88,11 @@ export function AssetListPage() {
                   </td>
                   <td style={{ padding: 'var(--space-4)', textAlign: 'center' }}>
                     <div style={{ fontWeight: 500 }}>
-                      {asset.service_interval_type === 'hours' 
-                        ? `${asset.current_machine_hours} hrs` 
-                        : `${asset.current_odometer} km`}
+                      {asset.service_interval_type === 'hours' ? `${asset.current_machine_hours} hrs` : `${asset.current_odometer} km`}
                     </div>
                   </td>
                   <td style={{ padding: 'var(--space-4)', textAlign: 'center' }}>
-                    <div style={{ 
-                      fontSize: 'var(--text-sm)',
-                      padding: 'var(--space-1) var(--space-2)',
-                      borderRadius: 'var(--radius-sm)',
-                      display: 'inline-block',
-                      background: isOverdue ? 'var(--color-danger-50)' : isNearing ? 'var(--color-warning-50)' : 'var(--color-gray-50)',
-                      color: isOverdue ? 'var(--color-danger-700)' : isNearing ? 'var(--color-warning-700)' : 'var(--color-gray-700)',
-                      border: `1px solid ${isOverdue ? 'var(--color-danger-100)' : isNearing ? 'var(--color-warning-100)' : 'var(--color-gray-200)'}`,
-                      fontWeight: (isOverdue || isNearing) ? 600 : 400
-                    }}>
+                    <div style={{ fontSize: 'var(--text-sm)', padding: 'var(--space-1) var(--space-2)', borderRadius: 'var(--radius-sm)', display: 'inline-block', background: isOverdue ? 'var(--color-danger-50)' : isNearing ? 'var(--color-warning-50)' : 'var(--color-gray-50)', color: isOverdue ? 'var(--color-danger-700)' : isNearing ? 'var(--color-warning-700)' : 'var(--color-gray-700)', fontWeight: (isOverdue || isNearing) ? 600 : 400 }}>
                       {service.next} {service.unit}
                       <span style={{ marginLeft: 'var(--space-2)', fontSize: '10px', opacity: 0.8 }}>
                         ({service.remaining > 0 ? `due in ${service.remaining}` : `${Math.abs(service.remaining)} overdue`})
@@ -127,26 +100,48 @@ export function AssetListPage() {
                     </div>
                   </td>
                   <td style={{ padding: 'var(--space-4)', textAlign: 'right' }}>
-                    <Link 
-                      to={`/assets/${asset.id}`} 
-                      className="button button-sm" 
-                      style={{ background: 'var(--color-white)', border: '1px solid var(--color-gray-200)' }}
-                    >
-                      Edit
-                    </Link>
+                    <Link to={`/assets/${asset.id}`} className="btn btn--secondary btn--sm">Edit</Link>
                   </td>
                 </tr>
               );
             })}
-            {assets.length === 0 && !loading && (
-              <tr>
-                <td colSpan={5} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-gray-400)' }}>
-                  No assets found in the fleet.
-                </td>
-              </tr>
+            {assets.length === 0 && (
+              <tr><td colSpan={5} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-gray-400)' }}>No assets found in the fleet.</td></tr>
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile card view */}
+      <div className="list-card-view">
+        {assets.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--color-gray-400)' }}>No assets found in the fleet.</div>
+        ) : assets.map(asset => {
+          const service = calculateNextService(asset);
+          const isOverdue = service.remaining <= 0;
+          const isNearing = service.remaining > 0 && service.remaining < (asset.service_interval_value * 0.2);
+          return (
+            <div key={asset.id} className="card" style={{ padding: 'var(--space-4)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-3)' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-gray-900)' }}>{asset.name}</div>
+                  <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', marginTop: '2px' }}>
+                    {asset.asset_type_name}{asset.category ? ` · ${asset.category}` : ''}
+                  </div>
+                </div>
+                <Link to={`/assets/${asset.id}`} className="btn btn--secondary btn--sm">Edit</Link>
+              </div>
+              <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', fontSize: 'var(--text-sm)' }}>
+                <span style={{ color: 'var(--color-gray-600)' }}>
+                  Current: <strong>{asset.service_interval_type === 'hours' ? `${asset.current_machine_hours} hrs` : `${asset.current_odometer} km`}</strong>
+                </span>
+                <span style={{ padding: '1px 8px', borderRadius: 'var(--radius-sm)', background: isOverdue ? 'var(--color-danger-50)' : isNearing ? 'var(--color-warning-50)' : 'var(--color-gray-50)', color: isOverdue ? 'var(--color-danger-700)' : isNearing ? 'var(--color-warning-700)' : 'var(--color-gray-600)', fontWeight: (isOverdue || isNearing) ? 600 : 400 }}>
+                  {isOverdue ? `${Math.abs(service.remaining)} ${service.unit} overdue` : `${service.remaining} ${service.unit} to service`}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

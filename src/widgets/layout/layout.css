@@ -117,6 +117,46 @@
   padding-top: var(--space-4);
 }
 
+/* ── Header user elements ───────────────────────── */
+.header-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary-100);
+  color: var(--color-primary-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  border: 1px solid var(--color-primary-200);
+  flex-shrink: 0;
+  cursor: default;
+  user-select: none;
+}
+
+.header-user-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-gray-600);
+}
+
+.header-logout {
+  font-size: 10px;
+  padding: 2px 8px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 768px) {
+  .header-user-name,
+  .header-role-pill,
+  .header-logout {
+    display: none;
+  }
+}
+
 /* Overlay for the menu */
 .menu-overlay {
   position: fixed;

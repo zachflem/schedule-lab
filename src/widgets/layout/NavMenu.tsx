@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router';
 import { useAuth } from '@/shared/lib/auth';
+import { RolePill } from './RolePill';
 
 interface NavMenuProps {
   isOpen: boolean;
@@ -7,7 +8,7 @@ interface NavMenuProps {
 }
 
 export function NavMenu({ isOpen, onClose }: NavMenuProps) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const role = user?.role || 'operator';
 
   const menuItems = [
@@ -153,6 +154,11 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
     return item.roles.includes(role);
   });
 
+  const handleLogout = () => {
+    onClose();
+    logout();
+  };
+
   return (
     <>
       <div className={`menu-overlay ${isOpen ? 'open' : ''}`} onClick={onClose} />
@@ -176,6 +182,36 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
             );
           })}
         </nav>
+
+        {/* Account footer — always visible in menu */}
+        {user && (
+          <div className="nav-account-footer">
+            <div className="nav-divider" style={{ margin: 0 }} />
+            <div style={{ padding: 'var(--space-3) var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              <div className="header-avatar" style={{ width: '36px', height: '36px', fontSize: 'var(--text-sm)' }}>
+                {user.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--color-gray-800)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user.name}
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', textTransform: 'capitalize' }}>
+                  {user.role}
+                </div>
+              </div>
+              <RolePill />
+            </div>
+            <div style={{ padding: '0 var(--space-4) var(--space-4)' }}>
+              <button
+                onClick={handleLogout}
+                className="btn btn--secondary"
+                style={{ width: '100%', fontSize: 'var(--text-sm)' }}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
