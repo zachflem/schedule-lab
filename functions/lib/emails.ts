@@ -86,7 +86,7 @@ async function getAssignedPersonnelEmails(db: D1Database, jobId: string): Promis
     WHERE jr.job_id = ?
       AND jr.resource_type = 'Personnel'
       AND p.email IS NOT NULL
-      AND p.can_login = 1
+      AND p.receives_emails = 1
   `).bind(jobId).all() as { results: Array<{ name: string; email: string }> };
   return results ?? [];
 }
@@ -97,7 +97,7 @@ async function getDispatcherEmails(db: D1Database): Promise<Array<{ name: string
     FROM personnel
     WHERE role IN ('dispatcher', 'admin')
       AND email IS NOT NULL
-      AND can_login = 1
+      AND receives_emails = 1
   `).all() as { results: Array<{ name: string; email: string }> };
   return results ?? [];
 }

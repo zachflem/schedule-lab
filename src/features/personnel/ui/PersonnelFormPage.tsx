@@ -16,6 +16,7 @@ export function PersonnelFormPage() {
     email: '',
     phone: '',
     can_login: false,
+    receives_emails: false,
     role: 'operator',
     qualifications: [],
   });
@@ -32,6 +33,7 @@ export function PersonnelFormPage() {
             email: '',
             phone: '',
             can_login: false,
+            receives_emails: false,
             role: 'operator',
             qualifications: [],
           });
@@ -183,14 +185,25 @@ export function PersonnelFormPage() {
                 <option value="operator">Operator</option>
               </select>
             </div>
-            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginTop: '24px' }}>
-              <input
-                type="checkbox"
-                id="can_login"
-                checked={formData.can_login}
-                onChange={e => setFormData({ ...formData, can_login: e.target.checked })}
-              />
-              <label htmlFor="can_login" className="form-label" style={{ marginBottom: 0 }}>Can login to system</label>
+            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginTop: '24px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <input
+                  type="checkbox"
+                  id="can_login"
+                  checked={formData.can_login}
+                  onChange={e => setFormData({ ...formData, can_login: e.target.checked })}
+                />
+                <label htmlFor="can_login" className="form-label" style={{ marginBottom: 0 }}>Can login to system</label>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <input
+                  type="checkbox"
+                  id="receives_emails"
+                  checked={formData.receives_emails ?? false}
+                  onChange={e => setFormData({ ...formData, receives_emails: e.target.checked })}
+                />
+                <label htmlFor="receives_emails" className="form-label" style={{ marginBottom: 0 }}>Receives email notifications</label>
+              </div>
             </div>
             {formData.last_login_date && (
               <div className="form-group" style={{ gridColumn: 'span 2' }}>
