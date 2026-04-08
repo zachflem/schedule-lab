@@ -1,5 +1,4 @@
 import { useAuth } from '@/shared/lib/auth';
-import { RolePill } from './RolePill';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -7,7 +6,7 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   return (
     <header className="header">
       <button
@@ -43,26 +42,12 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
 
       <div className="header-title">ScheduleLab</div>
 
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-        {/* Role pill — hidden on mobile, shown in nav menu instead */}
-        {user && (
-          <div className="header-role-pill">
-            <RolePill />
-          </div>
-        )}
-
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
         {loading ? (
           <div className="spinner-small" />
         ) : user ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            {/* Name — hidden on mobile */}
-            <span className="header-user-name">
-              {user.name}
-            </span>
-            {/* Avatar — always visible */}
-            <div className="header-avatar">
-              {user.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
-            </div>
+          <div className="header-avatar">
+            {user.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
           </div>
         ) : (
           <a
@@ -72,16 +57,6 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
           >
             Login
           </a>
-        )}
-
-        {/* Logout — hidden on mobile, shown in nav menu instead */}
-        {user && (
-          <button
-            onClick={logout}
-            className="btn btn--sm btn--secondary header-logout"
-          >
-            Logout
-          </button>
         )}
       </div>
     </header>

@@ -48,26 +48,26 @@
   color: var(--color-primary-600);
 }
 
-/* Nav Menu Roll-down */
+/* Nav Menu — left-side panel */
 .nav-menu-container {
   position: fixed;
-  top: 64px; /* Height of header */
+  top: 64px;
   left: 0;
-  right: 0;
+  bottom: 0;
+  width: 272px;
   background: white;
   z-index: 1010;
-  border-bottom: 1px solid var(--color-gray-200);
+  border-right: 1px solid var(--color-gray-200);
   box-shadow: var(--shadow-lg);
-  overflow: hidden;
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
-  transform: translateY(-100%);
-  opacity: 0;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateX(-100%);
   pointer-events: none;
 }
 
 .nav-menu-container.open {
-  transform: translateY(0);
-  opacity: 1;
+  transform: translateX(0);
   pointer-events: auto;
 }
 
@@ -76,6 +76,12 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  flex: 1;
+  overflow-y: auto;
+}
+
+.nav-account-footer {
+  flex-shrink: 0;
 }
 
 .nav-item {
@@ -133,28 +139,6 @@
   flex-shrink: 0;
   cursor: default;
   user-select: none;
-}
-
-.header-user-name {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-gray-600);
-}
-
-.header-logout {
-  font-size: 10px;
-  padding: 2px 8px;
-  opacity: 0.7;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-@media (max-width: 768px) {
-  .header-user-name,
-  .header-role-pill,
-  .header-logout {
-    display: none;
-  }
 }
 
 /* Overlay for the menu */
