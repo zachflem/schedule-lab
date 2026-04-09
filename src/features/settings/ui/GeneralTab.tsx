@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '@/shared/lib/api';
 import { invalidateSettings } from '@/shared/lib/useSettings';
 import { type PlatformSettings } from '@/shared/validation/schemas';
+import { useToast } from '@/shared/lib/toast';
 
 export function GeneralTab() {
+  const { showToast } = useToast();
   const [settings, setSettings] = useState<PlatformSettings>({
     id: 'global',
     company_name: 'ScheduleLab',
@@ -15,6 +17,10 @@ export function GeneralTab() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoMessage, setLogoMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const [testEmail, setTestEmail] = useState('');
+  const [testEmailConfirm, setTestEmailConfirm] = useState('');
+  const [sendingTest, setSendingTest] = useState(false);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -72,10 +78,30 @@ export function GeneralTab() {
     }
   };
 
+  const handleSendTestEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (testEmail !== testEmailConfirm) {
+      showToast('Email addresses do not match.', 'warning');
+      return;
+    }
+    setSendingTest(true);
+    try {
+      await api.post('/settings/test-email', { to: testEmail });
+      showToast(`Test email sent to ${testEmail}!`, 'success');
+      setTestEmail('');
+      setTestEmailConfirm('');
+    } catch {
+      showToast('Failed to send test email. Check your Resend API key and try again.', 'warning');
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
   if (loading) return <div>Loading settings...</div>;
 
   return (
-    <div className="card shadow-sm" style={{ maxWidth: '600px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', maxWidth: '600px' }}>
+    <div className="card shadow-sm">
       <div className="card__header">
         <h3 className="card__title">Platform Identity</h3>
       </div>
@@ -174,6 +200,56 @@ export function GeneralTab() {
           </div>
         </div>
       </form>
+    </div>
+
+    <div className="card shadow-sm">
+      <div className="card__header">
+        <h3 className="card__title">Test Email</h3>
+      </div>
+      <form onSubmit={handleSendTestEmail} className="card__body">
+        <p style={{ margin: '0 0 var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)' }}>
+          Send a test email to verify your email configuration is working. The email will use your current company name and logo.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div className="form-group">
+            <label className="form-label">Recipient Email</label>
+            <input
+              type="email"
+              className="form-input"
+              value={testEmail}
+              onChange={e => setTestEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Confirm Email</label>
+            <input
+              type="email"
+              className="form-input"
+              value={testEmailConfirm}
+              onChange={e => setTestEmailConfirm(e.target.value)}
+              placeholder="you@example.com"
+              required
+            />
+            {testEmailConfirm && testEmail !== testEmailConfirm && (
+              <p style={{ margin: 'var(--space-1) 0 0', fontSize: 'var(--text-sm)', color: 'var(--color-danger-700)' }}>
+                Email addresses do not match.
+              </p>
+            )}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              type="submit"
+              className="btn btn--secondary"
+              disabled={sendingTest || !testEmail || testEmail !== testEmailConfirm}
+            >
+              {sendingTest ? 'Sending...' : 'Send Test Email'}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
     </div>
   );
 }

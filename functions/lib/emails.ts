@@ -245,6 +245,42 @@ export async function sendJobScheduledEmail(
   }
 }
 
+// ── Test Email ────────────────────────────────────────────────────────────────
+
+export async function sendTestEmail(
+  db: D1Database,
+  to: string,
+  apiKey: string,
+): Promise<{ success: boolean; error?: string }> {
+  const { company_name, logo_url } = await getCompanySettings(db);
+
+  const subject = `Test Email from ${company_name}`;
+
+  const body = `
+    <h2 style="margin:0 0 8px;font-size:20px;color:#111827;">Your email notifications are working!</h2>
+    <p style="margin:0 0 20px;color:#6b7280;font-size:14px;">This is a test message sent from the <strong>${company_name}</strong> settings panel. If you received this, your email configuration is set up correctly.</p>
+
+    ${infoBox(`
+      <p style="margin:0 0 4px;font-weight:700;color:#1e40af;font-size:13px;">PLATFORM SETTINGS IN USE</p>
+      <table style="width:100%;font-size:14px;margin-top:8px;">
+        <tr><td style="color:#1e3a8a;padding:4px 0;width:40%;">Company Name</td><td style="font-weight:600;color:#1e3a8a;">${company_name}</td></tr>
+        <tr><td style="color:#1e3a8a;padding:4px 0;">Logo</td><td style="font-weight:600;color:#1e3a8a;">${logo_url ? 'Configured (visible in header above)' : 'Not set — showing company name as text'}</td></tr>
+        <tr><td style="color:#1e3a8a;padding:4px 0;">Sent To</td><td style="font-weight:600;color:#1e3a8a;">${to}</td></tr>
+      </table>
+    `)}
+
+    <p style="margin:16px 0 0;font-size:13px;color:#9ca3af;text-align:center;">No action required — this is a test only.</p>
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    content: emailWrapper(subject, body, company_name, logo_url),
+    fromName: company_name,
+    apiKey,
+  });
+}
+
 // ── Notification: New Public Enquiry ──────────────────────────────────────────
 
 export async function sendNewEnquiryEmail(
