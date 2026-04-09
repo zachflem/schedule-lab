@@ -9,7 +9,11 @@ type D1Database = any;
 
 // ── HTML wrapper ─────────────────────────────────────────────────────────────
 
-function emailWrapper(title: string, body: string, companyName = 'ScheduleLab'): string {
+function emailWrapper(title: string, body: string, companyName = 'ScheduleLab', logoUrl: string | null = null): string {
+  const logoHtml = logoUrl
+    ? `<img src="${logoUrl}" alt="${companyName}" style="max-height:48px;max-width:180px;object-fit:contain;display:block;" />`
+    : `<p style="margin:0;font-size:20px;font-weight:700;color:#ffffff;">${companyName}</p>`;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,7 +28,7 @@ function emailWrapper(title: string, body: string, companyName = 'ScheduleLab'):
         <!-- Header -->
         <tr>
           <td style="background:#1e40af;padding:24px 32px;">
-            <p style="margin:0;font-size:20px;font-weight:700;color:#ffffff;">${companyName}</p>
+            ${logoHtml}
             <p style="margin:4px 0 0;font-size:13px;color:#bfdbfe;">Field Operations Platform</p>
           </td>
         </tr>
@@ -71,11 +75,11 @@ function ctaButton(label: string, url: string): string {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-async function getCompanySettings(db: D1Database): Promise<{ company_name: string; base_url: string | null }> {
+async function getCompanySettings(db: D1Database): Promise<{ company_name: string; base_url: string | null; logo_url: string | null }> {
   const settings = await db.prepare(
-    "SELECT company_name, base_url FROM platform_settings WHERE id = 'global'"
-  ).first() as { company_name: string; base_url: string | null } | null;
-  return settings ?? { company_name: 'ScheduleLab', base_url: null };
+    "SELECT company_name, base_url, logo_url FROM platform_settings WHERE id = 'global'"
+  ).first() as { company_name: string; base_url: string | null; logo_url: string | null } | null;
+  return settings ?? { company_name: 'ScheduleLab', base_url: null, logo_url: null };
 }
 
 async function getAssignedPersonnelEmails(db: D1Database, jobId: string): Promise<Array<{ name: string; email: string }>> {
@@ -107,7 +111,8 @@ async function getDispatcherEmails(db: D1Database): Promise<Array<{ name: string
 export async function sendDocketIncompleteEmail(
   db: D1Database,
   docketId: string,
-  notes: string
+  notes: string,
+  apiKey: string,
 ): Promise<void> {
   const docket = await db.prepare(`
     SELECT d.id, d.date, j.id as job_id, j.location, j.job_brief, c.name as customer_name
@@ -122,7 +127,7 @@ export async function sendDocketIncompleteEmail(
 
   if (!docket) return;
 
-  const [recipients, { company_name, base_url }] = await Promise.all([
+  const [recipients, { company_name, base_url, logo_url }] = await Promise.all([
     getAssignedPersonnelEmails(db, docket.job_id),
     getCompanySettings(db),
   ]);
@@ -157,8 +162,9 @@ export async function sendDocketIncompleteEmail(
     await sendEmail({
       to: recipient.email,
       subject,
-      content: emailWrapper(subject, body, company_name),
+      content: emailWrapper(subject, body, company_name, logo_url),
       fromName: company_name,
+      apiKey,
     });
   }
 }
@@ -167,7 +173,8 @@ export async function sendDocketIncompleteEmail(
 
 export async function sendJobScheduledEmail(
   db: D1Database,
-  jobId: string
+  jobId: string,
+  apiKey: string,
 ): Promise<void> {
   const job = await db.prepare(`
     SELECT j.id, j.location, j.job_brief, j.site_contact_name, j.site_contact_phone,
@@ -184,7 +191,7 @@ export async function sendJobScheduledEmail(
 
   if (!job) return;
 
-  const [recipients, { company_name, base_url }] = await Promise.all([
+  const [recipients, { company_name, base_url, logo_url }] = await Promise.all([
     getAssignedPersonnelEmails(db, jobId),
     getCompanySettings(db),
   ]);
@@ -231,8 +238,9 @@ export async function sendJobScheduledEmail(
     await sendEmail({
       to: recipient.email,
       subject,
-      content: emailWrapper(subject, body, company_name),
+      content: emailWrapper(subject, body, company_name, logo_url),
       fromName: company_name,
+      apiKey,
     });
   }
 }
@@ -251,9 +259,10 @@ export async function sendNewEnquiryEmail(
     job_brief?: string | null;
     preferred_date?: string | null;
     asset_requirement?: string | null;
-  }
+  },
+  apiKey: string,
 ): Promise<void> {
-  const [recipients, { company_name, base_url }] = await Promise.all([
+  const [recipients, { company_name, base_url, logo_url }] = await Promise.all([
     getDispatcherEmails(db),
     getCompanySettings(db),
   ]);
@@ -290,8 +299,9 @@ export async function sendNewEnquiryEmail(
     await sendEmail({
       to: recipient.email,
       subject,
-      content: emailWrapper(subject, body, company_name),
+      content: emailWrapper(subject, body, company_name, logo_url),
       fromName: company_name,
+      apiKey,
     });
   }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/shared/lib/api';
 import { type PlatformSettings } from '@/shared/validation/schemas';
 
@@ -11,6 +11,9 @@ export function GeneralTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoMessage, setLogoMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -31,14 +34,39 @@ export function GeneralTab() {
     setSaving(true);
     setMessage(null);
     try {
-      await api.put('/settings', settings);
+      const { logo_url, ...settingsToSave } = settings;
+      await api.put('/settings', settingsToSave);
       setMessage({ type: 'success', text: 'Settings updated successfully!' });
-      // Update CSS variable for primary color if changed
       document.documentElement.style.setProperty('--color-primary-600', settings.primary_color);
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to update settings.' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLogoUploading(true);
+    setLogoMessage(null);
+    try {
+      const formData = new FormData();
+      formData.append('logo', file);
+      const response = await fetch('/api/settings/logo', { method: 'POST', body: formData });
+      if (!response.ok) {
+        const err = await response.json() as { error?: string };
+        throw new Error(err.error ?? 'Upload failed');
+      }
+      const { logo_url } = await response.json() as { logo_url: string };
+      setSettings(s => ({ ...s, logo_url }));
+      setLogoMessage({ type: 'success', text: 'Logo uploaded successfully!' });
+    } catch (err) {
+      setLogoMessage({ type: 'error', text: err instanceof Error ? err.message : 'Upload failed.' });
+    } finally {
+      setLogoUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
     }
   };
 
@@ -82,14 +110,35 @@ export function GeneralTab() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Logo URL</label>
-            <input
-              type="text"
-              className="form-input"
-              value={settings.logo_url || ''}
-              onChange={e => setSettings({ ...settings, logo_url: e.target.value })}
-              placeholder="https://example.com/logo.png"
-            />
+            <label className="form-label">Company Logo</label>
+            {settings.logo_url && (
+              <div style={{ marginBottom: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-gray-200)', display: 'inline-block' }}>
+                <img src={settings.logo_url} alt="Current logo" style={{ maxHeight: '48px', maxWidth: '180px', objectFit: 'contain', display: 'block' }} />
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                style={{ display: 'none' }}
+                onChange={handleLogoUpload}
+              />
+              <button
+                type="button"
+                className="btn btn--secondary"
+                onClick={() => logoInputRef.current?.click()}
+                disabled={logoUploading}
+              >
+                {logoUploading ? 'Uploading...' : settings.logo_url ? 'Replace Logo' : 'Upload Logo'}
+              </button>
+              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-400)' }}>PNG, JPEG, WebP or SVG — max 2 MB</span>
+            </div>
+            {logoMessage && (
+              <p style={{ margin: 'var(--space-2) 0 0', fontSize: 'var(--text-sm)', color: logoMessage.type === 'success' ? 'var(--color-success-700)' : 'var(--color-danger-700)' }}>
+                {logoMessage.text}
+              </p>
+            )}
           </div>
 
           <div className="form-group">

@@ -4,6 +4,8 @@
 
 export interface Env {
   DB: D1Database;
+  ASSETS: R2Bucket;
+  RESEND_API_KEY: string;
 }
 
 export type BaseContext = EventContext<Env, string, unknown>;
@@ -74,33 +76,34 @@ export function now(): string {
   return new Date().toISOString();
 }
 
-/** 
- * Send a transactional email via MailChannels.
- * MailChannels is free for Cloudflare Workers/Pages and don't require an API key by default.
+/**
+ * Send a transactional email via Resend.
  */
 export async function sendEmail({
   to,
   subject,
   content,
-  fromName = 'ScheduleLab'
+  fromName = 'ScheduleLab',
+  apiKey,
 }: {
   to: string;
   subject: string;
   content: string;
   fromName?: string;
+  apiKey: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
+    const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
-        personalizations: [{ to: [{ email: to }] }],
-        from: {
-          email: `no-reply@schedule-lab.pages.dev`,
-          name: fromName,
-        },
+        from: `${fromName} <no-reply@updates.seezed.net>`,
+        to: [to],
         subject,
-        content: [{ type: 'text/html', value: content }],
+        html: content,
       }),
     });
 
@@ -108,7 +111,7 @@ export async function sendEmail({
       return { success: true };
     } else {
       const respText = await response.text();
-      return { success: false, error: respText || `MailChannels Error: ${response.status}` };
+      return { success: false, error: respText || `Resend Error: ${response.status}` };
     }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown mail error' };
