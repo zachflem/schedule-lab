@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS personnel (
   auth_id         TEXT,
   role            TEXT DEFAULT 'operator',
   last_login_date TEXT,
+  invite_sent_at  TEXT,
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );

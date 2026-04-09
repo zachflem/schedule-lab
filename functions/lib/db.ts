@@ -174,6 +174,12 @@ export function withRole(allowedRoles: string[], handler: (ctx: BaseContext, use
       return errorResponse('Forbidden: Insufficient permissions', 403);
     }
 
-    return await handler(context, user);
+    try {
+      return await handler(context, user);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Internal server error';
+      console.error(`[API Error] ${context.request.url}:`, err);
+      return errorResponse(message, 500);
+    }
   };
 }
