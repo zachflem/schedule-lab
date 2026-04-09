@@ -77,7 +77,7 @@ export const onRequest = methodRouter({
           </div>
         `;
         
-        await sendEmail({ to: p.email, subject, content });
+        await sendEmail({ to: p.email, subject, content, apiKey: context.env.RESEND_API_KEY });
         await db.prepare('UPDATE personnel SET invite_sent_at = ? WHERE id = ?').bind(timestamp, id).run();
       } catch (err) {
         console.error('Failed to send auto-invite:', err);

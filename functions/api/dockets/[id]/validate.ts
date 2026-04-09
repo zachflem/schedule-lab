@@ -61,6 +61,7 @@ export const onRequest = methodRouter({
           to: sig.email_copy_to!,
           subject,
           content,
+          apiKey: context.env.RESEND_API_KEY,
         });
       });
 
