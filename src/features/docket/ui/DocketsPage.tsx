@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Spinner } from '@/shared/ui';
+import { Spinner, EmailSentToast } from '@/shared/ui';
 import { useAuth } from '@/shared/lib/auth';
 import { useDocketsList } from '../api/useDocketsList';
 import { RejectDocketModal } from './RejectDocketModal';
@@ -15,12 +15,14 @@ export function DocketsPage() {
 
   const [rejectModalData, setRejectModalData] = useState<{ id: string; customerId: string; customerName: string } | null>(null);
   const [validatingId, setValidatingId] = useState<string | null>(null);
+  const [emailToast, setEmailToast] = useState<string | null>(null);
 
   const handleValidate = async (id: string) => {
     try {
       setValidatingId(id);
       await api.post(`/dockets/${id}/validate`, {});
       refresh();
+      setEmailToast('A copy of the validated docket has been sent to any signatory email addresses provided.');
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error validating docket');
     } finally {
@@ -68,8 +70,13 @@ export function DocketsPage() {
           onSuccess={() => {
             setRejectModalData(null);
             refresh();
+            setEmailToast('Assigned personnel have been notified of the revision request by email.');
           }}
         />
+      )}
+
+      {emailToast && (
+        <EmailSentToast message={emailToast} onClose={() => setEmailToast(null)} />
       )}
     </div>
   );

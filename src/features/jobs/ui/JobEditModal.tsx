@@ -54,6 +54,7 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
   const [error, setError] = useState<string | null>(null);
   const [applyToFuture, setApplyToFuture] = useState(false);
   const [futureUpdateMsg, setFutureUpdateMsg] = useState<string | null>(null);
+  const [emailSentMsg, setEmailSentMsg] = useState<string | null>(null);
 
   const isPartOfProject = !!job.project_id;
 
@@ -175,6 +176,17 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
             return;
           }
         }
+
+        const willEmailPersonnel =
+          formData.status_id === 'Job Scheduled' ||
+          (!!formData.start_time && !!formData.end_time);
+
+        if (willEmailPersonnel) {
+          setEmailSentMsg('Assigned personnel with email notifications enabled will receive a schedule notification.');
+          setTimeout(onClose, 2500);
+          return;
+        }
+
         onClose();
       } else {
         setError(result.error || 'Failed to update job');
@@ -415,6 +427,15 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
 
           {/* Footer */}
           <div className="modal-footer" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            {emailSentMsg && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: 'var(--space-2) var(--space-3)', background: 'var(--color-success-50)', border: '1px solid var(--color-success-200)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--color-success-700)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <polyline points="2,7 12,13 22,7" />
+                </svg>
+                <span><strong>Email notification sent.</strong> {emailSentMsg}</span>
+              </div>
+            )}
             {futureUpdateMsg && (
               <div style={{ padding: 'var(--space-2) var(--space-3)', background: 'var(--color-success-50)', border: '1px solid var(--color-success-500)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--color-success-700)', textAlign: 'center' }}>
                 {futureUpdateMsg}

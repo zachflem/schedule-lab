@@ -726,3 +726,71 @@ select.form-input {
 .selection-card--active .selection-card__label {
   color: var(--color-primary-900);
 }
+
+/* ── Email Sent Toast ──────────────────────────── */
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.email-toast {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  z-index: 9999;
+  max-width: 340px;
+  width: calc(100vw - 3rem);
+  background: #fff;
+  border: 1px solid var(--color-success-200);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  padding: var(--space-4);
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  animation: toastSlideIn 0.25s ease;
+}
+
+.email-toast__icon {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  background: var(--color-success-50);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.email-toast__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.email-toast__title {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--color-gray-900);
+  margin-bottom: var(--space-1);
+}
+
+.email-toast__message {
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+  line-height: 1.4;
+}
+
+.email-toast__close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-gray-400);
+  font-size: var(--text-lg);
+  padding: 2px;
+  line-height: 1;
+}
+
+.email-toast__close:hover {
+  color: var(--color-gray-600);
+}

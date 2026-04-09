@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { api } from '@/shared/lib/api';
 import { PersonnelSchema, type Personnel, type Qualification } from '@/shared/validation/schemas';
-import { Spinner } from '@/shared/ui';
+import { Spinner, EmailSentToast } from '@/shared/ui';
 
 export function PersonnelFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -10,6 +10,7 @@ export function PersonnelFormPage() {
   const [loading, setLoading] = useState(!!(id && id !== 'new'));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailToast, setEmailToast] = useState<string | null>(null);
   const [allQualifications, setAllQualifications] = useState<Qualification[]>([]);
   const [formData, setFormData] = useState<Partial<Personnel>>({
     name: '',
@@ -106,10 +107,10 @@ export function PersonnelFormPage() {
     setSaving(true);
     try {
       await api.post(`/personnel/${id}/invite`, {});
-      // Refresh to get update invite_sent_at
+      // Refresh to get updated invite_sent_at
       const data = await api.get<Personnel>(`/personnel/${id}`);
       setFormData(data);
-      alert('Invitation sent successfully!');
+      setEmailToast(`Invitation email sent to ${data.email}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send invitation');
     } finally {
@@ -311,6 +312,10 @@ export function PersonnelFormPage() {
           </button>
         </div>
       </form>
+
+      {emailToast && (
+        <EmailSentToast message={emailToast} onClose={() => setEmailToast(null)} />
+      )}
     </div>
   );
 }
