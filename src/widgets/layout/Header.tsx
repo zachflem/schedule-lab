@@ -47,9 +47,11 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
         {settings?.logo_url ? (
           <img src={settings.logo_url} alt={settings.company_name} className="header-brand-logo" />
         ) : (
-          <span className="header-brand-name">{settings?.company_name ?? 'ScheduleLab'}</span>
+          <span className="header-brand-name">{settings?.company_name || 'ScheduleLab'}</span>
         )}
-        <span className="header-brand-powered">powered by ScheduleLab</span>
+        {settings?.company_name && settings.company_name !== 'ScheduleLab' && (
+          <span className="header-brand-powered">powered by ScheduleLab</span>
+        )}
       </div>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
