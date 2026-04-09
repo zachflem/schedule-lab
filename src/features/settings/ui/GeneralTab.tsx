@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '@/shared/lib/api';
+import { invalidateSettings } from '@/shared/lib/useSettings';
 import { type PlatformSettings } from '@/shared/validation/schemas';
 
 export function GeneralTab() {
@@ -36,6 +37,7 @@ export function GeneralTab() {
     try {
       const { logo_url, ...settingsToSave } = settings;
       await api.put('/settings', settingsToSave);
+      invalidateSettings();
       setMessage({ type: 'success', text: 'Settings updated successfully!' });
       document.documentElement.style.setProperty('--color-primary-600', settings.primary_color);
     } catch (err) {

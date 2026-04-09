@@ -1,4 +1,5 @@
 import { useAuth } from '@/shared/lib/auth';
+import { useSettings } from '@/shared/lib/useSettings';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -7,6 +8,8 @@ interface HeaderProps {
 
 export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
   const { user, loading } = useAuth();
+  const settings = useSettings();
+
   return (
     <header className="header">
       <button
@@ -40,7 +43,14 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
         </svg>
       </button>
 
-      <div className="header-title">ScheduleLab</div>
+      <div className="header-brand">
+        {settings?.logo_url ? (
+          <img src={settings.logo_url} alt={settings.company_name} className="header-brand-logo" />
+        ) : (
+          <span className="header-brand-name">{settings?.company_name ?? 'ScheduleLab'}</span>
+        )}
+        <span className="header-brand-powered">powered by ScheduleLab</span>
+      </div>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
         {loading ? (

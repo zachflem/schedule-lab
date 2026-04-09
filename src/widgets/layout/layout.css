@@ -23,11 +23,33 @@
   box-shadow: var(--shadow-sm);
 }
 
-.header-title {
+.header-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.2;
+}
+
+.header-brand-logo {
+  max-height: 28px;
+  max-width: 140px;
+  object-fit: contain;
+  display: block;
+}
+
+.header-brand-name {
   font-weight: 700;
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   color: var(--color-gray-900);
   letter-spacing: -0.02em;
+}
+
+.header-brand-powered {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-gray-400);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .menu-trigger {
