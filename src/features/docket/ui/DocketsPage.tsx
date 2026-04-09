@@ -5,6 +5,7 @@ import { useAuth } from '@/shared/lib/auth';
 import { useDocketsList } from '../api/useDocketsList';
 import { RejectDocketModal } from './RejectDocketModal';
 import { api } from '@/shared/lib/api';
+import { useToast } from '@/shared/lib/toast';
 
 export function DocketsPage() {
   const { user } = useAuth();
@@ -13,6 +14,7 @@ export function DocketsPage() {
   const { dockets, loading, error, refresh } = useDocketsList(isDispatcher ? statusFilter : 'all');
   const navigate = useNavigate();
 
+  const { showToast } = useToast();
   const [rejectModalData, setRejectModalData] = useState<{ id: string; customerId: string; customerName: string } | null>(null);
   const [validatingId, setValidatingId] = useState<string | null>(null);
 
@@ -68,6 +70,7 @@ export function DocketsPage() {
           onSuccess={() => {
             setRejectModalData(null);
             refresh();
+            showToast('Docket sent back to operator', 'warning');
           }}
         />
       )}

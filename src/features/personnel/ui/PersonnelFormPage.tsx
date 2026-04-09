@@ -3,10 +3,12 @@ import { useNavigate, useParams } from 'react-router';
 import { api } from '@/shared/lib/api';
 import { PersonnelSchema, type Personnel, type Qualification } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
+import { useToast } from '@/shared/lib/toast';
 
 export function PersonnelFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(!!(id && id !== 'new'));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +109,7 @@ export function PersonnelFormPage() {
       // Refresh to get update invite_sent_at
       const data = await api.get<Personnel>(`/personnel/${id}`);
       setFormData(data);
-      alert('Invitation sent successfully!');
+      showToast(`Invitation sent to ${data.name || data.email}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send invitation');
     } finally {

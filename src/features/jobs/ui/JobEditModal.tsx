@@ -4,6 +4,7 @@ import type { Asset, Personnel } from '@/shared/validation/schemas';
 import { JobStatusEnum } from '@/shared/validation/schemas';
 import type { JobWithResources } from '../api/useJobs';
 import { Spinner } from '@/shared/ui';
+import { useToast } from '@/shared/lib/toast';
 
 interface AssetWithMetadata extends Asset {
   asset_type_name?: string;
@@ -34,6 +35,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 }
 
 export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditModalProps) {
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     status_id: job.status_id || 'Job Booked',
     location: job.location || '',
@@ -154,8 +156,12 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
         ...selectedAssets.map(id => ({ resource_type: 'Asset', asset_id: id })),
         ...selectedPersonnel.map(id => ({ resource_type: 'Personnel', personnel_id: id }))
       ];
+      const prevStatus = job.status_id;
       const result = await onSave(job.id!, { ...formData, resources });
       if (result.success) {
+        if (formData.status_id === 'Job Scheduled' && prevStatus !== 'Job Scheduled') {
+          showToast('Job scheduled — team notified by email');
+        }
         if (applyToFuture && isPartOfProject && onApplyToFuture && job.project_id) {
           const futurePayload = {
             status_id: formData.status_id,
