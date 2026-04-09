@@ -19,7 +19,7 @@ export const onRequest = async (context: BaseContext): Promise<Response> => {
 };
 
 async function serveLogo(context: BaseContext): Promise<Response> {
-  const object = await context.env.ASSETS.get(LOGO_KEY);
+  const object = await context.env.MEDIA.get(LOGO_KEY);
   if (!object) {
     return new Response('No logo uploaded', { status: 404 });
   }
@@ -54,7 +54,7 @@ async function uploadLogo(context: BaseContext): Promise<Response> {
     return errorResponse('Logo must be under 2 MB', 400);
   }
 
-  await context.env.ASSETS.put(LOGO_KEY, file.stream(), {
+  await context.env.MEDIA.put(LOGO_KEY, file.stream(), {
     httpMetadata: { contentType: file.type },
   });
 

@@ -8,5 +8,5 @@ database_name = "schedule-lab-db"
 database_id = "eaffd1ae-d80e-4f4d-8ee5-a62fa2ef63aa"
 
 [[r2_buckets]]
-binding = "ASSETS"
+binding = "MEDIA"
 bucket_name = "schedule-lab-assets"
