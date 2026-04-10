@@ -3,8 +3,26 @@ import { Link } from 'react-router';
 import { api } from '@/shared/lib/api';
 import type { Personnel } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
+import { useAuth } from '@/shared/lib/auth';
+
+function formatLastLogin(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterdayStart = new Date(todayStart.getTime() - 86400000);
+
+  if (date >= todayStart) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  if (date >= yesterdayStart) {
+    return 'Yesterday';
+  }
+  return date.toLocaleDateString();
+}
 
 export function PersonnelListPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +65,7 @@ export function PersonnelListPage() {
               <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Contact</th>
               <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Qualifications</th>
               <th style={{ textAlign: 'center', padding: 'var(--space-3)' }}>Can Login</th>
+              {isAdmin && <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Last Login</th>}
               <th style={{ textAlign: 'right', padding: 'var(--space-3)' }}>Actions</th>
             </tr>
           </thead>
@@ -82,13 +101,18 @@ export function PersonnelListPage() {
                     {person.can_login ? 'Yes' : 'No'}
                   </span>
                 </td>
+                {isAdmin && (
+                  <td style={{ padding: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)' }}>
+                    {person.last_login_date ? formatLastLogin(person.last_login_date) : <span style={{ color: 'var(--color-gray-300)' }}>Never</span>}
+                  </td>
+                )}
                 <td style={{ padding: 'var(--space-3)', textAlign: 'right' }}>
                   <Link to={`/personnel/${person.id}`} className="btn btn--secondary btn--sm">Edit</Link>
                 </td>
               </tr>
             ))}
             {personnel.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-gray-400)' }}>No personnel records found.</td></tr>
+              <tr><td colSpan={isAdmin ? 6 : 5} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-gray-400)' }}>No personnel records found.</td></tr>
             )}
           </tbody>
         </table>
@@ -105,6 +129,11 @@ export function PersonnelListPage() {
                 <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-gray-900)' }}>{person.name}</div>
                 <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', marginTop: '2px' }}>{person.email}</div>
                 {person.phone && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)' }}>{person.phone}</div>}
+                {isAdmin && person.last_login_date && (
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', marginTop: '2px' }}>
+                    Last login: {formatLastLogin(person.last_login_date)}
+                  </div>
+                )}
               </div>
               <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                 <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: 'var(--text-xs)', fontWeight: 600, background: person.can_login ? 'var(--color-success-50)' : 'var(--color-gray-100)', color: person.can_login ? 'var(--color-success-700)' : 'var(--color-gray-600)' }}>
