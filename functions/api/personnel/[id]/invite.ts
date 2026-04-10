@@ -20,6 +20,9 @@ export const onRequest = withRole(['admin', 'dispatcher'], async (context: BaseC
   const id = context.params.id as string;
   const db = getDb(context);
 
+  const body = await context.request.json().catch(() => ({})) as { message?: string };
+  const customMessage = typeof body.message === 'string' ? body.message.trim() : '';
+
   // 1. Fetch the person
   const person = await db.prepare('SELECT * FROM personnel WHERE id = ?').bind(id).first();
   if (!person) {
@@ -65,6 +68,7 @@ export const onRequest = withRole(['admin', 'dispatcher'], async (context: BaseC
           <td style="padding:32px;">
             <h2 style="margin:0 0 8px;font-size:20px;color:#111827;">Welcome to ${company_name}</h2>
             <p style="margin:0 0 20px;color:#6b7280;font-size:14px;">Hi ${name}, you've been added to the ${company_name} platform.</p>
+            ${customMessage ? `<div style="background:#f0fdf4;border-left:4px solid #22c55e;border-radius:6px;padding:16px;margin:0 0 20px;"><p style="margin:0;color:#166534;font-size:14px;white-space:pre-wrap;">${customMessage}</p></div>` : ''}
             <p style="margin:0 0 20px;color:#374151;font-size:14px;">You can now log in to manage your schedule, view dockets, and update your qualifications.</p>
             <div style="text-align:center;margin:24px 0;">
               <a href="${appUrl}" style="display:inline-block;background:#1e40af;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:14px;">Go to ${company_name}</a>

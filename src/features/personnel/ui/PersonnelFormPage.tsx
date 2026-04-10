@@ -4,6 +4,7 @@ import { api } from '@/shared/lib/api';
 import { PersonnelSchema, type Personnel, type Qualification } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
 import { useToast } from '@/shared/lib/toast';
+import { InviteModal } from './InviteModal';
 
 export function PersonnelFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -12,6 +13,7 @@ export function PersonnelFormPage() {
   const [loading, setLoading] = useState(!!(id && id !== 'new'));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [allQualifications, setAllQualifications] = useState<Qualification[]>([]);
   const [formData, setFormData] = useState<Partial<Personnel>>({
     name: '',
@@ -55,25 +57,37 @@ export function PersonnelFormPage() {
     fetchData();
   }, [id]);
 
+  const isNewUser = !id || id === 'new';
+  const willAutoInvite = isNewUser && !!(formData.can_login && formData.email);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (willAutoInvite) {
+      setShowInviteModal(true);
+      return;
+    }
+    await doSave(false);
+  };
+
+  const doSave = async (sendInvite: boolean, inviteMessage?: string) => {
     setSaving(true);
     setError(null);
-
     try {
       const validated = PersonnelSchema.parse({
         ...formData,
         role: formData.role || 'operator'
       });
-      if (id && id !== 'new') {
+      if (!isNewUser) {
         await api.put(`/personnel/${id}`, validated);
       } else {
-        await api.post('/personnel', validated);
+        const result = await api.post<{ id: string }>('/personnel', validated);
+        if (sendInvite && result.id) {
+          await api.post(`/personnel/${result.id}/invite`, { message: inviteMessage ?? '' });
+        }
       }
       navigate('/personnel');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save personnel');
-    } finally {
       setSaving(false);
     }
   };
@@ -103,14 +117,18 @@ export function PersonnelFormPage() {
     });
   };
 
-  const handleSendInvite = async () => {
+  const handleSendInvite = () => {
+    setShowInviteModal(true);
+  };
+
+  const doSendInvite = async (message: string) => {
     if (!id || id === 'new') return;
     setSaving(true);
     try {
-      await api.post(`/personnel/${id}/invite`, {});
-      // Refresh to get update invite_sent_at
+      await api.post(`/personnel/${id}/invite`, { message });
       const data = await api.get<Personnel>(`/personnel/${id}`);
       setFormData(data);
+      setShowInviteModal(false);
       showToast(`Invitation sent to ${data.name || data.email}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send invitation');
@@ -318,6 +336,17 @@ export function PersonnelFormPage() {
           </button>
         </div>
       </form>
+
+      {showInviteModal && (
+        <InviteModal
+          recipientName={formData.name || formData.email || 'this person'}
+          isNewUser={isNewUser}
+          onSend={isNewUser ? (msg) => doSave(true, msg) : doSendInvite}
+          onSkip={isNewUser ? () => doSave(false) : undefined}
+          onClose={() => setShowInviteModal(false)}
+          isSending={saving}
+        />
+      )}
     </div>
   );
 }
