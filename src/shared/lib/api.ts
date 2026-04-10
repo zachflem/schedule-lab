@@ -6,8 +6,10 @@
 
 const BASE = '/api';
 
-interface ApiError {
-  error: string;
+export class ApiRequestError extends Error {
+  constructor(message: string, public status: number, public body: unknown) {
+    super(message);
+  }
 }
 
 class ApiClient {
@@ -24,8 +26,8 @@ class ApiClient {
     const res = await fetch(url, init);
 
     if (!res.ok) {
-      const err: ApiError = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(err.error || `API error: ${res.status}`);
+      const parsed = await res.json().catch(() => ({ error: res.statusText }));
+      throw new ApiRequestError(parsed.error || `API error: ${res.status}`, res.status, parsed);
     }
 
     return res.json() as Promise<T>;

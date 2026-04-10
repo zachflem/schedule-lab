@@ -218,6 +218,7 @@ export const PersonnelSchema = z.object({
   auth_id: z.string().optional().nullable(),
   last_login_date: z.string().optional().nullable(),
   invite_sent_at: z.string().optional().nullable(),
+  archived_at: z.string().optional().nullable(),
   role: z.enum(['admin', 'dispatcher', 'operator']).default('operator'),
   qualifications: z.array(QualificationSchema).optional(),
 });

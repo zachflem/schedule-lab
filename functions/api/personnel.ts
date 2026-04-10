@@ -18,6 +18,7 @@ export const onRequest = methodRouter({
         WHERE pq.personnel_id = p.id
       ) as qualifications_json
       FROM personnel p
+      WHERE p.archived_at IS NULL
       ORDER BY p.name
     `).all();
 
@@ -38,6 +39,16 @@ export const onRequest = methodRouter({
     const id = generateId();
     const p = parsed.data as Personnel;
     const timestamp = now();
+
+    // Check for an archived user with the same email
+    if (p.email) {
+      const archived = await db.prepare(
+        'SELECT id, name, email, archived_at FROM personnel WHERE email = ? AND archived_at IS NOT NULL'
+      ).bind(p.email).first();
+      if (archived) {
+        return jsonResponse({ code: 'ARCHIVED_USER', person: archived }, 409);
+      }
+    }
 
     await db.prepare(`
       INSERT INTO personnel (id, name, email, phone, can_login, receives_emails, role, created_at, updated_at)

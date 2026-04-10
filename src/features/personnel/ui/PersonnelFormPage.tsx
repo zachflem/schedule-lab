@@ -1,10 +1,17 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { api } from '@/shared/lib/api';
+import { api, ApiRequestError } from '@/shared/lib/api';
 import { PersonnelSchema, type Personnel, type Qualification } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
 import { useToast } from '@/shared/lib/toast';
 import { InviteModal } from './InviteModal';
+
+type ArchivedPersonInfo = {
+  id: string;
+  name: string;
+  email: string;
+  archived_at: string;
+};
 
 export function PersonnelFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +21,8 @@ export function PersonnelFormPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [archivedUser, setArchivedUser] = useState<ArchivedPersonInfo | null>(null);
   const [allQualifications, setAllQualifications] = useState<Qualification[]>([]);
   const [formData, setFormData] = useState<Partial<Personnel>>({
     name: '',
@@ -80,7 +89,18 @@ export function PersonnelFormPage() {
       if (!isNewUser) {
         await api.put(`/personnel/${id}`, validated);
       } else {
-        const result = await api.post<{ id: string }>('/personnel', validated);
+        let result: { id: string };
+        try {
+          result = await api.post<{ id: string }>('/personnel', validated);
+        } catch (err) {
+          // 409 means an archived user exists with this email
+          if (err instanceof ApiRequestError && err.status === 409 && (err.body as any)?.code === 'ARCHIVED_USER') {
+            setArchivedUser((err.body as any).person);
+            setSaving(false);
+            return;
+          }
+          throw err;
+        }
         if (sendInvite && result.id) {
           await api.post(`/personnel/${result.id}/invite`, { message: inviteMessage ?? '' });
         }
@@ -92,10 +112,38 @@ export function PersonnelFormPage() {
     }
   };
 
+  const handleReactivate = async () => {
+    if (!archivedUser) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await api.post(`/personnel/${archivedUser.id}/restore`, {});
+      const validated = PersonnelSchema.parse({ ...formData, role: formData.role || 'operator' });
+      await api.put(`/personnel/${archivedUser.id}`, validated);
+      navigate('/personnel');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reactivate personnel');
+      setSaving(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!id || id === 'new') return;
+    setSaving(true);
+    setError(null);
+    try {
+      await api.delete(`/personnel/${id}`);
+      navigate('/personnel');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to archive personnel');
+      setSaving(false);
+    }
+  };
+
   const toggleQualification = (qual: Qualification) => {
     const current = formData.qualifications || [];
     const exists = current.find(q => q.id === qual.id);
-    
+
     if (exists) {
       setFormData({
         ...formData,
@@ -143,10 +191,10 @@ export function PersonnelFormPage() {
     <div className="container" style={{ padding: 'var(--space-8)', maxWidth: '800px' }}>
       <div style={{ marginBottom: 'var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 className="docket-page__title">{id === 'new' ? 'Add Person' : 'Edit Personnel'}</h1>
-        
+
         {id !== 'new' && formData.email && formData.can_login && (
-          <button 
-            type="button" 
+          <button
+            type="button"
             className="btn btn--secondary btn--sm"
             onClick={handleSendInvite}
             disabled={saving}
@@ -295,13 +343,13 @@ export function PersonnelFormPage() {
                     }
 
                     return (
-                      <div key={q.id} style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center', 
-                        background: color.bg, 
+                      <div key={q.id} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: color.bg,
                         color: color.text,
-                        padding: 'var(--space-2) var(--space-3)', 
+                        padding: 'var(--space-2) var(--space-3)',
                         borderRadius: 'var(--radius-md)',
                         border: diffDays !== null ? `1px solid ${color.text}30` : '1px solid transparent'
                       }}>
@@ -329,11 +377,24 @@ export function PersonnelFormPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn--secondary" onClick={() => navigate('/personnel')}>Cancel</button>
-          <button type="submit" className="btn btn--primary" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Personnel'}
-          </button>
+        <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'space-between', alignItems: 'center' }}>
+          {!isNewUser ? (
+            <button
+              type="button"
+              className="btn btn--sm"
+              style={{ background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', border: '1px solid var(--color-danger-200)' }}
+              onClick={() => setShowArchiveConfirm(true)}
+              disabled={saving}
+            >
+              Archive Person
+            </button>
+          ) : <span />}
+          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+            <button type="button" className="btn btn--secondary" onClick={() => navigate('/personnel')}>Cancel</button>
+            <button type="submit" className="btn btn--primary" disabled={saving}>
+              {saving ? 'Saving...' : 'Save Personnel'}
+            </button>
+          </div>
         </div>
       </form>
 
@@ -346,6 +407,62 @@ export function PersonnelFormPage() {
           onClose={() => setShowInviteModal(false)}
           isSending={saving}
         />
+      )}
+
+      {/* Archive confirmation */}
+      {showArchiveConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div className="card" style={{ padding: 'var(--space-6)', maxWidth: '420px', width: '100%', margin: 'var(--space-4)' }}>
+            <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>Archive {formData.name}?</h2>
+            <p style={{ color: 'var(--color-gray-600)', marginBottom: 'var(--space-6)', fontSize: 'var(--text-sm)' }}>
+              This person will be removed from the active personnel list. Their data and history will be preserved. You can reactivate them later by adding a user with the same email address.
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn--secondary" onClick={() => setShowArchiveConfirm(false)} disabled={saving}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn"
+                style={{ background: 'var(--color-danger-600)', color: 'white' }}
+                onClick={handleArchive}
+                disabled={saving}
+              >
+                {saving ? 'Archiving...' : 'Archive'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reactivate archived user */}
+      {archivedUser && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div className="card" style={{ padding: 'var(--space-6)', maxWidth: '460px', width: '100%', margin: 'var(--space-4)' }}>
+            <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>Archived user found</h2>
+            <p style={{ color: 'var(--color-gray-600)', marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)' }}>
+              An archived user already exists with this email address:
+            </p>
+            <div style={{ background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3)', marginBottom: 'var(--space-6)', fontSize: 'var(--text-sm)' }}>
+              <div style={{ fontWeight: 700 }}>{archivedUser.name}</div>
+              <div style={{ color: 'var(--color-gray-500)' }}>{archivedUser.email}</div>
+              <div style={{ color: 'var(--color-gray-400)', fontSize: 'var(--text-xs)', marginTop: 'var(--space-1)' }}>
+                Archived {new Date(archivedUser.archived_at).toLocaleDateString()}
+              </div>
+            </div>
+            <p style={{ color: 'var(--color-gray-600)', marginBottom: 'var(--space-6)', fontSize: 'var(--text-sm)' }}>
+              Would you like to reactivate this person and update their details with the information you just entered?
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn--secondary" onClick={() => setArchivedUser(null)} disabled={saving}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn--primary" onClick={handleReactivate} disabled={saving}>
+                {saving ? 'Reactivating...' : 'Reactivate'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

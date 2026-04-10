@@ -57,8 +57,11 @@ export const onRequest = methodRouter({
   DELETE: withRole(['admin', 'dispatcher'], async (context: BaseContext) => {
     const id = context.params.id as string;
     const db = getDb(context);
-    
-    await db.prepare('DELETE FROM personnel WHERE id = ?').bind(id).run();
+
+    const result = await db.prepare(
+      'UPDATE personnel SET archived_at = ? WHERE id = ? AND archived_at IS NULL'
+    ).bind(now(), id).run();
+    if (result.meta.changes === 0) return errorResponse('Personnel not found', 404);
     return jsonResponse({ success: true });
   })
 });
