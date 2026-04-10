@@ -14,12 +14,14 @@ import { JobsPage } from '@/features/jobs/ui/JobsPage';
 import { DocsPage } from '@/features/docs/ui/DocsPage';
 import { DashboardPage } from '@/features/dashboard/ui/DashboardPage';
 import { ProjectsPage } from '@/features/projects/ui/ProjectsPage';
+import { UnauthorizedPage } from '@/features/auth/ui/UnauthorizedPage';
 import { Layout } from '@/widgets/layout/Layout';
 
 export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/dockets" element={<DocketsPage />} />
