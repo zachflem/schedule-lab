@@ -110,29 +110,24 @@ export const SiteDocketSchema = z.object({
 });
 export type SiteDocket = z.infer<typeof SiteDocketSchema>;
 
+// ── Customer Contact ───────────────────────────────────
+export const CustomerContactSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, 'Contact name is required'),
+  phone: z.string().max(15, 'Phone must be 15 characters or fewer').optional().nullable(),
+  email: z.string().email('Valid email required').optional().nullable().or(z.literal('')),
+  location: z.string().max(64, 'Location must be 64 characters or fewer').optional().nullable(),
+  role: z.string().max(64, 'Role must be 64 characters or fewer').optional().nullable(),
+  sort_order: z.number().int().optional(),
+});
+export type CustomerContact = z.infer<typeof CustomerContactSchema>;
+
 // ── Customer ───────────────────────────────────────────
 export const CustomerSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, 'Customer name is required'),
   billing_address: z.string().optional().nullable(),
-  
-  // Site Contact
-  site_contact_name: z.string().optional().nullable(),
-  site_contact_phone: z.string().optional().nullable(),
-  site_contact_email: z.string().optional().nullable(),
-  
-  // Billing Contact
-  billing_contact_name: z.string().optional().nullable(),
-  billing_contact_phone: z.string().optional().nullable(),
-  billing_contact_email: z.string().optional().nullable(),
-
-  // Legacy (can be phased out or used for catch-all)
-  contact_details: z.object({
-    name: z.string().optional(),
-    phone: z.string().optional(),
-    email: z.string().optional(),
-  }).optional().nullable(),
-  
+  contacts: z.array(CustomerContactSchema).optional().default([]),
   // Job Summaries (populated via join/subquery in API)
   enquiry_jobs: z.number().optional(),
   active_jobs: z.number().optional(),

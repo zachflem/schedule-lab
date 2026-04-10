@@ -16,21 +16,27 @@ CREATE TABLE IF NOT EXISTS platform_settings (
 
 -- CUSTOMERS
 CREATE TABLE IF NOT EXISTS customers (
-  id                    TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-  name                  TEXT NOT NULL,
-  billing_address       TEXT,
-  -- Site Contact
-  site_contact_name     TEXT,
-  site_contact_phone    TEXT,
-  site_contact_email    TEXT,
-  -- Billing Contact
-  billing_contact_name  TEXT,
-  billing_contact_phone TEXT,
-  billing_contact_email TEXT,
-  
-  created_at            TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at            TEXT NOT NULL DEFAULT (datetime('now'))
+  id              TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  name            TEXT NOT NULL,
+  billing_address TEXT,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- CUSTOMER CONTACTS (N contacts per customer)
+CREATE TABLE IF NOT EXISTS customer_contacts (
+  id          TEXT    PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  customer_id TEXT    NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  name        TEXT    NOT NULL,
+  phone       TEXT    CHECK(phone IS NULL OR length(phone) <= 15),
+  email       TEXT,
+  location    TEXT    CHECK(location IS NULL OR length(location) <= 64),
+  role        TEXT    CHECK(role IS NULL OR length(role) <= 64),
+  sort_order  INTEGER NOT NULL DEFAULT 0,
+  created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_customer_contacts_customer_id ON customer_contacts(customer_id);
 
 -- ASSET TYPES
 CREATE TABLE IF NOT EXISTS asset_types (

@@ -1,5 +1,26 @@
-import { getDb, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../../lib/db';
-import { CustomerSchema } from '../../../src/shared/validation/schemas';
+import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../../lib/db';
+import { CustomerSchema, type CustomerContact } from '../../../src/shared/validation/schemas';
+
+async function saveContacts(db: any, customerId: string, contacts: CustomerContact[]) {
+  const statements: any[] = [
+    db.prepare('DELETE FROM customer_contacts WHERE customer_id = ?').bind(customerId),
+  ];
+  for (let i = 0; i < contacts.length; i++) {
+    const c = contacts[i];
+    statements.push(
+      db.prepare(`
+        INSERT INTO customer_contacts (id, customer_id, name, phone, email, location, role, sort_order, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        generateId(), customerId,
+        c.name,
+        c.phone || null, c.email || null, c.location || null, c.role || null,
+        i, now(), now()
+      )
+    );
+  }
+  await db.batch(statements);
+}
 
 export const onRequest = methodRouter({
   async GET(context) {
@@ -9,7 +30,12 @@ export const onRequest = methodRouter({
     const customer = await db.prepare('SELECT * FROM customers WHERE id = ?').bind(id).first();
     if (!customer) return errorResponse('Customer not found', 404);
 
-    return jsonResponse(customer);
+    const { results: contactRows } = await db
+      .prepare('SELECT * FROM customer_contacts WHERE customer_id = ? ORDER BY sort_order')
+      .bind(id)
+      .all();
+
+    return jsonResponse({ ...customer, contacts: contactRows ?? [] });
   },
 
   async PUT(context) {
@@ -26,18 +52,11 @@ export const onRequest = methodRouter({
     const timestamp = now();
 
     await db.prepare(`
-      UPDATE customers SET 
-        name = ?, billing_address = ?,
-        site_contact_name = ?, site_contact_phone = ?, site_contact_email = ?,
-        billing_contact_name = ?, billing_contact_phone = ?, billing_contact_email = ?,
-        updated_at = ?
+      UPDATE customers SET name = ?, billing_address = ?, updated_at = ?
       WHERE id = ?
-    `).bind(
-      c.name, c.billing_address ?? null,
-      c.site_contact_name ?? null, c.site_contact_phone ?? null, c.site_contact_email ?? null,
-      c.billing_contact_name ?? null, c.billing_contact_phone ?? null, c.billing_contact_email ?? null,
-      timestamp, id
-    ).run();
+    `).bind(c.name, c.billing_address ?? null, timestamp, id).run();
+
+    await saveContacts(db, id, c.contacts ?? []);
 
     return jsonResponse({ id });
   },
