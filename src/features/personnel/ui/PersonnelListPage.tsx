@@ -65,6 +65,7 @@ export function PersonnelListPage() {
               <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Contact</th>
               <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Qualifications</th>
               <th style={{ textAlign: 'center', padding: 'var(--space-3)' }}>Can Login</th>
+              {isAdmin && <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Role</th>}
               {isAdmin && <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Last Login</th>}
               <th style={{ textAlign: 'right', padding: 'var(--space-3)' }}>Actions</th>
             </tr>
@@ -102,6 +103,15 @@ export function PersonnelListPage() {
                   </span>
                 </td>
                 {isAdmin && (
+                  <td style={{ padding: 'var(--space-3)' }}>
+                    <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'capitalize',
+                      background: person.role === 'admin' ? 'var(--color-primary-50)' : person.role === 'dispatcher' ? 'var(--color-warning-50)' : 'var(--color-gray-100)',
+                      color: person.role === 'admin' ? 'var(--color-primary-700)' : person.role === 'dispatcher' ? 'var(--color-warning-600)' : 'var(--color-gray-600)' }}>
+                      {person.role ?? 'operator'}
+                    </span>
+                  </td>
+                )}
+                {isAdmin && (
                   <td style={{ padding: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)' }}>
                     {person.last_login_date ? formatLastLogin(person.last_login_date) : <span style={{ color: 'var(--color-gray-300)' }}>Never</span>}
                   </td>
@@ -112,7 +122,7 @@ export function PersonnelListPage() {
               </tr>
             ))}
             {personnel.length === 0 && (
-              <tr><td colSpan={isAdmin ? 6 : 5} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-gray-400)' }}>No personnel records found.</td></tr>
+              <tr><td colSpan={isAdmin ? 7 : 5} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-gray-400)' }}>No personnel records found.</td></tr>
             )}
           </tbody>
         </table>
@@ -129,6 +139,11 @@ export function PersonnelListPage() {
                 <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--color-gray-900)' }}>{person.name}</div>
                 <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', marginTop: '2px' }}>{person.email}</div>
                 {person.phone && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)' }}>{person.phone}</div>}
+                {isAdmin && (
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', marginTop: '2px', textTransform: 'capitalize' }}>
+                    {person.role ?? 'operator'}
+                  </div>
+                )}
                 {isAdmin && person.last_login_date && (
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', marginTop: '2px' }}>
                     Last login: {formatLastLogin(person.last_login_date)}
