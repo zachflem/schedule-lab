@@ -40,11 +40,11 @@ export const onRequest = methodRouter({
     const timestamp = now();
 
     await db.prepare(`
-      INSERT INTO personnel (id, name, email, phone, can_login, role, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO personnel (id, name, email, phone, can_login, receives_emails, role, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id, p.name, p.email ?? null, p.phone ?? null,
-      p.can_login ? 1 : 0, p.role || 'operator', timestamp, timestamp
+      p.can_login ? 1 : 0, p.receives_emails ? 1 : 0, p.role || 'operator', timestamp, timestamp
     ).run();
 
     // Handle qualifications if provided

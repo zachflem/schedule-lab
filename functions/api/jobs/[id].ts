@@ -150,7 +150,7 @@ export const onRequest = methodRouter({
       const previousJob = await db.prepare('SELECT status_id FROM jobs WHERE id = ?').bind(id).first<{ status_id: string }>();
       if (previousJob && previousJob.status_id !== 'Job Scheduled') {
         try {
-          await sendJobScheduledEmail(db, id, context.env.RESEND_API_KEY);
+          await sendJobScheduledEmail(db, id, context.env.RESEND_API_KEY, new URL(context.request.url).origin);
         } catch (err) {
           console.error('[Email] Failed to send job scheduled notifications:', err);
         }
@@ -158,7 +158,7 @@ export const onRequest = methodRouter({
     } else if (data.start_time && data.end_time) {
       // Auto-schedule also transitions → send email
       try {
-        await sendJobScheduledEmail(db, id, context.env.RESEND_API_KEY);
+        await sendJobScheduledEmail(db, id, context.env.RESEND_API_KEY, new URL(context.request.url).origin);
       } catch (err) {
         console.error('[Email] Failed to send job scheduled notifications:', err);
       }

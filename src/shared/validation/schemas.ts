@@ -214,6 +214,7 @@ export const PersonnelSchema = z.object({
   email: z.string().email().optional().nullable(),
   phone: z.string().optional().nullable(),
   can_login: robustBoolean.default(false),
+  receives_emails: robustBoolean.default(true),
   auth_id: z.string().optional().nullable(),
   last_login_date: z.string().optional().nullable(),
   invite_sent_at: z.string().optional().nullable(),

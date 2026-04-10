@@ -51,7 +51,7 @@ export const onRequest = methodRouter({
 
     // Fire-and-forget email to all assigned personnel
     try {
-      await sendDocketIncompleteEmail(db, id, notes, context.env.RESEND_API_KEY);
+      await sendDocketIncompleteEmail(db, id, notes, context.env.RESEND_API_KEY, new URL(context.request.url).origin);
     } catch (err) {
       console.error('[Email] Failed to send docket incomplete notifications:', err);
       // Don't fail the request if email fails

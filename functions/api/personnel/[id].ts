@@ -29,12 +29,12 @@ export const onRequest = methodRouter({
     const timestamp = now();
 
     const result = await db.prepare(`
-      UPDATE personnel 
-      SET name = ?, email = ?, phone = ?, can_login = ?, updated_at = ?
+      UPDATE personnel
+      SET name = ?, email = ?, phone = ?, can_login = ?, receives_emails = ?, updated_at = ?
       WHERE id = ?
     `).bind(
       p.name, p.email ?? null, p.phone ?? null,
-      p.can_login ? 1 : 0, timestamp, id
+      p.can_login ? 1 : 0, p.receives_emails ? 1 : 0, timestamp, id
     ).run();
 
     if (result.meta.changes === 0) return errorResponse('Personnel not found', 404);

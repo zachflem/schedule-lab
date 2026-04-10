@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS personnel (
   email           TEXT,
   phone           TEXT,
   can_login       INTEGER DEFAULT 0,
+  receives_emails INTEGER DEFAULT 1,
   auth_id         TEXT,
   role            TEXT DEFAULT 'operator',
   last_login_date TEXT,

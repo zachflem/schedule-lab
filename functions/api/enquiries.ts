@@ -68,7 +68,7 @@ export const onRequest = methodRouter({
         job_brief: e.job_brief,
         preferred_date: e.preferred_date,
         asset_requirement: e.asset_requirement,
-      }, context.env.RESEND_API_KEY);
+      }, context.env.RESEND_API_KEY, new URL(context.request.url).origin);
     } catch (err) {
       console.error('[Email] Failed to send new enquiry email:', err);
     }

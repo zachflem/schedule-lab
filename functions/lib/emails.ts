@@ -91,6 +91,7 @@ async function getAssignedPersonnelEmails(db: D1Database, jobId: string): Promis
       AND jr.resource_type = 'Personnel'
       AND p.email IS NOT NULL
       AND p.can_login = 1
+      AND p.receives_emails = 1
   `).bind(jobId).all() as { results: Array<{ name: string; email: string }> };
   return results ?? [];
 }
@@ -102,6 +103,7 @@ async function getDispatcherEmails(db: D1Database): Promise<Array<{ name: string
     WHERE role IN ('dispatcher', 'admin')
       AND email IS NOT NULL
       AND can_login = 1
+      AND receives_emails = 1
   `).all() as { results: Array<{ name: string; email: string }> };
   return results ?? [];
 }
@@ -113,6 +115,7 @@ export async function sendDocketIncompleteEmail(
   docketId: string,
   notes: string,
   apiKey: string,
+  requestOrigin?: string,
 ): Promise<void> {
   const docket = await db.prepare(`
     SELECT d.id, d.date, j.id as job_id, j.location, j.job_brief, c.name as customer_name
@@ -134,7 +137,7 @@ export async function sendDocketIncompleteEmail(
 
   if (recipients.length === 0) return;
 
-  const appUrl = base_url ?? 'https://schedule-lab.pages.dev';
+  const appUrl = base_url ?? requestOrigin ?? 'https://schedule-lab.pages.dev';
   const docketUrl = `${appUrl}/dockets`;
 
   const subject = `Action Required: Site Docket Needs Revision — ${docket.customer_name}`;
@@ -175,6 +178,7 @@ export async function sendJobScheduledEmail(
   db: D1Database,
   jobId: string,
   apiKey: string,
+  requestOrigin?: string,
 ): Promise<void> {
   const job = await db.prepare(`
     SELECT j.id, j.location, j.job_brief, j.site_contact_name, j.site_contact_phone,
@@ -198,7 +202,7 @@ export async function sendJobScheduledEmail(
 
   if (recipients.length === 0) return;
 
-  const appUrl = base_url ?? 'https://schedule-lab.pages.dev';
+  const appUrl = base_url ?? requestOrigin ?? 'https://schedule-lab.pages.dev';
   const docketUrl = `${appUrl}/dockets`;
 
   const formatDateTime = (iso: string | null): string => {
@@ -297,6 +301,7 @@ export async function sendNewEnquiryEmail(
     asset_requirement?: string | null;
   },
   apiKey: string,
+  requestOrigin?: string,
 ): Promise<void> {
   const [recipients, { company_name, base_url, logo_url }] = await Promise.all([
     getDispatcherEmails(db),
@@ -305,7 +310,7 @@ export async function sendNewEnquiryEmail(
 
   if (recipients.length === 0) return;
 
-  const appUrl = base_url ?? 'https://schedule-lab.pages.dev';
+  const appUrl = base_url ?? requestOrigin ?? 'https://schedule-lab.pages.dev';
   const enquiriesUrl = `${appUrl}/enquiries`;
 
   const subject = `New ${enquiry.enquiry_type} Enquiry: ${enquiry.customer_name}`;
