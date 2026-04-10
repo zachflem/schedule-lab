@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { api } from '@/shared/lib/api';
-import type { Asset, Personnel } from '@/shared/validation/schemas';
+import type { Asset, Personnel, AssetCompliance } from '@/shared/validation/schemas';
 import { JobStatusEnum } from '@/shared/validation/schemas';
 import type { JobWithResources } from '../api/useJobs';
 import { Spinner } from '@/shared/ui';
@@ -8,6 +8,40 @@ import { useToast } from '@/shared/lib/toast';
 
 interface AssetWithMetadata extends Asset {
   asset_type_name?: string;
+}
+
+interface ComplianceWarning {
+  assetId: string;
+  assetName: string;
+  items: { label: string; expiry: string; daysRemaining: number }[];
+}
+
+function daysUntil(dateStr: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.floor((new Date(dateStr).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function getComplianceWarnings(asset: AssetWithMetadata): ComplianceWarning | null {
+  const items: ComplianceWarning['items'] = [];
+
+  const checkDate = (label: string, dateStr: string | null | undefined) => {
+    if (!dateStr) return;
+    const days = daysUntil(dateStr);
+    if (days <= 90) {
+      items.push({ label, expiry: dateStr, daysRemaining: days });
+    }
+  };
+
+  checkDate('Rego', asset.rego_expiry);
+  checkDate('Insurance', asset.insurance_expiry);
+
+  for (const entry of (asset.compliance_entries as AssetCompliance[] | undefined) ?? []) {
+    checkDate(entry.compliance_type_name ?? 'Compliance', entry.expiry_date);
+  }
+
+  if (items.length === 0) return null;
+  return { assetId: asset.id!, assetName: asset.name, items };
 }
 
 interface JobEditModalProps {
@@ -65,6 +99,7 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
   const [selectedQualifications, setSelectedQualifications] = useState<string[]>([]);
   const [assetSearch, setAssetSearch] = useState('');
   const [personnelSearch, setPersonnelSearch] = useState('');
+  const [complianceWarning, setComplianceWarning] = useState<ComplianceWarning | null>(null);
 
   const isLocked = ['Job Scheduled', 'Allocated', 'Site Docket', 'Completed', 'Invoiced'].includes(job.status_id as string);
 
@@ -122,7 +157,21 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
 
   const handleToggleAsset = (id: string) => {
     if (isLocked) return;
-    setSelectedAssets(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]);
+    const isRemoving = selectedAssets.includes(id);
+    if (isRemoving) {
+      setSelectedAssets(prev => prev.filter(a => a !== id));
+      return;
+    }
+    // Check compliance expiry before adding
+    const asset = allAssets.find(a => a.id === id);
+    if (asset) {
+      const warning = getComplianceWarnings(asset);
+      if (warning) {
+        setComplianceWarning(warning);
+        return; // modal will confirm before adding
+      }
+    }
+    setSelectedAssets(prev => [...prev, id]);
   };
 
   const handleTogglePersonnel = (id: string) => {
@@ -444,6 +493,63 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
           </div>
         </form>
       </div>
+
+      {/* Compliance Expiry Warning Modal */}
+      {complianceWarning && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200 }}>
+          <div className="card" style={{ width: '440px', maxWidth: '95vw' }}>
+            <div className="card__header" style={{ background: 'var(--color-warning-50)', borderBottom: '1px solid var(--color-warning-200)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-warning-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, flexShrink: 0 }}>
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <h3 style={{ color: 'var(--color-warning-800)' }}>Compliance Expiry Warning</h3>
+              </div>
+            </div>
+            <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-700)' }}>
+                <strong>{complianceWarning.assetName}</strong> has compliance items expiring within 90 days:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                {complianceWarning.items.map((item, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) var(--space-3)', background: item.daysRemaining < 0 ? 'var(--color-danger-50)' : 'var(--color-warning-50)', borderRadius: 'var(--radius-md)', border: `1px solid ${item.daysRemaining < 0 ? 'var(--color-danger-200)' : 'var(--color-warning-200)'}` }}>
+                    <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{item.label}</span>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-600)' }}>Expires {item.expiry}</div>
+                      <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: item.daysRemaining < 0 ? 'var(--color-danger-600)' : item.daysRemaining <= 30 ? 'var(--color-danger-500)' : 'var(--color-warning-600)' }}>
+                        {item.daysRemaining < 0 ? `Expired ${Math.abs(item.daysRemaining)}d ago` : item.daysRemaining === 0 ? 'Expires today' : `${item.daysRemaining}d remaining`}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)' }}>
+                Do you still want to add this asset to the job?
+              </p>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  onClick={() => setComplianceWarning(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--warning"
+                  onClick={() => {
+                    setSelectedAssets(prev => [...prev, complianceWarning.assetId]);
+                    setComplianceWarning(null);
+                  }}
+                >
+                  Add Anyway
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

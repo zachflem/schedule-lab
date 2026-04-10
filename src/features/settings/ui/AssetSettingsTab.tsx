@@ -14,21 +14,30 @@ interface Qualification {
   rate_after_hours: number;
 }
 
+interface ComplianceType {
+  id: string;
+  name: string;
+}
+
 export function AssetSettingsTab() {
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
+  const [complianceTypes, setComplianceTypes] = useState<ComplianceType[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingType, setEditingType] = useState<Partial<AssetType> | null>(null);
   const [editingQual, setEditingQual] = useState<Partial<Qualification> | null>(null);
+  const [editingCompliance, setEditingCompliance] = useState<Partial<ComplianceType> | null>(null);
 
   const fetchData = async () => {
     try {
-      const [types, quals] = await Promise.all([
+      const [types, quals, compliance] = await Promise.all([
         api.get<AssetType[]>('/asset-types'),
-        api.get<Qualification[]>('/qualifications')
+        api.get<Qualification[]>('/qualifications'),
+        api.get<ComplianceType[]>('/compliance-types'),
       ]);
       setAssetTypes(types);
       setQualifications(quals);
+      setComplianceTypes(compliance);
     } catch (err) {
       console.error('Failed to fetch asset data:', err);
     } finally {
@@ -69,6 +78,32 @@ export function AssetSettingsTab() {
       fetchData();
     } catch (err) {
       alert('Failed to save qualification');
+    }
+  };
+
+  const handleSaveCompliance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCompliance?.name) return;
+    try {
+      if (editingCompliance.id) {
+        await api.put(`/compliance-types/${editingCompliance.id}`, editingCompliance);
+      } else {
+        await api.post('/compliance-types', editingCompliance);
+      }
+      setEditingCompliance(null);
+      fetchData();
+    } catch (err) {
+      alert('Failed to save compliance type');
+    }
+  };
+
+  const handleDeleteCompliance = async (id: string) => {
+    if (!confirm('Delete this compliance type?')) return;
+    try {
+      await api.delete(`/compliance-types/${id}`);
+      fetchData();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to delete compliance type');
     }
   };
 
@@ -145,6 +180,45 @@ export function AssetSettingsTab() {
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Compliance Types Section */}
+      <section>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+          <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>Compliance Types</h3>
+          <button className="btn btn--secondary btn--sm" onClick={() => setEditingCompliance({ name: '' })}>
+            + Add Type
+          </button>
+        </div>
+
+        <div className="card">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {complianceTypes.map(ct => (
+                <tr key={ct.id}>
+                  <td style={{ fontWeight: 600 }}>{ct.name}</td>
+                  <td style={{ textAlign: 'right', display: 'flex', gap: 'var(--space-1)', justifyContent: 'flex-end' }}>
+                    <button className="btn-icon" onClick={() => setEditingCompliance(ct)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                    </button>
+                    <button className="btn-icon" style={{ color: 'var(--color-danger-600)' }} onClick={() => handleDeleteCompliance(ct.id)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {complianceTypes.length === 0 && (
+                <tr><td colSpan={2} style={{ textAlign: 'center', color: 'var(--color-gray-400)', padding: 'var(--space-4)' }}>No compliance types yet</td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -239,6 +313,32 @@ export function AssetSettingsTab() {
               </div>
               <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn--secondary" onClick={() => setEditingQual(null)}>Cancel</button>
+                <button type="submit" className="btn btn--primary">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Compliance Type Modal/Form Overlay */}
+      {editingCompliance && (
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className="card" style={{ width: '400px' }}>
+            <div className="card__header">
+              <h3>{editingCompliance.id ? 'Edit' : 'Add'} Compliance Type</h3>
+            </div>
+            <form onSubmit={handleSaveCompliance} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <div className="form-group">
+                <label className="form-label">Name</label>
+                <input
+                  required
+                  className="form-input"
+                  value={editingCompliance.name || ''}
+                  onChange={e => setEditingCompliance({ ...editingCompliance, name: e.target.value })}
+                  placeholder="e.g. CraneSafe, WorkCover, EPA Licence"
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn--secondary" onClick={() => setEditingCompliance(null)}>Cancel</button>
                 <button type="submit" className="btn btn--primary">Save</button>
               </div>
             </form>

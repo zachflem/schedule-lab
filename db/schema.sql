@@ -49,6 +49,13 @@ CREATE TABLE IF NOT EXISTS asset_type_extension_schemas (
   updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- COMPLIANCE TYPES
+CREATE TABLE IF NOT EXISTS compliance_types (
+  id         TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  name       TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- QUALIFICATIONS
 CREATE TABLE IF NOT EXISTS qualifications (
   id               TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -70,8 +77,7 @@ CREATE TABLE IF NOT EXISTS assets (
   rate_after_hours           REAL,
   rate_dry_hire              REAL,
   required_operators         INTEGER DEFAULT 1,
-  -- Compliance
-  cranesafe_expiry           TEXT,
+  -- Compliance (static)
   rego_expiry                TEXT,
   insurance_expiry           TEXT,
   -- Telemetry
@@ -85,6 +91,19 @@ CREATE TABLE IF NOT EXISTS assets (
   -- Timestamps
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ASSET COMPLIANCE ENTRIES
+CREATE TABLE IF NOT EXISTS asset_compliance (
+  id                 TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  asset_id           TEXT NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+  compliance_type_id TEXT NOT NULL REFERENCES compliance_types(id) ON DELETE RESTRICT,
+  expiry_date        TEXT NOT NULL,
+  document_key       TEXT,
+  document_name      TEXT,
+  created_at         TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at         TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(asset_id, compliance_type_id)
 );
 
 -- ASSET EXTENSIONS (type-specific data per asset instance)

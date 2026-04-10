@@ -150,6 +150,25 @@ export const QualificationSchema = z.object({
 });
 export type Qualification = z.infer<typeof QualificationSchema>;
 
+// ── Compliance Type ────────────────────────────────────
+export const ComplianceTypeSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, 'Compliance type name is required'),
+});
+export type ComplianceType = z.infer<typeof ComplianceTypeSchema>;
+
+// ── Asset Compliance Entry ─────────────────────────────
+export const AssetComplianceSchema = z.object({
+  id: z.string().optional(),
+  asset_id: z.string().optional(),
+  compliance_type_id: z.string().min(1, 'Compliance type is required'),
+  compliance_type_name: z.string().optional(),
+  expiry_date: isoDate,
+  document_key: z.string().optional().nullable(),
+  document_name: z.string().optional().nullable(),
+});
+export type AssetCompliance = z.infer<typeof AssetComplianceSchema>;
+
 // ── Asset Type ─────────────────────────────────────────
 export const AssetTypeSchema = z.object({
   id: z.string().optional(),
@@ -186,9 +205,9 @@ export const AssetSchema = z.object({
   rate_after_hours: z.number().optional().nullable(),
   rate_dry_hire: z.number().optional().nullable(),
   required_operators: z.number().int().default(1),
-  cranesafe_expiry: isoDate.optional().nullable(),
   rego_expiry: isoDate.optional().nullable(),
   insurance_expiry: isoDate.optional().nullable(),
+  compliance_entries: z.array(AssetComplianceSchema).optional(),
   current_machine_hours: z.number().default(0),
   current_odometer: z.number().default(0),
   service_interval_type: z.enum(['hours', 'odometer']).default('hours'),

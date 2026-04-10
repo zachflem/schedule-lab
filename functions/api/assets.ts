@@ -1,4 +1,4 @@
-import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now, withRole } from '../lib/db';
+import { getDb, generateId, jsonResponse, errorResponse, methodRouter, now, withRole } from '../lib/db';
 import { AssetSchema } from '../../src/shared/validation/schemas';
 
 export const onRequest = methodRouter({
@@ -8,7 +8,7 @@ export const onRequest = methodRouter({
     const typeId = url.searchParams.get('asset_type_id');
 
     let query = `
-      SELECT a.*, a.asset_number, at.name as asset_type_name, q.name as required_qualification_name
+      SELECT a.*, at.name as asset_type_name, q.name as required_qualification_name
       FROM assets a
       JOIN asset_types at ON a.asset_type_id = at.id
       LEFT JOIN qualifications q ON a.required_qualification_id = q.id
@@ -17,8 +17,29 @@ export const onRequest = methodRouter({
     if (typeId) { query += ' WHERE a.asset_type_id = ?'; params.push(typeId); }
     query += ' ORDER BY a.name';
 
-    const { results } = await db.prepare(query).bind(...params).all();
-    return jsonResponse(results);
+    const { results: assets } = await db.prepare(query).bind(...params).all();
+
+    // Attach compliance entries for each asset
+    const { results: complianceRows } = await db.prepare(`
+      SELECT ac.*, ct.name as compliance_type_name
+      FROM asset_compliance ac
+      JOIN compliance_types ct ON ac.compliance_type_id = ct.id
+      ORDER BY ac.expiry_date ASC
+    `).all();
+
+    const complianceByAsset = new Map<string, typeof complianceRows>();
+    for (const row of complianceRows) {
+      const aid = row.asset_id as string;
+      if (!complianceByAsset.has(aid)) complianceByAsset.set(aid, []);
+      complianceByAsset.get(aid)!.push(row);
+    }
+
+    const enriched = assets.map(a => ({
+      ...a,
+      compliance_entries: complianceByAsset.get(a.id as string) ?? [],
+    }));
+
+    return jsonResponse(enriched);
   }),
 
   POST: withRole(['admin', 'dispatcher'], async (context, user) => {
@@ -35,16 +56,16 @@ export const onRequest = methodRouter({
       db.prepare(`
         INSERT INTO assets (id, name, asset_type_id, category, required_qualification_id,
           rate_hourly, rate_after_hours, rate_dry_hire, required_operators,
-          cranesafe_expiry, rego_expiry, insurance_expiry,
+          rego_expiry, insurance_expiry,
           current_machine_hours, current_odometer, service_interval_type,
-          service_interval_value, last_service_meter_reading, asset_number, 
+          service_interval_value, last_service_meter_reading, asset_number,
           minimum_hire_period, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         id, a.name, a.asset_type_id, a.category ?? null,
         a.required_qualification_id ?? null, a.rate_hourly ?? null,
         a.rate_after_hours ?? null, a.rate_dry_hire ?? null, a.required_operators,
-        a.cranesafe_expiry ?? null, a.rego_expiry ?? null, a.insurance_expiry ?? null,
+        a.rego_expiry ?? null, a.insurance_expiry ?? null,
         a.current_machine_hours, a.current_odometer, a.service_interval_type,
         a.service_interval_value, a.last_service_meter_reading, a.asset_number ?? null,
         a.minimum_hire_period || 0, timestamp, timestamp

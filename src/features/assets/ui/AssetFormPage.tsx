@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { api } from '@/shared/lib/api';
-import { AssetSchema, type Asset } from '@/shared/validation/schemas';
+import { AssetSchema, type Asset, type AssetCompliance } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
 import { AssetForm } from './AssetForm';
 
@@ -34,13 +34,21 @@ export function AssetFormPage() {
     setError(null);
 
     try {
-      // Validate core data
       AssetSchema.parse(data);
 
       if (id && id !== 'new') {
         await api.put(`/assets/${id}`, data);
       } else {
-        await api.post('/assets', data);
+        // Create the asset first, then post any pending compliance entries
+        const { id: newId } = await api.post<{ id: string }>('/assets', data);
+
+        const pendingEntries: AssetCompliance[] = data.compliance_entries ?? [];
+        for (const entry of pendingEntries) {
+          await api.post(`/assets/${newId}/compliance`, {
+            compliance_type_id: entry.compliance_type_id,
+            expiry_date: entry.expiry_date,
+          });
+        }
       }
       navigate('/assets');
     } catch (err) {
@@ -61,10 +69,10 @@ export function AssetFormPage() {
       </div>
 
       {error && (
-        <div style={{ 
-          padding: 'var(--space-4)', 
-          background: 'var(--color-danger-50)', 
-          color: 'var(--color-danger-700)', 
+        <div style={{
+          padding: 'var(--space-4)',
+          background: 'var(--color-danger-50)',
+          color: 'var(--color-danger-700)',
           borderRadius: 'var(--radius-md)',
           marginBottom: 'var(--space-6)'
         }}>
@@ -72,10 +80,10 @@ export function AssetFormPage() {
         </div>
       )}
 
-      <AssetForm 
-        initialData={assetData} 
-        onSave={handleSave} 
-        onCancel={() => navigate('/assets')} 
+      <AssetForm
+        initialData={assetData}
+        onSave={handleSave}
+        onCancel={() => navigate('/assets')}
         saving={saving}
       />
     </div>
