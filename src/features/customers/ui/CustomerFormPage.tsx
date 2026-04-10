@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { api } from '@/shared/lib/api';
-import { CustomerSchema, type Customer, type CustomerContact } from '@/shared/validation/schemas';
+import { CustomerSchema, CustomerContactRoleEnum, type Customer, type CustomerContact } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
 
 const emptyContact = (): CustomerContact => ({
@@ -171,13 +171,16 @@ export function CustomerFormPage() {
                     </div>
                     <div className="form-group">
                       <label className="form-label">Role</label>
-                      <input
+                      <select
                         className="form-input"
                         value={contact.role || ''}
-                        maxLength={64}
-                        placeholder="e.g. Site Manager, Billing"
                         onChange={e => updateContact(index, 'role', e.target.value)}
-                      />
+                      >
+                        <option value="">— select role —</option>
+                        {CustomerContactRoleEnum.options.map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="form-group">
                       <label className="form-label">Phone</label>

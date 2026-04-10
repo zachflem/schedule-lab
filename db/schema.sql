@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS customer_contacts (
   phone       TEXT    CHECK(phone IS NULL OR length(phone) <= 15),
   email       TEXT,
   location    TEXT    CHECK(location IS NULL OR length(location) <= 64),
-  role        TEXT    CHECK(role IS NULL OR length(role) <= 64),
+  role        TEXT    CHECK(role IS NULL OR role IN ('Project Manager','Site Manager','Site Contact','Billing Contact')),
   sort_order  INTEGER NOT NULL DEFAULT 0,
   created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
   updated_at  TEXT    NOT NULL DEFAULT (datetime('now'))
