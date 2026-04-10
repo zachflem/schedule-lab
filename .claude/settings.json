@@ -8,7 +8,8 @@
       "Bash(sed -n '145,170p' /home/zach/codeProjects/schedule-lab/schedule-lab/functions/api/jobs/[id].ts)",
       "Bash(grep -n \"sendJobScheduledEmail\\\\|status_id.*=.*Job Scheduled\\\\|PUT\" /home/zach/codeProjects/schedule-lab/schedule-lab/functions/api/jobs/[id].ts)",
       "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")",
-      "Bash(grep -E \"\\\\.\\(ts|tsx|sql\\)$\")"
+      "Bash(grep -E \"\\\\.\\(ts|tsx|sql\\)$\")",
+      "Bash(git commit:*)"
     ],
     "additionalDirectories": [
       "/home/zach/codeProjects/schedule-lab/schedule-lab/src/features/auth",
