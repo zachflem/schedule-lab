@@ -175,6 +175,13 @@ export function PersonnelFormPage() {
                 onChange={e => setFormData({ ...formData, phone: e.target.value })}
               />
             </div>
+          </div>
+        </div>
+
+        {/* Access & Notifications */}
+        <div className="card" style={{ padding: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 'var(--space-4)' }}>Access & Notifications</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             <div className="form-group">
               <label className="form-label">Role</label>
               <select
@@ -187,13 +194,6 @@ export function PersonnelFormPage() {
                 <option value="operator">Operator</option>
               </select>
             </div>
-          </div>
-        </div>
-
-        {/* Access & Notifications */}
-        <div className="card" style={{ padding: 'var(--space-6)' }}>
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 'var(--space-4)' }}>Access & Notifications</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
               <input
                 type="checkbox"
