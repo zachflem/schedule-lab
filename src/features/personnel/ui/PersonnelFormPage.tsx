@@ -23,6 +23,7 @@ export function PersonnelFormPage() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [archivedUser, setArchivedUser] = useState<ArchivedPersonInfo | null>(null);
+  const [pendingInviteId, setPendingInviteId] = useState<string | null>(null);
   const [allQualifications, setAllQualifications] = useState<Qualification[]>([]);
   const [formData, setFormData] = useState<Partial<Personnel>>({
     name: '',
@@ -71,14 +72,10 @@ export function PersonnelFormPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (willAutoInvite) {
-      setShowInviteModal(true);
-      return;
-    }
-    await doSave(false);
+    await doSave();
   };
 
-  const doSave = async (sendInvite: boolean, inviteMessage?: string) => {
+  const doSave = async () => {
     setSaving(true);
     setError(null);
     try {
@@ -88,22 +85,28 @@ export function PersonnelFormPage() {
       });
       if (!isNewUser) {
         await api.put(`/personnel/${id}`, validated);
-      } else {
-        let result: { id: string };
-        try {
-          result = await api.post<{ id: string }>('/personnel', validated);
-        } catch (err) {
-          // 409 means an archived user exists with this email
-          if (err instanceof ApiRequestError && err.status === 409 && (err.body as any)?.code === 'ARCHIVED_USER') {
-            setArchivedUser((err.body as any).person);
-            setSaving(false);
-            return;
-          }
-          throw err;
+        navigate('/personnel');
+        return;
+      }
+
+      let result: { id: string };
+      try {
+        result = await api.post<{ id: string }>('/personnel', validated);
+      } catch (err) {
+        // 409 means an archived user exists with this email — show reactivation modal first
+        if (err instanceof ApiRequestError && err.status === 409 && (err.body as any)?.code === 'ARCHIVED_USER') {
+          setArchivedUser((err.body as any).person);
+          setSaving(false);
+          return;
         }
-        if (sendInvite && result.id) {
-          await api.post(`/personnel/${result.id}/invite`, { message: inviteMessage ?? '' });
-        }
+        throw err;
+      }
+
+      if (willAutoInvite) {
+        setPendingInviteId(result.id);
+        setShowInviteModal(true);
+        setSaving(false);
+        return;
       }
       navigate('/personnel');
     } catch (err) {
@@ -120,6 +123,13 @@ export function PersonnelFormPage() {
       await api.post(`/personnel/${archivedUser.id}/restore`, {});
       const validated = PersonnelSchema.parse({ ...formData, role: formData.role || 'operator' });
       await api.put(`/personnel/${archivedUser.id}`, validated);
+      setArchivedUser(null);
+      if (willAutoInvite) {
+        setPendingInviteId(archivedUser.id);
+        setShowInviteModal(true);
+        setSaving(false);
+        return;
+      }
       navigate('/personnel');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reactivate personnel');
@@ -169,7 +179,24 @@ export function PersonnelFormPage() {
     setShowInviteModal(true);
   };
 
-  const doSendInvite = async (message: string) => {
+  const doSendInviteNew = async (message: string) => {
+    const targetId = pendingInviteId;
+    if (!targetId) return;
+    setSaving(true);
+    try {
+      await api.post(`/personnel/${targetId}/invite`, { message });
+      navigate('/personnel');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send invitation');
+      setSaving(false);
+    }
+  };
+
+  const doSkipInviteNew = () => {
+    navigate('/personnel');
+  };
+
+  const doSendInviteExisting = async (message: string) => {
     if (!id || id === 'new') return;
     setSaving(true);
     try {
@@ -402,8 +429,8 @@ export function PersonnelFormPage() {
         <InviteModal
           recipientName={formData.name || formData.email || 'this person'}
           isNewUser={isNewUser}
-          onSend={isNewUser ? (msg) => doSave(true, msg) : doSendInvite}
-          onSkip={isNewUser ? () => doSave(false) : undefined}
+          onSend={pendingInviteId ? doSendInviteNew : doSendInviteExisting}
+          onSkip={pendingInviteId ? doSkipInviteNew : undefined}
           onClose={() => setShowInviteModal(false)}
           isSending={saving}
         />
