@@ -187,32 +187,37 @@ export function PersonnelFormPage() {
                 <option value="operator">Operator</option>
               </select>
             </div>
-            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                <input
-                  type="checkbox"
-                  id="can_login"
-                  checked={formData.can_login}
-                  onChange={e => setFormData({ ...formData, can_login: e.target.checked })}
-                />
-                <label htmlFor="can_login" className="form-label" style={{ marginBottom: 0 }}>Can login to system</label>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                <input
-                  type="checkbox"
-                  id="receives_emails"
-                  checked={formData.receives_emails}
-                  onChange={e => setFormData({ ...formData, receives_emails: e.target.checked })}
-                />
-                <label htmlFor="receives_emails" className="form-label" style={{ marginBottom: 0 }}>Receives email notifications</label>
-              </div>
+          </div>
+        </div>
+
+        {/* Access & Notifications */}
+        <div className="card" style={{ padding: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 'var(--space-4)' }}>Access & Notifications</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+              <input
+                type="checkbox"
+                id="can_login"
+                checked={formData.can_login}
+                onChange={e => setFormData({ ...formData, can_login: e.target.checked })}
+              />
+              <label htmlFor="can_login" className="form-label" style={{ marginBottom: 0 }}>Can login to system</label>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+              <input
+                type="checkbox"
+                id="receives_emails"
+                checked={formData.receives_emails}
+                onChange={e => setFormData({ ...formData, receives_emails: e.target.checked })}
+              />
+              <label htmlFor="receives_emails" className="form-label" style={{ marginBottom: 0 }}>Receives email notifications</label>
             </div>
             {formData.last_login_date && (
-              <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                <label className="form-label" style={{ color: 'var(--color-gray-500)' }}>Last Login</label>
-                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', fontStyle: 'italic' }}>
+              <div style={{ marginTop: 'var(--space-2)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--color-gray-100)' }}>
+                <span className="form-label" style={{ color: 'var(--color-gray-500)' }}>Last Login: </span>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', fontStyle: 'italic' }}>
                   {new Date(formData.last_login_date).toLocaleString()}
-                </div>
+                </span>
               </div>
             )}
           </div>
