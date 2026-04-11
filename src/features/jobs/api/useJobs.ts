@@ -41,6 +41,15 @@ export function useJobs() {
     }
   }, []);
 
+  const createJob = async (data: Partial<Job>) => {
+    try {
+      const result = await api.post<{ id: string }>('/jobs', data);
+      return { success: true, id: result.id };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
   const updateJob = async (id: string, data: Partial<Job>) => {
     try {
       await api.put(`/jobs/${id}`, data);
@@ -94,6 +103,7 @@ export function useJobs() {
     loading,
     error,
     loadJobs,
+    createJob,
     updateJob,
     updateJobSchedule,
     removeJobSchedule,

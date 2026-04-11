@@ -5,6 +5,7 @@ import { UnscheduledBucket } from './UnscheduledBucket';
 import { CalendarView } from './CalendarView';
 import { JobTable } from './JobTable';
 import { JobEditModal } from './JobEditModal';
+import { NewJobModal } from './NewJobModal';
 import { Spinner, FilterModal } from '@/shared/ui';
 import { JOB_ONLY_STATUSES, type JobStatus } from '@/shared/validation/schemas';
 import { api } from '@/shared/lib/api';
@@ -14,7 +15,7 @@ import { useAuth } from '@/shared/lib/auth';
 export function JobsPage() {
   const { user } = useAuth();
   const isAdminOrDispatcher = user?.role === 'admin' || user?.role === 'dispatcher';
-  const { jobs, loading, error, loadJobs, updateJob, updateJobSchedule, removeJobSchedule, applyToFutureJobs } = useJobs();
+  const { jobs, loading, error, loadJobs, createJob, updateJob, updateJobSchedule, removeJobSchedule, applyToFutureJobs } = useJobs();
   const location = useLocation();
   const isScheduleView = location.pathname === '/schedule';
   
@@ -22,6 +23,7 @@ export function JobsPage() {
   const [editingJob, setEditingJob] = useState<JobWithResources | null>(null);
   const [resources, setResources] = useState<{ assets: any[], personnel: any[] }>({ assets: [], personnel: [] });
   const [selectedAssetType, setSelectedAssetType] = useState<string>('All');
+  const [showNewJobModal, setShowNewJobModal] = useState(false);
 
   useEffect(() => {
     loadJobs({ status: selectedStatuses, include: 'resources' });
@@ -84,6 +86,11 @@ export function JobsPage() {
               : 'List and manage all jobs in the system.'}
           </p>
         </div>
+        {!isScheduleView && isAdminOrDispatcher && (
+          <button className="btn btn--primary" onClick={() => setShowNewJobModal(true)}>
+            + New Job
+          </button>
+        )}
       </div>
 
       {error && <div className="alert alert--danger mb-6">{error}</div>}
@@ -145,6 +152,19 @@ export function JobsPage() {
           jobs={filteredJobs} 
           loading={loading} 
           onEdit={(job) => setEditingJob(job)}
+        />
+      )}
+
+      {showNewJobModal && (
+        <NewJobModal
+          onClose={() => setShowNewJobModal(false)}
+          onCreate={async (data) => {
+            const res = await createJob(data);
+            if (res.success) {
+              loadJobs({ status: selectedStatuses, include: 'resources' });
+            }
+            return res;
+          }}
         />
       )}
 
