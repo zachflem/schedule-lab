@@ -199,6 +199,8 @@ input, select, textarea, button {
 .modal-body {
   padding: var(--space-6);
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .modal-footer {
