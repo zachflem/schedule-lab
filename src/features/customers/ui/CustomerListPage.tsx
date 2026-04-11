@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/shared/lib/api';
 import type { Customer } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
+import { CustomerEditModal } from './CustomerEditModal';
 
 function ContactCell({ customer }: { customer: Customer }) {
   const contacts = customer.contacts ?? [];
@@ -36,20 +36,28 @@ export function CustomerListPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // null = closed, 'new' = create, string UUID = edit
+  const [editingId, setEditingId] = useState<string | 'new' | null>(null);
+
+  const fetchCustomers = useCallback(async () => {
+    try {
+      const data = await api.get<Customer[]>('/customers');
+      setCustomers(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch customers');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    async function fetchCustomers() {
-      try {
-        const data = await api.get<Customer[]>('/customers');
-        setCustomers(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch customers');
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchCustomers();
-  }, []);
+  }, [fetchCustomers]);
+
+  const handleSaved = () => {
+    setEditingId(null);
+    fetchCustomers();
+  };
 
   if (loading) return <Spinner />;
 
@@ -57,7 +65,7 @@ export function CustomerListPage() {
     <div className="container p-8">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
         <h1 className="docket-page__title">Customers</h1>
-        <Link to="/customers/new" className="btn btn--primary">Add Customer</Link>
+        <button className="btn btn--primary" onClick={() => setEditingId('new')}>Add Customer</button>
       </div>
 
       {error && (
@@ -92,11 +100,11 @@ export function CustomerListPage() {
                   </div>
                 </td>
                 <td style={{ padding: 'var(--space-3)', textAlign: 'right' }}>
-                  <Link to={`/customers/${customer.id}`} className="btn btn--secondary btn--sm">Edit</Link>
+                  <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(customer.id!)}>Edit</button>
                 </td>
               </tr>
             ))}
-            {customers.length === 0 && !loading && (
+            {customers.length === 0 && (
               <tr>
                 <td colSpan={4} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-gray-400)' }}>No customers found.</td>
               </tr>
@@ -124,7 +132,7 @@ export function CustomerListPage() {
                     </div>
                   )}
                 </div>
-                <Link to={`/customers/${customer.id}`} className="btn btn--secondary btn--sm">Edit</Link>
+                <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(customer.id!)}>Edit</button>
               </div>
               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                 <span title="Enquiries" style={{ padding: '2px 8px', borderRadius: '4px', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', fontSize: 'var(--text-xs)', fontWeight: 700, border: '1px solid var(--color-danger-100)' }}>E: {customer.enquiry_jobs || 0}</span>
@@ -135,6 +143,14 @@ export function CustomerListPage() {
           );
         })}
       </div>
+
+      {editingId !== null && (
+        <CustomerEditModal
+          customerId={editingId === 'new' ? null : editingId}
+          onClose={() => setEditingId(null)}
+          onSaved={handleSaved}
+        />
+      )}
     </div>
   );
 }

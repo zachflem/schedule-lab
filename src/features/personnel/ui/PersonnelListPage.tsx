@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/shared/lib/api';
 import type { Personnel } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
 import { useAuth } from '@/shared/lib/auth';
+import { PersonnelEditModal } from './PersonnelEditModal';
 
 function formatLastLogin(dateStr: string): string {
   const date = new Date(dateStr);
@@ -26,20 +26,28 @@ export function PersonnelListPage() {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // null = closed, 'new' = create, string UUID = edit
+  const [editingId, setEditingId] = useState<string | 'new' | null>(null);
+
+  const fetchPersonnel = useCallback(async () => {
+    try {
+      const data = await api.get<Personnel[]>('/personnel');
+      setPersonnel(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch personnel');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    async function fetchPersonnel() {
-      try {
-        const data = await api.get<Personnel[]>('/personnel');
-        setPersonnel(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch personnel');
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchPersonnel();
-  }, []);
+  }, [fetchPersonnel]);
+
+  const handleSaved = () => {
+    setEditingId(null);
+    fetchPersonnel();
+  };
 
   if (loading) return <Spinner />;
 
@@ -47,7 +55,7 @@ export function PersonnelListPage() {
     <div className="container p-8">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
         <h1 className="docket-page__title">Personnel & Operators</h1>
-        <Link to="/personnel/new" className="btn btn--primary">Add Person</Link>
+        <button className="btn btn--primary" onClick={() => setEditingId('new')}>Add Person</button>
       </div>
 
       {error && (
@@ -117,7 +125,7 @@ export function PersonnelListPage() {
                   </td>
                 )}
                 <td style={{ padding: 'var(--space-3)', textAlign: 'right' }}>
-                  <Link to={`/personnel/${person.id}`} className="btn btn--secondary btn--sm">Edit</Link>
+                  <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(person.id!)}>Edit</button>
                 </td>
               </tr>
             ))}
@@ -154,7 +162,7 @@ export function PersonnelListPage() {
                 <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: 'var(--text-xs)', fontWeight: 600, background: person.can_login ? 'var(--color-success-50)' : 'var(--color-gray-100)', color: person.can_login ? 'var(--color-success-700)' : 'var(--color-gray-600)' }}>
                   {person.can_login ? 'Login' : 'No login'}
                 </span>
-                <Link to={`/personnel/${person.id}`} className="btn btn--secondary btn--sm">Edit</Link>
+                <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(person.id!)}>Edit</button>
               </div>
             </div>
             {person.qualifications && person.qualifications.length > 0 && (
@@ -177,6 +185,14 @@ export function PersonnelListPage() {
           </div>
         ))}
       </div>
+
+      {editingId !== null && (
+        <PersonnelEditModal
+          personnelId={editingId === 'new' ? null : editingId}
+          onClose={() => setEditingId(null)}
+          onSaved={handleSaved}
+        />
+      )}
     </div>
   );
 }

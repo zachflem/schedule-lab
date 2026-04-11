@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/shared/lib/api';
 import type { Asset } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
+import { AssetEditModal } from './AssetEditModal';
 
 interface AssetWithMetadata extends Asset {
   asset_type_name: string;
@@ -13,20 +13,28 @@ export function AssetListPage() {
   const [assets, setAssets] = useState<AssetWithMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // null = closed, 'new' = create, string UUID = edit
+  const [editingId, setEditingId] = useState<string | 'new' | null>(null);
+
+  const fetchAssets = useCallback(async () => {
+    try {
+      const data = await api.get<AssetWithMetadata[]>('/assets');
+      setAssets(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch assets');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    async function fetchAssets() {
-      try {
-        const data = await api.get<AssetWithMetadata[]>('/assets');
-        setAssets(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch assets');
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchAssets();
-  }, []);
+  }, [fetchAssets]);
+
+  const handleSaved = () => {
+    setEditingId(null);
+    fetchAssets();
+  };
 
   const calculateNextService = (asset: AssetWithMetadata) => {
     const current = asset.service_interval_type === 'hours'
@@ -47,7 +55,7 @@ export function AssetListPage() {
             <h1 className="docket-page__title" style={{ marginBottom: 'var(--space-1)' }}>Asset Fleet</h1>
             <p style={{ color: 'var(--color-gray-500)', fontSize: 'var(--text-sm)' }}>Manage machines, trucks, and other equipment metrics.</p>
           </div>
-          <Link to="/assets/new" className="btn btn--primary">Add Asset</Link>
+          <button className="btn btn--primary" onClick={() => setEditingId('new')}>Add Asset</button>
         </div>
       </div>
 
@@ -100,7 +108,7 @@ export function AssetListPage() {
                     </div>
                   </td>
                   <td style={{ padding: 'var(--space-4)', textAlign: 'right' }}>
-                    <Link to={`/assets/${asset.id}`} className="btn btn--secondary btn--sm">Edit</Link>
+                    <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(asset.id!)}>Edit</button>
                   </td>
                 </tr>
               );
@@ -129,7 +137,7 @@ export function AssetListPage() {
                     {asset.asset_type_name}{asset.category ? ` · ${asset.category}` : ''}
                   </div>
                 </div>
-                <Link to={`/assets/${asset.id}`} className="btn btn--secondary btn--sm">Edit</Link>
+                <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(asset.id!)}>Edit</button>
               </div>
               <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', fontSize: 'var(--text-sm)' }}>
                 <span style={{ color: 'var(--color-gray-600)' }}>
@@ -143,6 +151,14 @@ export function AssetListPage() {
           );
         })}
       </div>
+
+      {editingId !== null && (
+        <AssetEditModal
+          assetId={editingId === 'new' ? null : editingId}
+          onClose={() => setEditingId(null)}
+          onSaved={handleSaved}
+        />
+      )}
     </div>
   );
 }
