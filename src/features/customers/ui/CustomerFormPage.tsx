@@ -9,7 +9,7 @@ const emptyContact = (): CustomerContact => ({
   phone: '',
   email: '',
   location: '',
-  role: '',
+  role: null,
 });
 
 export function CustomerFormPage() {
