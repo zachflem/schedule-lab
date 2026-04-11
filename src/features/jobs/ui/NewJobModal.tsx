@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/shared/lib/api';
 import type { Customer } from '@/shared/validation/schemas';
+import { CustomerEditModal } from '@/features/customers/ui/CustomerEditModal';
 
 interface NewJobModalProps {
   onClose: () => void;
@@ -12,6 +13,7 @@ export function NewJobModal({ onClose, onCreate }: NewJobModalProps) {
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAddCustomer, setShowAddCustomer] = useState(false);
 
   const [formData, setFormData] = useState({
     customer_id: '',
@@ -25,11 +27,21 @@ export function NewJobModal({ onClose, onCreate }: NewJobModalProps) {
     job_brief: '',
   });
 
-  useEffect(() => {
+  const refreshCustomers = (selectId?: string) => {
+    setLoadingCustomers(true);
     api.get<Customer[]>('/customers')
-      .then(setCustomers)
+      .then(data => {
+        setCustomers(data);
+        if (selectId) {
+          setFormData(prev => ({ ...prev, customer_id: selectId }));
+        }
+      })
       .catch(console.error)
       .finally(() => setLoadingCustomers(false));
+  };
+
+  useEffect(() => {
+    refreshCustomers();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -62,6 +74,7 @@ export function NewJobModal({ onClose, onCreate }: NewJobModalProps) {
   const spanFull: React.CSSProperties = { gridColumn: '1 / -1' };
 
   return (
+    <>
     <div className="modal-overlay">
       <div className="modal-content" style={{ maxWidth: '560px', width: '95%' }}>
         <div className="modal-header">
@@ -75,7 +88,16 @@ export function NewJobModal({ onClose, onCreate }: NewJobModalProps) {
 
             <div style={twoCol}>
               <div className="form-group" style={spanFull}>
-                <label className="form-label">Customer <span style={{ color: 'var(--color-danger-500)' }}>*</span></label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--space-1)' }}>
+                  <label className="form-label" style={{ margin: 0 }}>Customer <span style={{ color: 'var(--color-danger-500)' }}>*</span></label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCustomer(true)}
+                    style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-600)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+                  >
+                    + New Customer
+                  </button>
+                </div>
                 <select
                   name="customer_id"
                   value={formData.customer_id}
@@ -136,5 +158,17 @@ export function NewJobModal({ onClose, onCreate }: NewJobModalProps) {
         </form>
       </div>
     </div>
+
+    {showAddCustomer && (
+      <CustomerEditModal
+        customerId={null}
+        onClose={() => setShowAddCustomer(false)}
+        onSaved={(newId) => {
+          setShowAddCustomer(false);
+          refreshCustomers(newId);
+        }}
+      />
+    )}
+    </>
   );
 }

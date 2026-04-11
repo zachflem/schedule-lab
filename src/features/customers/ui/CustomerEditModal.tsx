@@ -14,7 +14,7 @@ const emptyContact = (): CustomerContact => ({
 interface CustomerEditModalProps {
   customerId: string | null; // null = new customer
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (newId?: string) => void;
 }
 
 export function CustomerEditModal({ customerId, onClose, onSaved }: CustomerEditModalProps) {
@@ -68,10 +68,11 @@ export function CustomerEditModal({ customerId, onClose, onSaved }: CustomerEdit
       const validated = CustomerSchema.parse(formData);
       if (!isNew) {
         await api.put(`/customers/${customerId}`, validated);
+        onSaved();
       } else {
-        await api.post('/customers', validated);
+        const result = await api.post<{ id: string }>('/customers', validated);
+        onSaved(result.id);
       }
-      onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save customer');
       setSaving(false);
