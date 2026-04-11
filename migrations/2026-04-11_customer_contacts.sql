@@ -1,7 +1,7 @@
--- Replace flat site/billing contact columns on customers with a
--- normalised customer_contacts child table supporting N contacts per customer.
+-- Add normalised customer_contacts child table supporting N contacts per customer.
+-- (The remote DB never had the old flat site/billing contact columns,
+--  so no data migration or DROP COLUMN steps are needed.)
 
--- 1. New contacts table
 CREATE TABLE IF NOT EXISTS customer_contacts (
   id          TEXT    PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   customer_id TEXT    NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
@@ -16,40 +16,3 @@ CREATE TABLE IF NOT EXISTS customer_contacts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_customer_contacts_customer_id ON customer_contacts(customer_id);
-
--- 2. Migrate existing site/billing contacts into the new table
-INSERT INTO customer_contacts (id, customer_id, name, phone, email, role, sort_order, created_at, updated_at)
-SELECT
-  lower(hex(randomblob(16))),
-  id,
-  site_contact_name,
-  site_contact_phone,
-  site_contact_email,
-  'Site Contact',
-  0,
-  created_at,
-  updated_at
-FROM customers
-WHERE site_contact_name IS NOT NULL AND site_contact_name != '';
-
-INSERT INTO customer_contacts (id, customer_id, name, phone, email, role, sort_order, created_at, updated_at)
-SELECT
-  lower(hex(randomblob(16))),
-  id,
-  billing_contact_name,
-  billing_contact_phone,
-  billing_contact_email,
-  'Billing Contact',
-  1,
-  created_at,
-  updated_at
-FROM customers
-WHERE billing_contact_name IS NOT NULL AND billing_contact_name != '';
-
--- 3. Drop old flat columns
-ALTER TABLE customers DROP COLUMN site_contact_name;
-ALTER TABLE customers DROP COLUMN site_contact_phone;
-ALTER TABLE customers DROP COLUMN site_contact_email;
-ALTER TABLE customers DROP COLUMN billing_contact_name;
-ALTER TABLE customers DROP COLUMN billing_contact_phone;
-ALTER TABLE customers DROP COLUMN billing_contact_email;
