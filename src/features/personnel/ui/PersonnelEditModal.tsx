@@ -198,24 +198,24 @@ export function PersonnelEditModal({ personnelId, onClose, onSaved }: PersonnelE
   return (
     <div className="modal-overlay">
       <div className="modal-content modal-slide-in" style={{ maxWidth: '680px', width: '100%' }} onClick={e => e.stopPropagation()}>
-        <form onSubmit={handleSubmit} style={{ display: 'contents' }}>
-          <div className="modal-header">
-            <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>{isNew ? 'Add Person' : 'Edit Personnel'}</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              {!isNew && formData.email && formData.can_login && (
-                <button
-                  type="button"
-                  className="btn btn--secondary btn--sm"
-                  onClick={() => setShowInviteModal(true)}
-                  disabled={saving}
-                >
-                  Send Invite
-                </button>
-              )}
-              <button type="button" className="btn-close" onClick={onClose}>&times;</button>
-            </div>
+        <div className="modal-header">
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>{isNew ? 'Add Person' : 'Edit Personnel'}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            {!isNew && formData.email && formData.can_login && (
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                onClick={() => setShowInviteModal(true)}
+                disabled={saving}
+              >
+                Send Invite
+              </button>
+            )}
+            <button type="button" className="btn-close" onClick={onClose}>&times;</button>
           </div>
+        </div>
 
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, overflow: 'hidden' }}>
           <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
             {loading ? (
               <Spinner />

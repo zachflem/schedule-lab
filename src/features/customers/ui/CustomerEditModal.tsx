@@ -81,12 +81,12 @@ export function CustomerEditModal({ customerId, onClose, onSaved }: CustomerEdit
   return (
     <div className="modal-overlay">
       <div className="modal-content modal-slide-in" style={{ maxWidth: '680px', width: '100%' }} onClick={e => e.stopPropagation()}>
-        <form onSubmit={handleSubmit} style={{ display: 'contents' }}>
-          <div className="modal-header">
-            <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>{isNew ? 'New Customer' : 'Edit Customer'}</h2>
-            <button type="button" className="btn-close" onClick={onClose}>&times;</button>
-          </div>
+        <div className="modal-header">
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>{isNew ? 'New Customer' : 'Edit Customer'}</h2>
+          <button type="button" className="btn-close" onClick={onClose}>&times;</button>
+        </div>
 
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, overflow: 'hidden' }}>
           <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
             {loading ? (
               <Spinner />
@@ -231,5 +231,6 @@ export function CustomerEditModal({ customerId, onClose, onSaved }: CustomerEdit
         </form>
       </div>
     </div>
+
   );
 }
