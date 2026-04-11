@@ -86,17 +86,20 @@ export function CustomerEditModal({ customerId, onClose, onSaved }: CustomerEdit
           <button type="button" className="btn-close" onClick={onClose}>&times;</button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, overflow: 'hidden' }}>
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-            {loading ? (
-              <Spinner />
-            ) : (
-              <>
-                {error && (
-                  <div style={{ padding: 'var(--space-4)', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', borderRadius: 'var(--radius-md)' }}>
-                    {error}
-                  </div>
-                )}
+        <div className="modal-body">
+          {loading ? (
+            <Spinner />
+          ) : (
+            <form
+              id="customer-edit-form"
+              onSubmit={handleSubmit}
+              style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}
+            >
+              {error && (
+                <div style={{ padding: 'var(--space-4)', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', borderRadius: 'var(--radius-md)' }}>
+                  {error}
+                </div>
+              )}
 
                 {/* Basic Details */}
                 <div className="card" style={{ padding: 'var(--space-6)' }}>
@@ -216,19 +219,18 @@ export function CustomerEditModal({ customerId, onClose, onSaved }: CustomerEdit
                     </div>
                   )}
                 </div>
-              </>
-            )}
-          </div>
-
-          {!loading && (
-            <div className="modal-footer">
-              <button type="button" className="btn btn--secondary" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn btn--primary" disabled={saving}>
-                {saving ? 'Saving...' : 'Save Customer'}
-              </button>
-            </div>
+            </form>
           )}
-        </form>
+        </div>
+
+        {!loading && (
+          <div className="modal-footer">
+            <button type="button" className="btn btn--secondary" onClick={onClose}>Cancel</button>
+            <button type="submit" form="customer-edit-form" className="btn btn--primary" disabled={saving}>
+              {saving ? 'Saving...' : 'Save Customer'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
 

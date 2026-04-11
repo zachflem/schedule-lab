@@ -215,17 +215,20 @@ export function PersonnelEditModal({ personnelId, onClose, onSaved }: PersonnelE
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, overflow: 'hidden' }}>
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-            {loading ? (
-              <Spinner />
-            ) : (
-              <>
-                {error && (
-                  <div style={{ padding: 'var(--space-4)', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', borderRadius: 'var(--radius-md)' }}>
-                    {error}
-                  </div>
-                )}
+        <div className="modal-body">
+          {loading ? (
+            <Spinner />
+          ) : (
+            <form
+              id="personnel-edit-form"
+              onSubmit={handleSubmit}
+              style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}
+            >
+              {error && (
+                <div style={{ padding: 'var(--space-4)', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', borderRadius: 'var(--radius-md)' }}>
+                  {error}
+                </div>
+              )}
 
                 {/* Contact Details */}
                 <div className="card" style={{ padding: 'var(--space-6)' }}>
@@ -388,32 +391,31 @@ export function PersonnelEditModal({ personnelId, onClose, onSaved }: PersonnelE
                     )}
                   </div>
                 </div>
-              </>
-            )}
-          </div>
-
-          {!loading && (
-            <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-              {!isNew ? (
-                <button
-                  type="button"
-                  className="btn btn--sm"
-                  style={{ background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', border: '1px solid var(--color-danger-200)' }}
-                  onClick={() => setShowArchiveConfirm(true)}
-                  disabled={saving}
-                >
-                  Archive Person
-                </button>
-              ) : <span />}
-              <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-                <button type="button" className="btn btn--secondary" onClick={onClose}>Cancel</button>
-                <button type="submit" className="btn btn--primary" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Personnel'}
-                </button>
-              </div>
-            </div>
+            </form>
           )}
-        </form>
+        </div>
+
+        {!loading && (
+          <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+            {!isNew ? (
+              <button
+                type="button"
+                className="btn btn--sm"
+                style={{ background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', border: '1px solid var(--color-danger-200)' }}
+                onClick={() => setShowArchiveConfirm(true)}
+                disabled={saving}
+              >
+                Archive Person
+              </button>
+            ) : <span />}
+            <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+              <button type="button" className="btn btn--secondary" onClick={onClose}>Cancel</button>
+              <button type="submit" form="personnel-edit-form" className="btn btn--primary" disabled={saving}>
+                {saving ? 'Saving...' : 'Save Personnel'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {showInviteModal && (
           <InviteModal
