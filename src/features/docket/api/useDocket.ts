@@ -230,7 +230,24 @@ export function useDocket(jobId: string | null) {
   }, [jobId]);
 
   const update = useCallback(<K extends keyof DocketFormState>(key: K, value: DocketFormState[K]) => {
-    setState(s => ({ ...s, [key]: value }));
+    setState(s => {
+      const next = { ...s, [key]: value };
+
+      // When yard times or break change, auto-populate line item quantities
+      if (key === 'time_leave_yard' || key === 'time_return_yard' || key === 'break_duration_minutes') {
+        const leaveYard = key === 'time_leave_yard' ? (value as string) : s.time_leave_yard;
+        const returnYard = key === 'time_return_yard' ? (value as string) : s.time_return_yard;
+        const breakMins = key === 'break_duration_minutes' ? (value as number) : s.break_duration_minutes;
+
+        if (leaveYard && returnYard) {
+          const breakMs = (breakMins || 0) * 60 * 1000;
+          const hours = Math.max(0, (new Date(returnYard).getTime() - new Date(leaveYard).getTime() - breakMs) / (1000 * 60 * 60));
+          next.lineItems = s.lineItems.map(li => ({ ...li, quantity: Math.round(hours * 4) / 4 }));
+        }
+      }
+
+      return next;
+    });
   }, []);
 
   const saveDocket = useCallback(async (lock: boolean) => {
