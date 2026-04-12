@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router';
 import { useAuth } from '@/shared/lib/auth';
+import { usePWAInstall } from '@/shared/lib/usePWAInstall';
 import { RolePill } from './RolePill';
 
 interface NavMenuProps {
@@ -10,6 +11,14 @@ interface NavMenuProps {
 export function NavMenu({ isOpen, onClose }: NavMenuProps) {
   const { user, logout } = useAuth();
   const role = user?.role || 'operator';
+  const {
+    showInstallButton,
+    showIOSInstructions,
+    isIOS,
+    triggerInstall,
+    markInstalledFromIOS,
+    dismissForever,
+  } = usePWAInstall();
 
   const menuItems = [
     {
@@ -201,6 +210,22 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
               </div>
               <RolePill />
             </div>
+            {showInstallButton && (
+              <div style={{ padding: '0 var(--space-4) var(--space-2)' }}>
+                <button
+                  onClick={triggerInstall}
+                  className="btn btn--primary"
+                  style={{ width: '100%', fontSize: 'var(--text-sm)' }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16, marginRight: 'var(--space-2)' }}>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Install App
+                </button>
+              </div>
+            )}
             <div style={{ padding: '0 var(--space-4) var(--space-4)' }}>
               <button
                 onClick={handleLogout}
@@ -210,6 +235,61 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
                 Logout
               </button>
             </div>
+
+            {/* iOS install instructions modal */}
+            {showIOSInstructions && isIOS && (
+              <div
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  background: 'rgba(0,0,0,0.5)',
+                  zIndex: 2000,
+                  display: 'flex',
+                  alignItems: 'flex-end',
+                  padding: 'var(--space-4)',
+                }}
+                onClick={dismissForever}
+              >
+                <div
+                  style={{
+                    background: 'white',
+                    borderRadius: 'var(--radius-xl)',
+                    padding: 'var(--space-6)',
+                    width: '100%',
+                    boxShadow: 'var(--shadow-xl)',
+                  }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <h3 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-lg)', fontWeight: 700 }}>
+                    Install Schedule Lab
+                  </h3>
+                  <p style={{ margin: '0 0 var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: 1.5 }}>
+                    Add this app to your home screen for quick access:
+                  </p>
+                  <ol style={{ margin: '0 0 var(--space-5)', paddingLeft: 'var(--space-5)', fontSize: 'var(--text-sm)', color: 'var(--color-gray-700)', lineHeight: 2 }}>
+                    <li>Tap the <strong>Share</strong> button in Safari's toolbar</li>
+                    <li>Scroll down and tap <strong>Add to Home Screen</strong></li>
+                    <li>Tap <strong>Add</strong> to confirm</li>
+                  </ol>
+                  <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+                    <button
+                      onClick={markInstalledFromIOS}
+                      className="btn btn--primary"
+                      style={{ flex: 1, fontSize: 'var(--text-sm)' }}
+                    >
+                      Done
+                    </button>
+                    <button
+                      onClick={dismissForever}
+                      className="btn btn--secondary"
+                      style={{ flex: 1, fontSize: 'var(--text-sm)' }}
+                    >
+                      Not now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
