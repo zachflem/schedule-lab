@@ -11,7 +11,6 @@ import { LineItems } from './sections/LineItems';
 import { SiteDocuments } from './sections/SiteDocuments';
 import { DocketSummary } from './sections/DocketSummary';
 import { SignatureCapture } from './sections/SignatureCapture';
-import { Accordion } from '@/shared/ui';
 import { formatRecordId } from '@/shared/lib/format';
 
 interface ValidateDocketModalProps {
