@@ -61,9 +61,9 @@ export const onRequest = methodRouter({
     const timestamp = now();
 
     await db.prepare(`
-      INSERT INTO customers (id, name, billing_address, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?)
-    `).bind(id, c.name, c.billing_address ?? null, timestamp, timestamp).run();
+      INSERT INTO customers (id, name, billing_address, payment_terms_days, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).bind(id, c.name, c.billing_address ?? null, c.payment_terms_days ?? 30, timestamp, timestamp).run();
 
     if (c.contacts && c.contacts.length > 0) {
       await saveContacts(db, id, c.contacts);
@@ -84,9 +84,9 @@ export const onRequest = methodRouter({
     const timestamp = now();
 
     await db.prepare(`
-      UPDATE customers SET name = ?, billing_address = ?, updated_at = ?
+      UPDATE customers SET name = ?, billing_address = ?, payment_terms_days = ?, updated_at = ?
       WHERE id = ?
-    `).bind(c.name, c.billing_address ?? null, timestamp, id).run();
+    `).bind(c.name, c.billing_address ?? null, c.payment_terms_days ?? 30, timestamp, id).run();
 
     await saveContacts(db, id, c.contacts ?? []);
 

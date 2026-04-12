@@ -5,22 +5,24 @@
 
 -- TENANT / PLATFORM
 CREATE TABLE IF NOT EXISTS platform_settings (
-  id            TEXT PRIMARY KEY DEFAULT 'global',
-  company_name  TEXT NOT NULL DEFAULT 'ScheduleLab',
-  logo_url      TEXT,
-  primary_color TEXT DEFAULT '#2563eb',
-  base_url      TEXT,
-  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  id                TEXT PRIMARY KEY DEFAULT 'global',
+  company_name      TEXT NOT NULL DEFAULT 'ScheduleLab',
+  logo_url          TEXT,
+  primary_color     TEXT DEFAULT '#2563eb',
+  base_url          TEXT,
+  xero_account_code TEXT,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- CUSTOMERS
 CREATE TABLE IF NOT EXISTS customers (
-  id              TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-  name            TEXT NOT NULL,
-  billing_address TEXT,
-  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  id                  TEXT    PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  name                TEXT    NOT NULL,
+  billing_address     TEXT,
+  payment_terms_days  INTEGER NOT NULL DEFAULT 30,
+  created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+  updated_at          TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
 -- CUSTOMER CONTACTS (N contacts per customer)

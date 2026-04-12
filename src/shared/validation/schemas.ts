@@ -135,6 +135,7 @@ export const CustomerSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, 'Customer name is required'),
   billing_address: z.string().optional().nullable(),
+  payment_terms_days: z.number().int().min(1).default(30),
   contacts: z.array(CustomerContactSchema).optional().default([]),
   // Job Summaries (populated via join/subquery in API)
   enquiry_jobs: z.number().optional(),
@@ -405,5 +406,6 @@ export const PlatformSettingsSchema = z.object({
   logo_url: z.string().optional().nullable(),
   primary_color: z.string().default('#2563eb'),
   base_url: z.string().url('Must be a valid URL').optional().nullable(),
+  xero_account_code: z.string().optional().nullable(),
 });
 export type PlatformSettings = z.infer<typeof PlatformSettingsSchema>;

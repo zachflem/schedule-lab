@@ -25,6 +25,7 @@ export function CustomerEditModal({ customerId, onClose, onSaved }: CustomerEdit
   const [formData, setFormData] = useState<Partial<Customer>>({
     name: '',
     billing_address: '',
+    payment_terms_days: 30,
     contacts: [],
   });
 
@@ -123,6 +124,19 @@ export function CustomerEditModal({ customerId, onClose, onSaved }: CustomerEdit
                       placeholder="Full postal or physical address"
                       onChange={e => setFormData({ ...formData, billing_address: e.target.value })}
                     />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Payment Terms</label>
+                    <select
+                      className="form-input"
+                      value={formData.payment_terms_days ?? 30}
+                      onChange={e => setFormData({ ...formData, payment_terms_days: Number(e.target.value) })}
+                    >
+                      <option value={7}>Net 7 days</option>
+                      <option value={14}>Net 14 days</option>
+                      <option value={30}>Net 30 days</option>
+                      <option value={60}>Net 60 days</option>
+                    </select>
                   </div>
                 </div>
 

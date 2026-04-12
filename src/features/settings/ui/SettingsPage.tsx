@@ -3,8 +3,9 @@ import { GeneralTab } from './GeneralTab';
 import { AssetSettingsTab } from './AssetSettingsTab';
 import { CustomerSettingsTab } from './CustomerSettingsTab';
 import { QualificationSettingsTab } from './QualificationSettingsTab';
+import { IntegrationsTab } from './IntegrationsTab';
 
-type TabId = 'general' | 'assets' | 'customers' | 'qualifications';
+type TabId = 'general' | 'assets' | 'customers' | 'qualifications' | 'integrations';
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>('general');
@@ -34,6 +35,12 @@ export function SettingsPage() {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}>
         <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
         <path d="M6 12v5c3 3 9 3 12 0v-5" />
+      </svg>
+    )},
+    { id: 'integrations', label: 'Integrations', icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}>
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
       </svg>
     )},
   ];
@@ -76,6 +83,7 @@ export function SettingsPage() {
         {activeTab === 'assets' && <AssetSettingsTab />}
         {activeTab === 'customers' && <CustomerSettingsTab />}
         {activeTab === 'qualifications' && <QualificationSettingsTab />}
+        {activeTab === 'integrations' && <IntegrationsTab />}
       </div>
     </div>
   );
