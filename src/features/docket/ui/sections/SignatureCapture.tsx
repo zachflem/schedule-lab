@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import type { SignatureMetadata } from '@/shared/validation/schemas';
 
@@ -12,11 +12,25 @@ const ROLES = ['Operator', 'Customer', 'Site Representative', 'Other'] as const;
 
 export function SignatureCapture({ signatures, onChange, disabled }: SignatureCaptureProps) {
   const sigRef = useRef<SignatureCanvas>(null);
+  const padContainerRef = useRef<HTMLDivElement>(null);
+  const [canvasWidth, setCanvasWidth] = useState(500);
   const [name, setName] = useState('');
   const [role, setRole] = useState<string>('Operator');
   const [isSigning, setIsSigning] = useState(false);
   const [isAdding, setIsAdding] = useState(signatures.length === 0);
   const [emailCopy, setEmailCopy] = useState<string | null>(null);
+
+  useEffect(() => {
+    const el = padContainerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(entries => {
+      const width = entries[0].contentRect.width;
+      if (width > 0) setCanvasWidth(Math.round(width));
+    });
+    observer.observe(el);
+    setCanvasWidth(Math.round(el.getBoundingClientRect().width) || 500);
+    return () => observer.disconnect();
+  }, [isAdding]);
 
   const captureSignature = async () => {
     if (!sigRef.current || sigRef.current.isEmpty() || !name.trim()) return;
@@ -127,10 +141,10 @@ export function SignatureCapture({ signatures, onChange, disabled }: SignatureCa
 
           <div>
             <label className="form-label" style={{ marginBottom: 'var(--space-1)' }}>Signature</label>
-            <div className={`signature-pad ${isSigning ? 'signature-pad--signing' : ''}`}>
+            <div ref={padContainerRef} className={`signature-pad ${isSigning ? 'signature-pad--signing' : ''}`}>
               <SignatureCanvas
                 ref={sigRef}
-                canvasProps={{ width: 500, height: 150, style: { width: '100%', height: '150px' } }}
+                canvasProps={{ width: canvasWidth, height: 150, style: { display: 'block', width: '100%', height: '150px' } }}
                 onBegin={() => setIsSigning(true)}
               />
             </div>
