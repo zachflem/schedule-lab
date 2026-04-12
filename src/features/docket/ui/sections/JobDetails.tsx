@@ -1,9 +1,16 @@
 import { toLocalDateString } from '@/shared/lib/date';
 
+interface CustomerContact {
+  name: string;
+  phone?: string;
+  email?: string;
+  location?: string;
+  role?: string;
+}
+
 interface JobDetailsProps {
   customerName: string;
-  customerEmail?: string;
-  customerPhone?: string;
+  customerContacts?: CustomerContact[];
   siteContactName?: string;
   siteContactEmail?: string;
   siteContactPhone?: string;
@@ -17,7 +24,7 @@ interface JobDetailsProps {
 }
 
 export function JobDetails({
-  customerName, customerEmail, customerPhone,
+  customerName, customerContacts,
   siteContactName, siteContactEmail, siteContactPhone,
   location, jobBrief, assetRequirement, projectName,
   date, onDateChange, disabled,
@@ -56,20 +63,31 @@ export function JobDetails({
         </div>
       </div>
 
-      {(customerEmail || customerPhone) && (
-        <div className="form-grid">
-          {customerEmail && (
-            <div className="form-group">
-              <label className="form-label">Billing Email</label>
-              <input className="form-input form-input--readonly" value={customerEmail} readOnly />
-            </div>
-          )}
-          {customerPhone && (
-            <div className="form-group">
-              <label className="form-label">Billing Phone</label>
-              <input className="form-input form-input--readonly" value={customerPhone} readOnly />
-            </div>
-          )}
+      {customerContacts && customerContacts.length > 0 && (
+        <div>
+          <label className="form-label" style={{ marginBottom: 'var(--space-2)', display: 'block' }}>Customer Contacts</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            {customerContacts.map((contact, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 'var(--space-2)', padding: 'var(--space-3)', background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-gray-200)' }}>
+                <div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)', marginBottom: '2px' }}>{contact.role || 'Contact'}</div>
+                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{contact.name}</div>
+                </div>
+                {contact.phone && (
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)', marginBottom: '2px' }}>Phone</div>
+                    <div style={{ fontSize: 'var(--text-sm)' }}>{contact.phone}</div>
+                  </div>
+                )}
+                {contact.email && (
+                  <div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)', marginBottom: '2px' }}>Email</div>
+                    <div style={{ fontSize: 'var(--text-sm)' }}>{contact.email}</div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

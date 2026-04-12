@@ -37,7 +37,12 @@ export const onRequest = methodRouter({
       WHERE jr.job_id = ?
     `).bind(id).all();
 
-    return jsonResponse({ ...job, resources });
+    // Fetch customer contacts
+    const { results: customerContacts } = await db.prepare(
+      'SELECT name, phone, email, location, role FROM customer_contacts WHERE customer_id = ? ORDER BY sort_order'
+    ).bind((job as any).customer_id).all();
+
+    return jsonResponse({ ...job, resources, customer_contacts: customerContacts });
   }),
 
   PUT: withRole(['admin', 'dispatcher'], async (context) => {

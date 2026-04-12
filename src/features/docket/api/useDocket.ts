@@ -2,13 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/shared/lib/api';
 import type { SiteDocket, AssetMetric, Hazard, DocketLineItem, SignatureMetadata, PreStartSafetyCheck, DocumentImage } from '@/shared/validation/schemas';
 
+interface CustomerContact {
+  name: string;
+  phone?: string;
+  email?: string;
+  location?: string;
+  role?: string;
+}
+
 /** Shape returned by GET /api/jobs/:id */
 interface JobData {
   id: string;
   customer_id: string;
   customer_name: string;
-  customer_email?: string;
-  customer_phone?: string;
+  customer_contacts?: CustomerContact[];
   site_contact_name?: string;
   site_contact_email?: string;
   site_contact_phone?: string;

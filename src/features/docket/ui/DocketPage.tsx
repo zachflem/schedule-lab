@@ -102,8 +102,7 @@ export function DocketPage() {
           <Accordion number={1} title="Job & Customer Details" defaultOpen>
             <JobDetails
               customerName={state.job?.customer_name || ''}
-              customerEmail={state.job?.customer_email}
-              customerPhone={state.job?.customer_phone}
+              customerContacts={state.job?.customer_contacts}
               siteContactName={state.job?.site_contact_name}
               siteContactEmail={state.job?.site_contact_email}
               siteContactPhone={state.job?.site_contact_phone}

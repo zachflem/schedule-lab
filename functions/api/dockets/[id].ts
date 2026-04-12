@@ -8,8 +8,8 @@ export const onRequest = methodRouter({
 
     const docket = await db.prepare(`
       SELECT d.*, j.location, j.job_brief, j.asset_requirement,
-             c.name as customer_name, c.site_contact_email as customer_email,
-             c.site_contact_phone as customer_phone,
+             j.site_contact_name, j.site_contact_email, j.site_contact_phone,
+             c.name as customer_name,
              p.name as submitted_by_name
       FROM site_dockets d
       JOIN jobs j ON d.job_id = j.id
