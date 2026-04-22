@@ -74,6 +74,17 @@ export function AssetSettingsTab() {
     }
   };
 
+  const handleDeleteType = async (id: string) => {
+    if (!confirm('Delete this asset type?')) return;
+    try {
+      await api.delete(`/asset-types/${id}`);
+      fetchData();
+      showToast('Asset type deleted.', 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to delete asset type.', 'warning');
+    }
+  };
+
   const handleDeleteCompliance = async (id: string) => {
     if (!confirm('Delete this compliance type?')) return;
     try {
@@ -88,7 +99,7 @@ export function AssetSettingsTab() {
   if (loading) return <div>Loading...</div>;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', maxWidth: '800px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
 
       {/* Asset Types */}
       <div className="card">
@@ -122,9 +133,14 @@ export function AssetSettingsTab() {
                     {t.checklist_questions.length} {t.checklist_questions.length === 1 ? 'item' : 'items'}
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <button className="btn btn--secondary btn--icon" onClick={() => setEditingType(t)}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                    </button>
+                    <div style={{ display: 'flex', gap: 'var(--space-1)', justifyContent: 'flex-end' }}>
+                      <button className="btn btn--secondary btn--icon" onClick={() => setEditingType(t)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                      </button>
+                      <button className="btn btn--secondary btn--icon" style={{ color: 'var(--color-danger-600)' }} onClick={() => handleDeleteType(t.id)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -183,7 +199,7 @@ export function AssetSettingsTab() {
           <div className="card" style={{ width: '480px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
             <div className="card__header">
               <h3 className="card__title">{editingType.id ? 'Edit' : 'Add'} Asset Type</h3>
-              <button className="btn-icon" onClick={() => setEditingType(null)}>
+              <button className="btn btn--secondary btn--icon" onClick={() => setEditingType(null)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16 }}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
@@ -251,7 +267,7 @@ export function AssetSettingsTab() {
           <div className="card" style={{ width: '400px' }}>
             <div className="card__header">
               <h3 className="card__title">{editingCompliance.id ? 'Edit' : 'Add'} Compliance Type</h3>
-              <button className="btn-icon" onClick={() => setEditingCompliance(null)}>
+              <button className="btn btn--secondary btn--icon" onClick={() => setEditingCompliance(null)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16 }}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>

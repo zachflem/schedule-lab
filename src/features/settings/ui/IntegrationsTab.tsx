@@ -31,7 +31,7 @@ export function IntegrationsTab() {
   if (loading) return <div>Loading...</div>;
 
   return (
-    <div style={{ maxWidth: '600px' }}>
+    <div>
       <div className="card shadow-sm">
         <div className="card__header">
           <div>

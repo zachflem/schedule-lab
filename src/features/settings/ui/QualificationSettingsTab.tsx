@@ -72,14 +72,14 @@ export function QualificationSettingsTab() {
   if (loading) return <Spinner />;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', maxWidth: '800px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
 
       {/* Add / Edit form */}
       {editingId && (
         <div className="card">
           <div className="card__header">
             <h3 className="card__title">{editingId === 'new' ? 'New Qualification' : 'Edit Qualification'}</h3>
-            <button className="btn-icon" onClick={handleCancel}>
+            <button className="btn btn--secondary btn--icon" onClick={handleCancel}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16 }}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>

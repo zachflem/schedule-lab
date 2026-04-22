@@ -78,7 +78,7 @@ export function SettingsPage() {
         ))}
       </div>
 
-      <div>
+      <div style={{ maxWidth: '800px' }}>
         {activeTab === 'general' && <GeneralTab />}
         {activeTab === 'assets' && <AssetSettingsTab />}
         {activeTab === 'customers' && <CustomerSettingsTab />}

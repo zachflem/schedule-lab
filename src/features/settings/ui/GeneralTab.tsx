@@ -100,7 +100,7 @@ export function GeneralTab() {
   if (loading) return <div>Loading settings...</div>;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', maxWidth: '600px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
     <div className="card shadow-sm">
       <div className="card__header">
         <h3 className="card__title">Platform Identity</h3>
