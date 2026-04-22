@@ -133,14 +133,24 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
     });
   }, [assets, assetSearch, selectedAssetTypes]);
 
+  const requiredQualIds = useMemo(() => {
+    return assets
+      .filter(a => selectedAssets.includes(a.id!))
+      .map(a => a.required_qualification_id)
+      .filter((id): id is string => !!id);
+  }, [assets, selectedAssets]);
+
   const filteredPersonnel = useMemo(() => {
     return personnel.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(personnelSearch.toLowerCase());
       const matchesQual = selectedQualifications.length === 0 ||
         p.qualifications?.some(q => selectedQualifications.includes(q.name));
-      return matchesSearch && matchesQual;
+      const matchesAssetQual = requiredQualIds.length === 0 ||
+        selectedPersonnel.includes(p.id!) ||
+        p.qualifications?.some(q => q.id !== undefined && requiredQualIds.includes(q.id));
+      return matchesSearch && matchesQual && matchesAssetQual;
     });
-  }, [personnel, personnelSearch, selectedQualifications]);
+  }, [personnel, personnelSearch, selectedQualifications, requiredQualIds, selectedPersonnel]);
 
   const buildRecurrencePayload = () => {
     if (!isProject || !doesRepeat) return null;
@@ -517,6 +527,17 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
                     </label>
                     <input type="text" placeholder="Search…" className="form-input" style={{ width: '120px', padding: '3px 8px', fontSize: 'var(--text-xs)' }} value={personnelSearch} onChange={(e) => setPersonnelSearch(e.target.value)} />
                   </div>
+
+                  {requiredQualIds.length > 0 && (
+                    <div style={{
+                      fontSize: '11px', color: 'var(--color-primary-700)',
+                      background: 'var(--color-primary-50)',
+                      border: '1px solid var(--color-primary-200)',
+                      borderRadius: '4px', padding: '6px 8px', marginBottom: 'var(--space-2)',
+                    }}>
+                      Showing personnel qualified for the selected asset{selectedAssets.length > 1 ? 's' : ''}.
+                    </div>
+                  )}
 
                   {isProject && (selectedAssets.length > 0 || selectedPersonnel.length > 0) && (
                     <div style={{

@@ -141,14 +141,24 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
     });
   }, [allAssets, assetSearch, selectedAssetTypes]);
 
+  const requiredQualIds = useMemo(() => {
+    return allAssets
+      .filter(a => selectedAssets.includes(a.id!))
+      .map(a => a.required_qualification_id)
+      .filter((id): id is string => !!id);
+  }, [allAssets, selectedAssets]);
+
   const filteredPersonnel = useMemo(() => {
     return allPersonnel.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(personnelSearch.toLowerCase());
       const matchesQual = selectedQualifications.length === 0 ||
         p.qualifications?.some(q => selectedQualifications.includes(q.name));
-      return matchesSearch && matchesQual;
+      const matchesAssetQual = requiredQualIds.length === 0 ||
+        selectedPersonnel.includes(p.id!) ||
+        p.qualifications?.some(q => q.id !== undefined && requiredQualIds.includes(q.id));
+      return matchesSearch && matchesQual && matchesAssetQual;
     });
-  }, [allPersonnel, personnelSearch, selectedQualifications]);
+  }, [allPersonnel, personnelSearch, selectedQualifications, requiredQualIds, selectedPersonnel]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -402,6 +412,17 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
                         <input type="text" placeholder="Search…" className="form-input" style={{ width: '120px', padding: '3px 8px', fontSize: 'var(--text-xs)' }} value={personnelSearch} onChange={(e) => setPersonnelSearch(e.target.value)} />
                       )}
                     </div>
+
+                    {!isLocked && requiredQualIds.length > 0 && (
+                      <div style={{
+                        fontSize: '11px', color: 'var(--color-primary-700)',
+                        background: 'var(--color-primary-50)',
+                        border: '1px solid var(--color-primary-200)',
+                        borderRadius: '4px', padding: '6px 8px', marginBottom: 'var(--space-2)',
+                      }}>
+                        Showing personnel qualified for the selected asset{selectedAssets.length > 1 ? 's' : ''}.
+                      </div>
+                    )}
 
                     {!isLocked && uniqueQualifications.length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: 'var(--space-2)' }}>
