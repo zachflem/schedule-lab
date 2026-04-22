@@ -11,9 +11,11 @@ interface AssetWithMetadata extends Asset {
 }
 
 interface ComplianceWarning {
-  assetId: string;
-  assetName: string;
+  entityId: string;
+  entityName: string;
+  entityType: 'asset' | 'personnel';
   items: { label: string; expiry: string; daysRemaining: number }[];
+  hasExpired: boolean;
 }
 
 function daysUntil(dateStr: string): number {
@@ -22,26 +24,34 @@ function daysUntil(dateStr: string): number {
   return Math.floor((new Date(dateStr).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function getComplianceWarnings(asset: AssetWithMetadata): ComplianceWarning | null {
+function getAssetComplianceWarning(asset: AssetWithMetadata): ComplianceWarning | null {
   const items: ComplianceWarning['items'] = [];
 
   const checkDate = (label: string, dateStr: string | null | undefined) => {
     if (!dateStr) return;
     const days = daysUntil(dateStr);
-    if (days <= 90) {
-      items.push({ label, expiry: dateStr, daysRemaining: days });
-    }
+    if (days <= 30) items.push({ label, expiry: dateStr, daysRemaining: days });
   };
 
   checkDate('Rego', asset.rego_expiry);
   checkDate('Insurance', asset.insurance_expiry);
-
   for (const entry of (asset.compliance_entries as AssetCompliance[] | undefined) ?? []) {
     checkDate(entry.compliance_type_name ?? 'Compliance', entry.expiry_date);
   }
 
   if (items.length === 0) return null;
-  return { assetId: asset.id!, assetName: asset.name, items };
+  return { entityId: asset.id!, entityName: asset.name, entityType: 'asset', items, hasExpired: items.some(i => i.daysRemaining < 0) };
+}
+
+function getPersonnelComplianceWarning(person: Personnel): ComplianceWarning | null {
+  const items: ComplianceWarning['items'] = [];
+  for (const qual of person.qualifications ?? []) {
+    if (!qual.expiry_date) continue;
+    const days = daysUntil(qual.expiry_date);
+    if (days <= 30) items.push({ label: qual.name, expiry: qual.expiry_date, daysRemaining: days });
+  }
+  if (items.length === 0) return null;
+  return { entityId: person.id!, entityName: person.name, entityType: 'personnel', items, hasExpired: items.some(i => i.daysRemaining < 0) };
 }
 
 interface JobEditModalProps {
@@ -167,26 +177,30 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
 
   const handleToggleAsset = (id: string) => {
     if (isLocked) return;
-    const isRemoving = selectedAssets.includes(id);
-    if (isRemoving) {
+    if (selectedAssets.includes(id)) {
       setSelectedAssets(prev => prev.filter(a => a !== id));
       return;
     }
-    // Check compliance expiry before adding
     const asset = allAssets.find(a => a.id === id);
     if (asset) {
-      const warning = getComplianceWarnings(asset);
-      if (warning) {
-        setComplianceWarning(warning);
-        return; // modal will confirm before adding
-      }
+      const warning = getAssetComplianceWarning(asset);
+      if (warning) { setComplianceWarning(warning); return; }
     }
     setSelectedAssets(prev => [...prev, id]);
   };
 
   const handleTogglePersonnel = (id: string) => {
     if (isLocked) return;
-    setSelectedPersonnel(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+    if (selectedPersonnel.includes(id)) {
+      setSelectedPersonnel(prev => prev.filter(p => p !== id));
+      return;
+    }
+    const person = allPersonnel.find(p => p.id === id);
+    if (person) {
+      const warning = getPersonnelComplianceWarning(person);
+      if (warning) { setComplianceWarning(warning); return; }
+    }
+    setSelectedPersonnel(prev => [...prev, id]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -515,22 +529,27 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
         </form>
       </div>
 
-      {/* Compliance Expiry Warning Modal */}
+      {/* Compliance Warning Modal */}
       {complianceWarning && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200 }}>
           <div className="card" style={{ width: '440px', maxWidth: '95vw' }}>
-            <div className="card__header" style={{ background: 'var(--color-warning-50)', borderBottom: '1px solid var(--color-warning-200)' }}>
+            <div className="card__header" style={{ background: complianceWarning.hasExpired ? 'var(--color-danger-50)' : 'var(--color-warning-50)', borderBottom: `1px solid ${complianceWarning.hasExpired ? 'var(--color-danger-200)' : 'var(--color-warning-200)'}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-warning-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, flexShrink: 0 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke={complianceWarning.hasExpired ? 'var(--color-danger-600)' : 'var(--color-warning-600)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, flexShrink: 0 }}>
                   <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                   <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
-                <h3 style={{ color: 'var(--color-warning-800)' }}>Compliance Expiry Warning</h3>
+                <h3 style={{ color: complianceWarning.hasExpired ? 'var(--color-danger-800)' : 'var(--color-warning-800)' }}>
+                  {complianceWarning.hasExpired ? 'Compliance Expired — Cannot Assign' : 'Compliance Expiry Warning'}
+                </h3>
               </div>
             </div>
             <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
               <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-700)' }}>
-                <strong>{complianceWarning.assetName}</strong> has compliance items expiring within 90 days:
+                <strong>{complianceWarning.entityName}</strong>{' '}
+                {complianceWarning.hasExpired
+                  ? 'has expired compliance items and cannot be assigned:'
+                  : 'has compliance items expiring within 30 days:'}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                 {complianceWarning.items.map((item, i) => (
@@ -538,34 +557,38 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
                     <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{item.label}</span>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-600)' }}>Expires {item.expiry}</div>
-                      <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: item.daysRemaining < 0 ? 'var(--color-danger-600)' : item.daysRemaining <= 30 ? 'var(--color-danger-500)' : 'var(--color-warning-600)' }}>
+                      <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: item.daysRemaining < 0 ? 'var(--color-danger-600)' : 'var(--color-warning-600)' }}>
                         {item.daysRemaining < 0 ? `Expired ${Math.abs(item.daysRemaining)}d ago` : item.daysRemaining === 0 ? 'Expires today' : `${item.daysRemaining}d remaining`}
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)' }}>
-                Do you still want to add this asset to the job?
-              </p>
+              {!complianceWarning.hasExpired && (
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)' }}>
+                  Do you still want to assign this {complianceWarning.entityType}?
+                </p>
+              )}
               <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  className="btn btn--secondary"
-                  onClick={() => setComplianceWarning(null)}
-                >
-                  Cancel
+                <button type="button" className="btn btn--secondary" onClick={() => setComplianceWarning(null)}>
+                  {complianceWarning.hasExpired ? 'Close' : 'Cancel'}
                 </button>
-                <button
-                  type="button"
-                  className="btn btn--warning"
-                  onClick={() => {
-                    setSelectedAssets(prev => [...prev, complianceWarning.assetId]);
-                    setComplianceWarning(null);
-                  }}
-                >
-                  Add Anyway
-                </button>
+                {!complianceWarning.hasExpired && (
+                  <button
+                    type="button"
+                    className="btn btn--warning"
+                    onClick={() => {
+                      if (complianceWarning.entityType === 'asset') {
+                        setSelectedAssets(prev => [...prev, complianceWarning.entityId]);
+                      } else {
+                        setSelectedPersonnel(prev => [...prev, complianceWarning.entityId]);
+                      }
+                      setComplianceWarning(null);
+                    }}
+                  >
+                    Assign Anyway
+                  </button>
+                )}
               </div>
             </div>
           </div>
