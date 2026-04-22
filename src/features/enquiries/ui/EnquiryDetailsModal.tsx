@@ -87,6 +87,8 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
   const [quoteRecipient, setQuoteRecipient] = useState<'site' | 'billing' | 'both' | 'other'>('site');
   const [quoteOtherEmail, setQuoteOtherEmail] = useState('');
   const [estimatedHours, setEstimatedHours] = useState<string>('');
+  const [hoursType, setHoursType] = useState<'quoted' | 'estimated'>('quoted');
+  const [includesTravel, setIncludesTravel] = useState(false);
   const [templates, setTemplates] = useState<CorrespondenceTemplate[]>([]);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [complianceWarning, setComplianceWarning] = useState<ComplianceWarning | null>(null);
@@ -241,6 +243,8 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
         quote_recipient: convertTo === 'Quote' ? quoteRecipient : undefined,
         quote_other_email: convertTo === 'Quote' && quoteRecipient === 'other' ? quoteOtherEmail : undefined,
         estimated_hours: convertTo === 'Quote' && estimatedHours ? parseFloat(estimatedHours) : undefined,
+        hours_type: convertTo === 'Quote' && estimatedHours ? hoursType : undefined,
+        includes_travel: convertTo === 'Quote' ? includesTravel : undefined,
         selected_template_ids: convertTo === 'Quote' ? selectedTemplateIds : [],
         recurrence: buildRecurrencePayload(),
       });
@@ -678,94 +682,216 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
               )}
             </div>
 
-            {convertTo === 'Quote' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            {convertTo === 'Quote' && (() => {
+              const hrs = parseFloat(estimatedHours) || 0;
+              const assignedAssetObjs = assets.filter(a => selectedAssets.includes(a.id!));
+              const assignedPersonnelObjs = personnel.filter(p => selectedPersonnel.includes(p.id!));
 
-                {/* Recipient */}
-                <div style={{ padding: 'var(--space-4)', background: 'var(--color-primary-50)', borderRadius: '6px', border: '1px solid var(--color-primary-100)' }}>
-                  <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 600, color: 'var(--color-primary-800)', fontSize: 'var(--text-sm)' }}>
-                    Send Quote To:
-                  </label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                    {([
-                      { value: 'site', label: `Site Contact (${enquiry.site_contact_name || 'N/A'})` },
-                      { value: 'billing', label: 'Billing Contact' },
-                      { value: 'both', label: 'Both (Site & Billing)' },
-                      { value: 'other', label: 'Other (manual email)' },
-                    ] as const).map(({ value, label }) => (
-                      <label key={value} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+              const assetRows = assignedAssetObjs.map(a => ({
+                name: a.name,
+                rate: a.rate_hourly ?? null,
+                cost: hrs && a.rate_hourly ? hrs * a.rate_hourly : null,
+              }));
+              const personnelRows = assignedPersonnelObjs.map(p => {
+                const primaryQual = p.qualifications?.[0];
+                const rate = primaryQual?.rate_hourly ?? null;
+                return {
+                  name: p.name,
+                  rate,
+                  qualLabel: primaryQual?.name ?? null,
+                  cost: hrs && rate ? hrs * rate : null,
+                };
+              });
+              const totalCost = [...assetRows, ...personnelRows].every(r => r.cost !== null)
+                ? assetRows.reduce((s, r) => s + (r.cost ?? 0), 0) + personnelRows.reduce((s, r) => s + (r.cost ?? 0), 0)
+                : null;
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+
+                  {/* Hours */}
+                  <div style={{ padding: 'var(--space-4)', background: 'var(--color-gray-50)', borderRadius: '6px', border: '1px solid var(--color-gray-200)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+                        {(['quoted', 'estimated'] as const).map(type => (
+                          <label key={type} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-gray-700)', cursor: 'pointer' }}>
+                            <input
+                              type="radio"
+                              name="hoursType"
+                              checked={hoursType === type}
+                              onChange={() => setHoursType(type)}
+                            />
+                            {type === 'quoted' ? 'Quoted Hrs' : 'Estimated Hrs'}
+                          </label>
+                        ))}
+                      </div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', cursor: 'pointer' }}>
                         <input
-                          type="radio"
-                          name="recipient"
-                          checked={quoteRecipient === value}
-                          onChange={() => setQuoteRecipient(value)}
+                          type="checkbox"
+                          checked={includesTravel}
+                          onChange={e => setIncludesTravel(e.target.checked)}
                         />
-                        {label}
+                        Includes Travel
                       </label>
-                    ))}
-                    {quoteRecipient === 'other' && (
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                       <input
-                        type="email"
-                        required
+                        type="number"
+                        min="0.5"
+                        step="0.5"
                         className="form-input"
-                        placeholder="recipient@example.com"
-                        style={{ marginTop: 'var(--space-1)' }}
-                        value={quoteOtherEmail}
-                        onChange={e => setQuoteOtherEmail(e.target.value)}
+                        style={{ width: '100px' }}
+                        placeholder="e.g. 8"
+                        value={estimatedHours}
+                        onChange={e => setEstimatedHours(e.target.value)}
                       />
-                    )}
-                  </div>
-                </div>
-
-                {/* Estimated hours */}
-                <div style={{ padding: 'var(--space-4)', background: 'var(--color-gray-50)', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }}>
-                  <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--color-gray-700)' }}>
-                    Estimated Hours
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                    <input
-                      type="number"
-                      min="0.5"
-                      step="0.5"
-                      className="form-input"
-                      style={{ width: '100px' }}
-                      placeholder="e.g. 8"
-                      value={estimatedHours}
-                      onChange={e => setEstimatedHours(e.target.value)}
-                    />
-                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)' }}>hours (shown on quote to customer)</span>
-                  </div>
-                </div>
-
-                {/* Correspondence templates */}
-                {templates.length > 0 && (
-                  <div style={{ padding: 'var(--space-4)', background: 'var(--color-gray-50)', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }}>
-                    <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--color-gray-700)' }}>
-                      Include with Quote:
-                    </label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                      {templates.map(t => (
-                        <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={selectedTemplateIds.includes(t.id!)}
-                            onChange={e => {
-                              setSelectedTemplateIds(prev =>
-                                e.target.checked
-                                  ? [...prev, t.id!]
-                                  : prev.filter(id => id !== t.id)
-                              );
-                            }}
-                          />
-                          {t.name}
-                        </label>
-                      ))}
+                      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)' }}>hours</span>
                     </div>
                   </div>
-                )}
 
-              </div>
-            )}
+                  {/* Quote summary */}
+                  {(assignedAssetObjs.length > 0 || assignedPersonnelObjs.length > 0) && (
+                    <div style={{ borderRadius: '6px', border: '1px solid var(--color-gray-200)', overflow: 'hidden' }}>
+                      <div style={{ padding: 'var(--space-2) var(--space-3)', background: 'var(--color-gray-100)', borderBottom: '1px solid var(--color-gray-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-gray-600)' }}>
+                          Quote Summary
+                        </span>
+                        {hrs > 0 && (
+                          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)' }}>
+                            {hrs}h · {hoursType === 'quoted' ? 'Quoted' : 'Estimated'}{includesTravel ? ' · incl. travel' : ''}
+                          </span>
+                        )}
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+                        <thead>
+                          <tr style={{ background: 'var(--color-gray-50)' }}>
+                            <th style={{ padding: 'var(--space-2) var(--space-3)', textAlign: 'left', fontWeight: 600, color: 'var(--color-gray-600)', fontSize: 'var(--text-xs)' }}>Item</th>
+                            <th style={{ padding: 'var(--space-2) var(--space-3)', textAlign: 'right', fontWeight: 600, color: 'var(--color-gray-600)', fontSize: 'var(--text-xs)' }}>Rate/hr</th>
+                            {hrs > 0 && <th style={{ padding: 'var(--space-2) var(--space-3)', textAlign: 'right', fontWeight: 600, color: 'var(--color-gray-600)', fontSize: 'var(--text-xs)' }}>Est. Cost</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {assetRows.map((row, i) => (
+                            <tr key={i} style={{ borderTop: '1px solid var(--color-gray-100)' }}>
+                              <td style={{ padding: 'var(--space-2) var(--space-3)', color: 'var(--color-gray-800)' }}>
+                                <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-primary-600)', marginRight: 'var(--space-1)', textTransform: 'uppercase' }}>Asset</span>
+                                {row.name}
+                              </td>
+                              <td style={{ padding: 'var(--space-2) var(--space-3)', textAlign: 'right', color: row.rate ? 'var(--color-gray-700)' : 'var(--color-gray-400)' }}>
+                                {row.rate ? `$${row.rate.toFixed(2)}` : '—'}
+                              </td>
+                              {hrs > 0 && (
+                                <td style={{ padding: 'var(--space-2) var(--space-3)', textAlign: 'right', fontWeight: 600, color: row.cost ? 'var(--color-gray-800)' : 'var(--color-gray-400)' }}>
+                                  {row.cost ? `$${row.cost.toFixed(2)}` : '—'}
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                          {personnelRows.map((row, i) => (
+                            <tr key={i} style={{ borderTop: '1px solid var(--color-gray-100)' }}>
+                              <td style={{ padding: 'var(--space-2) var(--space-3)', color: 'var(--color-gray-800)' }}>
+                                <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-success-600, #16a34a)', marginRight: 'var(--space-1)', textTransform: 'uppercase' }}>Crew</span>
+                                {row.name}
+                                {row.qualLabel && <span style={{ color: 'var(--color-gray-400)', fontSize: 'var(--text-xs)', marginLeft: 'var(--space-1)' }}>({row.qualLabel})</span>}
+                              </td>
+                              <td style={{ padding: 'var(--space-2) var(--space-3)', textAlign: 'right', color: row.rate ? 'var(--color-gray-700)' : 'var(--color-gray-400)' }}>
+                                {row.rate ? `$${row.rate.toFixed(2)}` : '—'}
+                              </td>
+                              {hrs > 0 && (
+                                <td style={{ padding: 'var(--space-2) var(--space-3)', textAlign: 'right', fontWeight: 600, color: row.cost ? 'var(--color-gray-800)' : 'var(--color-gray-400)' }}>
+                                  {row.cost ? `$${row.cost.toFixed(2)}` : '—'}
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                        {hrs > 0 && totalCost !== null && (
+                          <tfoot>
+                            <tr style={{ borderTop: '2px solid var(--color-gray-200)', background: 'var(--color-gray-50)' }}>
+                              <td colSpan={2} style={{ padding: 'var(--space-2) var(--space-3)', fontWeight: 700, fontSize: 'var(--text-sm)', color: 'var(--color-gray-700)' }}>
+                                Total ({hoursType === 'quoted' ? 'Quoted' : 'Estimated'})
+                              </td>
+                              <td style={{ padding: 'var(--space-2) var(--space-3)', textAlign: 'right', fontWeight: 700, fontSize: 'var(--text-sm)', color: 'var(--color-gray-900)' }}>
+                                ${totalCost.toFixed(2)}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        )}
+                      </table>
+                      {hrs === 0 && (
+                        <p style={{ margin: 0, padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', borderTop: '1px solid var(--color-gray-100)' }}>
+                          Enter hours above to see estimated costs.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Recipient */}
+                  <div style={{ padding: 'var(--space-4)', background: 'var(--color-primary-50)', borderRadius: '6px', border: '1px solid var(--color-primary-100)' }}>
+                    <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 600, color: 'var(--color-primary-800)', fontSize: 'var(--text-sm)' }}>
+                      Send Quote To:
+                    </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                      {([
+                        { value: 'site', label: `Site Contact (${enquiry.site_contact_name || 'N/A'})` },
+                        { value: 'billing', label: 'Billing Contact' },
+                        { value: 'both', label: 'Both (Site & Billing)' },
+                        { value: 'other', label: 'Other (manual email)' },
+                      ] as const).map(({ value, label }) => (
+                        <label key={value} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+                          <input
+                            type="radio"
+                            name="recipient"
+                            checked={quoteRecipient === value}
+                            onChange={() => setQuoteRecipient(value)}
+                          />
+                          {label}
+                        </label>
+                      ))}
+                      {quoteRecipient === 'other' && (
+                        <input
+                          type="email"
+                          required
+                          className="form-input"
+                          placeholder="recipient@example.com"
+                          style={{ marginTop: 'var(--space-1)' }}
+                          value={quoteOtherEmail}
+                          onChange={e => setQuoteOtherEmail(e.target.value)}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Correspondence templates */}
+                  {templates.length > 0 && (
+                    <div style={{ padding: 'var(--space-4)', background: 'var(--color-gray-50)', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }}>
+                      <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--color-gray-700)' }}>
+                        Include with Quote:
+                      </label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                        {templates.map(t => (
+                          <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={selectedTemplateIds.includes(t.id!)}
+                              onChange={e => {
+                                setSelectedTemplateIds(prev =>
+                                  e.target.checked
+                                    ? [...prev, t.id!]
+                                    : prev.filter(id => id !== t.id)
+                                );
+                              }}
+                            />
+                            {t.name}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              );
+            })()}
           </section>
 
         </div>
