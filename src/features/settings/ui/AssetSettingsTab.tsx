@@ -103,32 +103,34 @@ export function AssetSettingsTab() {
             + Add Type
           </button>
         </div>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Type Name</th>
-              <th>Checklist Items</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {assetTypes.length === 0 ? (
-              <tr><td colSpan={3} style={{ textAlign: 'center', color: 'var(--color-gray-400)', padding: 'var(--space-6)' }}>No asset types yet</td></tr>
-            ) : assetTypes.map(t => (
-              <tr key={t.id}>
-                <td style={{ fontWeight: 600 }}>{t.name}</td>
-                <td style={{ color: 'var(--color-gray-500)', fontSize: 'var(--text-sm)' }}>
-                  {t.checklist_questions.length} {t.checklist_questions.length === 1 ? 'item' : 'items'}
-                </td>
-                <td style={{ textAlign: 'right' }}>
-                  <button className="btn-icon" onClick={() => setEditingType(t)}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                  </button>
-                </td>
+        <div className="data-table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Type Name</th>
+                <th>Checklist Items</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {assetTypes.length === 0 ? (
+                <tr><td colSpan={3} style={{ textAlign: 'center', color: 'var(--color-gray-400)', padding: 'var(--space-6)' }}>No asset types yet</td></tr>
+              ) : assetTypes.map(t => (
+                <tr key={t.id}>
+                  <td style={{ fontWeight: 600 }}>{t.name}</td>
+                  <td style={{ color: 'var(--color-gray-500)', fontSize: 'var(--text-sm)' }}>
+                    {t.checklist_questions.length} {t.checklist_questions.length === 1 ? 'item' : 'items'}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button className="btn btn--secondary btn--icon" onClick={() => setEditingType(t)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Compliance Types */}
@@ -144,38 +146,40 @@ export function AssetSettingsTab() {
             + Add Type
           </button>
         </div>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {complianceTypes.length === 0 ? (
-              <tr><td colSpan={2} style={{ textAlign: 'center', color: 'var(--color-gray-400)', padding: 'var(--space-6)' }}>No compliance types yet</td></tr>
-            ) : complianceTypes.map(ct => (
-              <tr key={ct.id}>
-                <td style={{ fontWeight: 600 }}>{ct.name}</td>
-                <td style={{ textAlign: 'right' }}>
-                  <div style={{ display: 'flex', gap: 'var(--space-1)', justifyContent: 'flex-end' }}>
-                    <button className="btn-icon" onClick={() => setEditingCompliance(ct)}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                    </button>
-                    <button className="btn-icon" style={{ color: 'var(--color-danger-600)' }} onClick={() => handleDeleteCompliance(ct.id)}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" /></svg>
-                    </button>
-                  </div>
-                </td>
+        <div className="data-table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {complianceTypes.length === 0 ? (
+                <tr><td colSpan={2} style={{ textAlign: 'center', color: 'var(--color-gray-400)', padding: 'var(--space-6)' }}>No compliance types yet</td></tr>
+              ) : complianceTypes.map(ct => (
+                <tr key={ct.id}>
+                  <td style={{ fontWeight: 600 }}>{ct.name}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: 'var(--space-1)', justifyContent: 'flex-end' }}>
+                      <button className="btn btn--secondary btn--icon" onClick={() => setEditingCompliance(ct)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                      </button>
+                      <button className="btn btn--secondary btn--icon" style={{ color: 'var(--color-danger-600)' }} onClick={() => handleDeleteCompliance(ct.id)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Asset Type Modal */}
       {editingType && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div className="modal-overlay">
           <div className="card" style={{ width: '480px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
             <div className="card__header">
               <h3 className="card__title">{editingType.id ? 'Edit' : 'Add'} Asset Type</h3>
@@ -208,7 +212,7 @@ export function AssetSettingsTab() {
                       />
                       <button
                         type="button"
-                        className="btn btn--danger btn--icon btn--sm"
+                        className="btn btn--danger btn--icon"
                         onClick={() => {
                           const updated = (editingType.checklist_questions || []).filter((_, idx) => idx !== i);
                           setEditingType({ ...editingType, checklist_questions: updated });
@@ -243,7 +247,7 @@ export function AssetSettingsTab() {
 
       {/* Compliance Type Modal */}
       {editingCompliance && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div className="modal-overlay">
           <div className="card" style={{ width: '400px' }}>
             <div className="card__header">
               <h3 className="card__title">{editingCompliance.id ? 'Edit' : 'Add'} Compliance Type</h3>

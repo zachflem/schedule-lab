@@ -138,37 +138,39 @@ export function QualificationSettingsTab() {
             </button>
           )}
         </div>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th style={{ textAlign: 'center' }}>Regular Rate</th>
-              <th style={{ textAlign: 'center' }}>After Hours</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {qualifications.length === 0 ? (
-              <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--color-gray-400)', padding: 'var(--space-6)' }}>No qualifications yet</td></tr>
-            ) : qualifications.map(qual => (
-              <tr key={qual.id}>
-                <td style={{ fontWeight: 600 }}>{qual.name}</td>
-                <td style={{ textAlign: 'center' }}>${qual.rate_hourly?.toFixed(2)}</td>
-                <td style={{ textAlign: 'center' }}>${qual.rate_after_hours?.toFixed(2)}</td>
-                <td style={{ textAlign: 'right' }}>
-                  <div style={{ display: 'flex', gap: 'var(--space-1)', justifyContent: 'flex-end' }}>
-                    <button className="btn-icon" onClick={() => handleEdit(qual)}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                    </button>
-                    <button className="btn-icon" style={{ color: 'var(--color-danger-600)' }} onClick={() => handleDelete(qual.id!)}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" /></svg>
-                    </button>
-                  </div>
-                </td>
+        <div className="data-table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th style={{ textAlign: 'center' }}>Regular Rate</th>
+                <th style={{ textAlign: 'center' }}>After Hours</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {qualifications.length === 0 ? (
+                <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--color-gray-400)', padding: 'var(--space-6)' }}>No qualifications yet</td></tr>
+              ) : qualifications.map(qual => (
+                <tr key={qual.id}>
+                  <td style={{ fontWeight: 600 }}>{qual.name}</td>
+                  <td style={{ textAlign: 'center' }}>${qual.rate_hourly?.toFixed(2)}</td>
+                  <td style={{ textAlign: 'center' }}>${qual.rate_after_hours?.toFixed(2)}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: 'var(--space-1)', justifyContent: 'flex-end' }}>
+                      <button className="btn btn--secondary btn--icon" onClick={() => handleEdit(qual)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                      </button>
+                      <button className="btn btn--secondary btn--icon" style={{ color: 'var(--color-danger-600)' }} onClick={() => handleDelete(qual.id!)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
