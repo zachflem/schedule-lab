@@ -399,6 +399,17 @@ export const EnquirySchema = z.object({
 });
 export type Enquiry = z.infer<typeof EnquirySchema>;
 
+// ── Correspondence Templates ───────────────────────────
+export const CorrespondenceTemplateSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, 'Name is required'),
+  content: z.string().default(''),
+  is_system: z.number().int().default(0),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+export type CorrespondenceTemplate = z.infer<typeof CorrespondenceTemplateSchema>;
+
 // ── Platform Settings ──────────────────────────────────
 export const PlatformSettingsSchema = z.object({
   id: z.string().default('global'),

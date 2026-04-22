@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { api } from '@/shared/lib/api';
-import type { Enquiry, Asset, Personnel, RecurrenceWeekday, AssetCompliance } from '@/shared/validation/schemas';
+import type { Enquiry, Asset, Personnel, RecurrenceWeekday, AssetCompliance, CorrespondenceTemplate } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
 
 interface EnquiryDetailsModalProps {
@@ -84,7 +84,11 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
   const [personnelSearch, setPersonnelSearch] = useState('');
   const [selectedQualifications, setSelectedQualifications] = useState<string[]>([]);
   const [convertTo, setConvertTo] = useState<'Job' | 'Quote'>('Job');
-  const [quoteRecipient, setQuoteRecipient] = useState<'site' | 'billing' | 'both'>('site');
+  const [quoteRecipient, setQuoteRecipient] = useState<'site' | 'billing' | 'both' | 'other'>('site');
+  const [quoteOtherEmail, setQuoteOtherEmail] = useState('');
+  const [estimatedHours, setEstimatedHours] = useState<string>('');
+  const [templates, setTemplates] = useState<CorrespondenceTemplate[]>([]);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [complianceWarning, setComplianceWarning] = useState<ComplianceWarning | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -108,12 +112,14 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
   useEffect(() => {
     async function fetchData() {
       try {
-        const [assetsData, personnelData] = await Promise.all([
+        const [assetsData, personnelData, templatesData] = await Promise.all([
           api.get<Asset[]>('/assets'),
-          api.get<Personnel[]>('/personnel')
+          api.get<Personnel[]>('/personnel'),
+          api.get<CorrespondenceTemplate[]>('/correspondence-templates'),
         ]);
         setAssets(assetsData);
         setPersonnel(personnelData);
+        setTemplates(templatesData);
       } catch (err) {
         console.error('Failed to fetch resources', err);
       } finally {
@@ -233,6 +239,9 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
         assigned_assets: selectedAssets,
         assigned_personnel: selectedPersonnel,
         quote_recipient: convertTo === 'Quote' ? quoteRecipient : undefined,
+        quote_other_email: convertTo === 'Quote' && quoteRecipient === 'other' ? quoteOtherEmail : undefined,
+        estimated_hours: convertTo === 'Quote' && estimatedHours ? parseFloat(estimatedHours) : undefined,
+        selected_template_ids: convertTo === 'Quote' ? selectedTemplateIds : [],
         recurrence: buildRecurrencePayload(),
       });
       onClose();
@@ -670,37 +679,91 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
             </div>
 
             {convertTo === 'Quote' && (
-              <div className="quote-options p-4 bg-blue-50 rounded-md border border-blue-100">
-                <label className="block mb-2 font-semibold text-blue-800">Send Quote To:</label>
-                <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="recipient"
-                      checked={quoteRecipient === 'site'}
-                      onChange={() => setQuoteRecipient('site')}
-                    />
-                    Site Contact ({enquiry.site_contact_name || 'N/A'})
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+
+                {/* Recipient */}
+                <div style={{ padding: 'var(--space-4)', background: 'var(--color-primary-50)', borderRadius: '6px', border: '1px solid var(--color-primary-100)' }}>
+                  <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 600, color: 'var(--color-primary-800)', fontSize: 'var(--text-sm)' }}>
+                    Send Quote To:
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="recipient"
-                      checked={quoteRecipient === 'billing'}
-                      onChange={() => setQuoteRecipient('billing')}
-                    />
-                    Billing Contact
-                  </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="recipient"
-                      checked={quoteRecipient === 'both'}
-                      onChange={() => setQuoteRecipient('both')}
-                    />
-                    Both
-                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                    {([
+                      { value: 'site', label: `Site Contact (${enquiry.site_contact_name || 'N/A'})` },
+                      { value: 'billing', label: 'Billing Contact' },
+                      { value: 'both', label: 'Both (Site & Billing)' },
+                      { value: 'other', label: 'Other (manual email)' },
+                    ] as const).map(({ value, label }) => (
+                      <label key={value} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+                        <input
+                          type="radio"
+                          name="recipient"
+                          checked={quoteRecipient === value}
+                          onChange={() => setQuoteRecipient(value)}
+                        />
+                        {label}
+                      </label>
+                    ))}
+                    {quoteRecipient === 'other' && (
+                      <input
+                        type="email"
+                        required
+                        className="form-input"
+                        placeholder="recipient@example.com"
+                        style={{ marginTop: 'var(--space-1)' }}
+                        value={quoteOtherEmail}
+                        onChange={e => setQuoteOtherEmail(e.target.value)}
+                      />
+                    )}
+                  </div>
                 </div>
+
+                {/* Estimated hours */}
+                <div style={{ padding: 'var(--space-4)', background: 'var(--color-gray-50)', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }}>
+                  <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--color-gray-700)' }}>
+                    Estimated Hours
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <input
+                      type="number"
+                      min="0.5"
+                      step="0.5"
+                      className="form-input"
+                      style={{ width: '100px' }}
+                      placeholder="e.g. 8"
+                      value={estimatedHours}
+                      onChange={e => setEstimatedHours(e.target.value)}
+                    />
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)' }}>hours (shown on quote to customer)</span>
+                  </div>
+                </div>
+
+                {/* Correspondence templates */}
+                {templates.length > 0 && (
+                  <div style={{ padding: 'var(--space-4)', background: 'var(--color-gray-50)', borderRadius: '6px', border: '1px solid var(--color-gray-200)' }}>
+                    <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--color-gray-700)' }}>
+                      Include with Quote:
+                    </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                      {templates.map(t => (
+                        <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedTemplateIds.includes(t.id!)}
+                            onChange={e => {
+                              setSelectedTemplateIds(prev =>
+                                e.target.checked
+                                  ? [...prev, t.id!]
+                                  : prev.filter(id => id !== t.id)
+                              );
+                            }}
+                          />
+                          {t.name}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
               </div>
             )}
           </section>
@@ -781,6 +844,7 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
             disabled={
               isSubmitting ||
               (convertTo === 'Job' && (selectedAssets.length === 0 || selectedPersonnel.length === 0)) ||
+              (convertTo === 'Quote' && quoteRecipient === 'other' && !quoteOtherEmail.trim()) ||
               (isProject && doesRepeat && recurrenceType === 'weekdays' && selectedWeekdays.length === 0) ||
               (isProject && doesRepeat && endType === 'date' && !endDate)
             }

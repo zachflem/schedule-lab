@@ -35,7 +35,10 @@ const ConversionRequestSchema = z.object({
   convert_to: z.enum(['Job', 'Quote']),
   assigned_assets: z.array(z.string()).default([]),
   assigned_personnel: z.array(z.string()).default([]),
-  quote_recipient: z.enum(['site', 'billing', 'both']).optional(),
+  quote_recipient: z.enum(['site', 'billing', 'both', 'other']).optional(),
+  quote_other_email: z.string().email().optional().nullable(),
+  estimated_hours: z.number().positive().optional().nullable(),
+  selected_template_ids: z.array(z.string()).default([]),
   // Project recurrence (only used when enquiry_type === 'Project')
   recurrence: RecurrenceSchema.optional().nullable(),
 });
@@ -54,7 +57,7 @@ export const onRequest = methodRouter({
       return errorResponse(result.error.message, 400);
     }
 
-    const { enquiry_id, convert_to, assigned_assets, assigned_personnel, quote_recipient, recurrence } = result.data;
+    const { enquiry_id, convert_to, assigned_assets, assigned_personnel, quote_recipient, quote_other_email, estimated_hours, recurrence } = result.data;
 
     // 1. Fetch Enquiry
     const enquiry = await db.prepare('SELECT * FROM enquiries WHERE id = ?').bind(enquiry_id).first() as any;
@@ -231,12 +234,16 @@ export const onRequest = methodRouter({
       INSERT INTO jobs (
         id, customer_id, enquiry_id, status_id, location,
         site_contact_name, site_contact_email, site_contact_phone,
-        job_brief, asset_requirement, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        job_brief, asset_requirement,
+        quote_recipient, quote_other_email, estimated_hours,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       job_id, customer_id, enquiry_id, status_id, enquiry.location,
       enquiry.site_contact_name, enquiry.contact_email, enquiry.contact_phone,
-      enquiry.job_brief, enquiry.asset_requirement, timestamp, timestamp
+      enquiry.job_brief, enquiry.asset_requirement,
+      quote_recipient ?? null, quote_other_email ?? null, estimated_hours ?? null,
+      timestamp, timestamp
     ).run();
 
     const batches: any[] = [];

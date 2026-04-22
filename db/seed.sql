@@ -135,3 +135,61 @@ ON CONFLICT(id) DO NOTHING;
 INSERT INTO job_resources (id, job_id, resource_type, asset_id, qualification_id, rate_type, rate_amount, qty, total) VALUES
   ('jr03', 'j04', 'Asset', 'a02', NULL, 'Hourly', 195.00, 4, 780.00)
 ON CONFLICT(id) DO NOTHING;
+
+-- CORRESPONDENCE TEMPLATES (system defaults)
+INSERT INTO correspondence_templates (id, name, content, is_system) VALUES
+  ('ct01', 'Standard Hire Terms & Conditions',
+   'STANDARD HIRE TERMS & CONDITIONS
+
+1. QUOTATION VALIDITY
+This quotation is valid for 30 days from the date of issue. Prices are subject to change after this period.
+
+2. PAYMENT TERMS
+Payment is due within 30 days of invoice date. Late payments may attract a 1.5% per month interest charge.
+
+3. CANCELLATION POLICY
+Cancellations made less than 48 hours prior to the scheduled hire date may incur a cancellation fee of up to 50% of the quoted price. Cancellations made less than 24 hours prior may incur 100% of the quoted price.
+
+4. OPERATOR RESPONSIBILITY
+Our operators will operate equipment in a safe and professional manner in accordance with all applicable legislation and standards. The client is responsible for providing safe site access and ensuring the site is suitable for the equipment requested.
+
+5. INSURANCE
+All equipment is covered by our comprehensive insurance policy. The client is responsible for any damage caused by negligence or misuse.
+
+6. FORCE MAJEURE
+We shall not be liable for any delay or failure to perform obligations due to circumstances beyond our reasonable control.', 1),
+
+  ('ct02', 'Weather & Site Conditions Policy',
+   'WEATHER & SITE CONDITIONS POLICY
+
+WEATHER CANCELLATIONS
+For safety reasons, crane and elevated work operations may be suspended or cancelled due to adverse weather conditions including high winds (exceeding manufacturer safe operating limits), lightning, heavy rain reducing visibility, or other conditions deemed unsafe by our operator or site safety officer.
+
+In the event of a weather cancellation:
+- We will notify you as soon as practicable.
+- If work is cancelled prior to mobilisation, no charge will apply.
+- If equipment has mobilised to site, a minimum call-out fee may apply to cover mobilisation costs.
+- We will work with you to reschedule at the earliest available date.
+
+SITE CONDITIONS
+The client is responsible for ensuring the site meets the following requirements prior to arrival:
+- Ground bearing capacity suitable for the equipment specified.
+- Clear and safe access route to the work area.
+- Any underground services, voids, or hazards identified and clearly marked.
+- Adequate overhead clearance from powerlines and structures.
+
+Failure to meet site conditions may result in the job being aborted, with applicable charges applied.', 1),
+
+  ('ct03', 'Safe Work Method Statement (SWMS) Requirement',
+   'SAFE WORK METHOD STATEMENT REQUIREMENT
+
+A Safe Work Method Statement (SWMS) is required for all high-risk construction work as defined under the Work Health and Safety Regulations.
+
+Our operators will have a current SWMS available on-site for inspection. By proceeding with this engagement, the Principal Contractor/Client confirms:
+
+1. They have reviewed and accepted our SWMS for the proposed works.
+2. The site Supervisor or Safety Officer will be available at the commencement of works for a site induction and pre-start safety check.
+3. Any site-specific hazards or requirements have been communicated to us in advance.
+
+Please contact us if you require a copy of our SWMS prior to the scheduled date.', 1)
+ON CONFLICT(id) DO NOTHING;

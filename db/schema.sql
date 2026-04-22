@@ -256,6 +256,9 @@ CREATE TABLE IF NOT EXISTS jobs (
   inclusions             TEXT,
   exclusions             TEXT,
   include_standard_terms INTEGER DEFAULT 1,
+  estimated_hours        REAL,
+  quote_recipient        TEXT CHECK(quote_recipient IS NULL OR quote_recipient IN ('site','billing','both','other')),
+  quote_other_email      TEXT,
   created_at             TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at             TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -350,6 +353,16 @@ CREATE TABLE IF NOT EXISTS docket_line_items (
   created_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- CORRESPONDENCE TEMPLATES
+CREATE TABLE IF NOT EXISTS correspondence_templates (
+  id         TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  name       TEXT NOT NULL,
+  content    TEXT NOT NULL DEFAULT '',
+  is_system  INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- ============================================
 -- INDEXES
 -- ============================================
@@ -366,3 +379,10 @@ CREATE INDEX IF NOT EXISTS idx_alloc_time        ON allocations(start_time, end_
 CREATE INDEX IF NOT EXISTS idx_job_res_job       ON job_resources(job_id);
 CREATE INDEX IF NOT EXISTS idx_line_items_docket ON docket_line_items(docket_id);
 CREATE INDEX IF NOT EXISTS idx_assets_type       ON assets(asset_type_id);
+
+-- ============================================
+-- MIGRATIONS (run these on existing databases)
+-- ============================================
+-- ALTER TABLE jobs ADD COLUMN estimated_hours REAL;
+-- ALTER TABLE jobs ADD COLUMN quote_recipient TEXT;
+-- ALTER TABLE jobs ADD COLUMN quote_other_email TEXT;
