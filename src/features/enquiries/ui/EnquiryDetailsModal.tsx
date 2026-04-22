@@ -39,6 +39,7 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [selectedPersonnel, setSelectedPersonnel] = useState<string[]>([]);
   const [selectedAssetTypes, setSelectedAssetTypes] = useState<string[]>([]);
+  const [assetSearch, setAssetSearch] = useState('');
   const [personnelSearch, setPersonnelSearch] = useState('');
   const [selectedQualifications, setSelectedQualifications] = useState<string[]>([]);
   const [convertTo, setConvertTo] = useState<'Job' | 'Quote'>('Job');
@@ -125,9 +126,12 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
   }, [personnel]);
 
   const filteredAssets = useMemo(() => {
-    if (selectedAssetTypes.length === 0) return assets;
-    return assets.filter(a => selectedAssetTypes.includes((a as AssetWithMetadata).asset_type_name || 'Other'));
-  }, [assets, selectedAssetTypes]);
+    return assets.filter(a => {
+      const matchesSearch = a.name.toLowerCase().includes(assetSearch.toLowerCase());
+      const matchesType = selectedAssetTypes.length === 0 || selectedAssetTypes.includes((a as AssetWithMetadata).asset_type_name || 'Other');
+      return matchesSearch && matchesType;
+    });
+  }, [assets, assetSearch, selectedAssetTypes]);
 
   const filteredPersonnel = useMemo(() => {
     return personnel.filter(p => {
@@ -192,14 +196,16 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: '860px', width: '95%' }}>
+      <div className="modal-content" style={{ maxWidth: '680px', width: '95%' }}>
         <div className="modal-header">
           <h2>Process Enquiry: {enquiry.customer_name}</h2>
           <button className="btn-close" onClick={onClose}>&times;</button>
         </div>
 
-        <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)' }}>
-          <div className="enquiry-info">
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+
+          {/* ── Enquiry Details ──────────────────────────────────────────── */}
+          <section>
             <h3>Enquiry Details</h3>
             <div className="info-grid" style={{ fontSize: 'var(--text-sm)' }}>
               <div className="info-item">
@@ -242,314 +248,248 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
                 </p>
               </div>
             </div>
+          </section>
 
-            {/* ── PROJECT RECURRENCE SECTION ───────────────────────────── */}
-            {isProject && (
-              <div className="mt-5" style={{
-                border: '1px solid var(--color-primary-200)',
-                borderRadius: '8px',
-                overflow: 'hidden',
+          {/* ── PROJECT RECURRENCE SECTION ───────────────────────────────── */}
+          {isProject && (
+            <section style={{
+              border: '1px solid var(--color-primary-200)',
+              borderRadius: '8px',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                background: 'linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700))',
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
               }}>
-                {/* Header */}
-                <div style={{
-                  background: 'linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700))',
-                  padding: '10px 14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ width: '14px', height: '14px', flexShrink: 0 }}>
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                    <polyline points="17 14 12 14 12 19" />
-                  </svg>
-                  <span style={{ color: 'white', fontWeight: 700, fontSize: '12px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    Project Recurrence Schedule
-                  </span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ width: '14px', height: '14px', flexShrink: 0 }}>
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                  <polyline points="17 14 12 14 12 19" />
+                </svg>
+                <span style={{ color: 'white', fontWeight: 700, fontSize: '12px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  Project Recurrence Schedule
+                </span>
+              </div>
+
+              <div style={{ padding: '14px', background: 'var(--color-primary-50)' }}>
+                <div className="flex gap-2 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setDoesRepeat(false)}
+                    style={{
+                      flex: 1, padding: '7px 0', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+                      border: `2px solid ${!doesRepeat ? 'var(--color-primary-600)' : '#e5e7eb'}`,
+                      background: !doesRepeat ? 'var(--color-primary-600)' : 'white',
+                      color: !doesRepeat ? 'white' : '#6b7280', cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >
+                    Does Not Repeat
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDoesRepeat(true)}
+                    style={{
+                      flex: 1, padding: '7px 0', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+                      border: `2px solid ${doesRepeat ? 'var(--color-primary-600)' : '#e5e7eb'}`,
+                      background: doesRepeat ? 'var(--color-primary-600)' : 'white',
+                      color: doesRepeat ? 'white' : '#6b7280', cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >
+                    ↻ Repeats
+                  </button>
                 </div>
 
-                <div style={{ padding: '14px', background: 'var(--color-primary-50)' }}>
-                  {/* Repeat toggle */}
-                  <div className="flex gap-2 mb-4">
-                    <button
-                      type="button"
-                      onClick={() => setDoesRepeat(false)}
-                      style={{
-                        flex: 1, padding: '7px 0', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                        border: `2px solid ${!doesRepeat ? 'var(--color-primary-600)' : '#e5e7eb'}`,
-                        background: !doesRepeat ? 'var(--color-primary-600)' : 'white',
-                        color: !doesRepeat ? 'white' : '#6b7280', cursor: 'pointer', transition: 'all 0.15s',
-                      }}
-                    >
-                      Does Not Repeat
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDoesRepeat(true)}
-                      style={{
-                        flex: 1, padding: '7px 0', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                        border: `2px solid ${doesRepeat ? 'var(--color-primary-600)' : '#e5e7eb'}`,
-                        background: doesRepeat ? 'var(--color-primary-600)' : 'white',
-                        color: doesRepeat ? 'white' : '#6b7280', cursor: 'pointer', transition: 'all 0.15s',
-                      }}
-                    >
-                      ↻ Repeats
-                    </button>
-                  </div>
-
-                  {doesRepeat && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {/* Schedule type */}
-                      <div>
-                        <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-primary-700)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>
-                          Schedule Type
-                        </div>
-                        <div className="flex gap-2">
-                          {(['interval', 'weekdays'] as RecurrenceType[]).map(type => (
-                            <label key={type} className="flex items-center gap-2 cursor-pointer" style={{ fontSize: '12px', fontWeight: 500 }}>
-                              <input
-                                type="radio"
-                                name="recurrenceType"
-                                checked={recurrenceType === type}
-                                onChange={() => setRecurrenceType(type)}
-                              />
-                              {type === 'interval' ? '📅 Interval (days/weeks)' : '📆 Days of Week'}
-                            </label>
-                          ))}
-                        </div>
+                {doesRepeat && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div>
+                      <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-primary-700)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>
+                        Schedule Type
                       </div>
+                      <div className="flex gap-2">
+                        {(['interval', 'weekdays'] as RecurrenceType[]).map(type => (
+                          <label key={type} className="flex items-center gap-2 cursor-pointer" style={{ fontSize: '12px', fontWeight: 500 }}>
+                            <input
+                              type="radio"
+                              name="recurrenceType"
+                              checked={recurrenceType === type}
+                              onChange={() => setRecurrenceType(type)}
+                            />
+                            {type === 'interval' ? '📅 Interval (days/weeks)' : '📆 Days of Week'}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
 
-                      {/* ─ Interval mode ─ */}
-                      {recurrenceType === 'interval' && (
-                        <div style={{ background: 'white', borderRadius: '6px', padding: '10px', border: '1px solid #e5e7eb' }}>
-                          <div style={{ fontSize: '10px', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                            Interval Settings
-                          </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                            <div>
-                              <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '3px' }}>Active work period</label>
-                              <div className="flex gap-1">
-                                <input
-                                  type="number" min={1} value={intervalValue}
-                                  onChange={e => setIntervalValue(Number(e.target.value))}
-                                  className="form-input"
-                                  style={{ width: '56px', padding: '5px 6px', fontSize: '12px' }}
-                                />
-                                <select value={intervalUnit} onChange={e => setIntervalUnit(e.target.value as RecurrenceUnit)}
-                                  className="form-input" style={{ padding: '5px 6px', fontSize: '12px' }}>
-                                  {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
-                                </select>
-                              </div>
-                            </div>
-                            <div>
-                              <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '3px' }}>Downtime gap</label>
-                              <div className="flex gap-1">
-                                <input
-                                  type="number" min={0} value={downtimeValue}
-                                  onChange={e => setDowntimeValue(Number(e.target.value))}
-                                  className="form-input"
-                                  style={{ width: '56px', padding: '5px 6px', fontSize: '12px' }}
-                                />
-                                <select value={downtimeUnit} onChange={e => setDowntimeUnit(e.target.value as RecurrenceUnit)}
-                                  className="form-input" style={{ padding: '5px 6px', fontSize: '12px' }}>
-                                  {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
-                                </select>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* ─ Weekday mode ─ */}
-                      {recurrenceType === 'weekdays' && (
-                        <div style={{ background: 'white', borderRadius: '6px', padding: '10px', border: '1px solid #e5e7eb' }}>
-                          <div style={{ fontSize: '10px', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                            Repeat on Days
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {WEEKDAYS.map(({ key, label }) => (
-                              <button
-                                type="button"
-                                key={key}
-                                onClick={() => toggleWeekday(key)}
-                                style={{
-                                  padding: '5px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                                  border: `2px solid ${selectedWeekdays.includes(key) ? 'var(--color-primary-600)' : '#d1d5db'}`,
-                                  background: selectedWeekdays.includes(key) ? 'var(--color-primary-600)' : 'white',
-                                  color: selectedWeekdays.includes(key) ? 'white' : '#374151',
-                                  transition: 'all 0.12s',
-                                }}
-                              >
-                                {label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* ─ Default job hours ─ */}
+                    {recurrenceType === 'interval' && (
                       <div style={{ background: 'white', borderRadius: '6px', padding: '10px', border: '1px solid #e5e7eb' }}>
                         <div style={{ fontSize: '10px', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                          Default Job Hours
+                          Interval Settings
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                           <div>
-                            <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '3px' }}>Start time</label>
-                            <input
-                              type="time" value={defaultStartTime}
-                              onChange={e => setDefaultStartTime(e.target.value)}
-                              className="form-input"
-                              style={{ padding: '5px 6px', fontSize: '12px' }}
-                            />
+                            <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '3px' }}>Active work period</label>
+                            <div className="flex gap-1">
+                              <input
+                                type="number" min={1} value={intervalValue}
+                                onChange={e => setIntervalValue(Number(e.target.value))}
+                                className="form-input"
+                                style={{ width: '56px', padding: '5px 6px', fontSize: '12px' }}
+                              />
+                              <select value={intervalUnit} onChange={e => setIntervalUnit(e.target.value as RecurrenceUnit)}
+                                className="form-input" style={{ padding: '5px 6px', fontSize: '12px' }}>
+                                {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
+                              </select>
+                            </div>
                           </div>
                           <div>
-                            <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '3px' }}>End time</label>
-                            <input
-                              type="time" value={defaultEndTime}
-                              onChange={e => setDefaultEndTime(e.target.value)}
-                              className="form-input"
-                              style={{ padding: '5px 6px', fontSize: '12px' }}
-                            />
+                            <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '3px' }}>Downtime gap</label>
+                            <div className="flex gap-1">
+                              <input
+                                type="number" min={0} value={downtimeValue}
+                                onChange={e => setDowntimeValue(Number(e.target.value))}
+                                className="form-input"
+                                style={{ width: '56px', padding: '5px 6px', fontSize: '12px' }}
+                              />
+                              <select value={downtimeUnit} onChange={e => setDowntimeUnit(e.target.value as RecurrenceUnit)}
+                                className="form-input" style={{ padding: '5px 6px', fontSize: '12px' }}>
+                                {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
+                              </select>
+                            </div>
                           </div>
                         </div>
                       </div>
+                    )}
 
-                      {/* ─ End condition ─ */}
+                    {recurrenceType === 'weekdays' && (
                       <div style={{ background: 'white', borderRadius: '6px', padding: '10px', border: '1px solid #e5e7eb' }}>
                         <div style={{ fontSize: '10px', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                          End Condition
+                          Repeat on Days
                         </div>
-                        <div className="flex flex-col gap-2">
-                          <label className="flex items-center gap-2 cursor-pointer" style={{ fontSize: '12px' }}>
-                            <input type="radio" name="endType" checked={endType === 'ongoing'} onChange={() => setEndType('ongoing')} />
-                            Ongoing — generate {recurrenceType === 'weekdays' ? '12 occurrences' : '12 cycles'} max
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer" style={{ fontSize: '12px' }}>
-                            <input type="radio" name="endType" checked={endType === 'date'} onChange={() => setEndType('date')} />
-                            Ends on date:&nbsp;
-                            <input
-                              type="date"
-                              value={endDate}
-                              onChange={e => setEndDate(e.target.value)}
-                              disabled={endType !== 'date'}
-                              className="form-input"
-                              style={{ padding: '3px 6px', fontSize: '12px', width: 'auto' }}
-                            />
-                          </label>
+                        <div className="flex flex-wrap gap-1">
+                          {WEEKDAYS.map(({ key, label }) => (
+                            <button
+                              type="button"
+                              key={key}
+                              onClick={() => toggleWeekday(key)}
+                              style={{
+                                padding: '5px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                                border: `2px solid ${selectedWeekdays.includes(key) ? 'var(--color-primary-600)' : '#d1d5db'}`,
+                                background: selectedWeekdays.includes(key) ? 'var(--color-primary-600)' : 'white',
+                                color: selectedWeekdays.includes(key) ? 'white' : '#374151',
+                                transition: 'all 0.12s',
+                              }}
+                            >
+                              {label}
+                            </button>
+                          ))}
                         </div>
                       </div>
+                    )}
 
-                      {/* Preview */}
-                      {cyclePreview && (
-                        <div style={{
-                          padding: '8px 12px', borderRadius: '6px',
-                          background: 'var(--color-primary-100)',
-                          border: '1px solid var(--color-primary-200)',
-                          fontSize: '11px', color: 'var(--color-primary-800)',
-                          fontStyle: 'italic',
-                        }}>
-                          📋 {cyclePreview}
+                    <div style={{ background: 'white', borderRadius: '6px', padding: '10px', border: '1px solid #e5e7eb' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                        Default Job Hours
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <div>
+                          <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '3px' }}>Start time</label>
+                          <input
+                            type="time" value={defaultStartTime}
+                            onChange={e => setDefaultStartTime(e.target.value)}
+                            className="form-input"
+                            style={{ padding: '5px 6px', fontSize: '12px' }}
+                          />
                         </div>
-                      )}
+                        <div>
+                          <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '3px' }}>End time</label>
+                          <input
+                            type="time" value={defaultEndTime}
+                            onChange={e => setDefaultEndTime(e.target.value)}
+                            className="form-input"
+                            style={{ padding: '5px 6px', fontSize: '12px' }}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
 
-            {/* Conversion options */}
-            <div className="progression-options mt-5">
-              <h3>Conversion Options</h3>
-              <div className="flex gap-4 mb-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="convertTo"
-                    checked={convertTo === 'Job'}
-                    onChange={() => setConvertTo('Job')}
-                  />
-                  {isProject ? 'Create Project' : 'Direct to Job'}
-                </label>
-                {!isProject && (
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="convertTo"
-                      checked={convertTo === 'Quote'}
-                      onChange={() => setConvertTo('Quote')}
-                    />
-                    Create Quote
-                  </label>
+                    <div style={{ background: 'white', borderRadius: '6px', padding: '10px', border: '1px solid #e5e7eb' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                        End Condition
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="flex items-center gap-2 cursor-pointer" style={{ fontSize: '12px' }}>
+                          <input type="radio" name="endType" checked={endType === 'ongoing'} onChange={() => setEndType('ongoing')} />
+                          Ongoing — generate {recurrenceType === 'weekdays' ? '12 occurrences' : '12 cycles'} max
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer" style={{ fontSize: '12px' }}>
+                          <input type="radio" name="endType" checked={endType === 'date'} onChange={() => setEndType('date')} />
+                          Ends on date:&nbsp;
+                          <input
+                            type="date"
+                            value={endDate}
+                            onChange={e => setEndDate(e.target.value)}
+                            disabled={endType !== 'date'}
+                            className="form-input"
+                            style={{ padding: '3px 6px', fontSize: '12px', width: 'auto' }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    {cyclePreview && (
+                      <div style={{
+                        padding: '8px 12px', borderRadius: '6px',
+                        background: 'var(--color-primary-100)',
+                        border: '1px solid var(--color-primary-200)',
+                        fontSize: '11px', color: 'var(--color-primary-800)',
+                        fontStyle: 'italic',
+                      }}>
+                        📋 {cyclePreview}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
+            </section>
+          )}
 
-              {convertTo === 'Quote' && (
-                <div className="quote-options p-4 bg-blue-50 rounded-md border border-blue-100">
-                  <label className="block mb-2 font-semibold text-blue-800">Send Quote To:</label>
-                  <div className="flex flex-col gap-2">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="radio"
-                        name="recipient"
-                        checked={quoteRecipient === 'site'}
-                        onChange={() => setQuoteRecipient('site')}
-                      />
-                      Site Contact ({enquiry.site_contact_name || 'N/A'})
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="radio"
-                        name="recipient"
-                        checked={quoteRecipient === 'billing'}
-                        onChange={() => setQuoteRecipient('billing')}
-                      />
-                      Billing Contact
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="radio"
-                        name="recipient"
-                        checked={quoteRecipient === 'both'}
-                        onChange={() => setQuoteRecipient('both')}
-                      />
-                      Both
-                    </label>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ── Resource Assignment ────────────────────────────────────── */}
-          <div className="resource-assignment">
+          {/* ── Allocations ──────────────────────────────────────────────── */}
+          <section>
+            <h3>Allocations</h3>
             {loading ? <Spinner /> : (
-              <>
-                <div className="mb-6">
-                  <h3>Assign Assets</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
 
-                  <div className="filters mb-3 flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setSelectedAssetTypes([])}
-                      className={`btn btn--sm ${selectedAssetTypes.length === 0 ? 'btn--primary' : 'btn--secondary'}`}
-                      style={{ borderRadius: '20px', padding: '2px 12px', fontSize: '11px' }}
-                    >
-                      All
-                    </button>
-                    {uniqueTypes.map(type => (
-                      <button
-                        key={type}
-                        onClick={() => toggleAssetType(type)}
-                        className={`btn btn--sm ${selectedAssetTypes.includes(type) ? 'btn--primary' : 'btn--secondary'}`}
-                        style={{ borderRadius: '20px', padding: '2px 12px', fontSize: '11px' }}
-                      >
-                        {type}
-                      </button>
-                    ))}
+                {/* Assets */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                    <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-gray-700)' }}>
+                      Assets
+                      <span style={{ marginLeft: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, background: 'var(--color-primary-100)', color: 'var(--color-primary-700)', borderRadius: '999px', padding: '0 6px' }}>
+                        {selectedAssets.length}
+                      </span>
+                    </label>
+                    <input type="text" placeholder="Search…" className="form-input" style={{ width: '120px', padding: '3px 8px', fontSize: 'var(--text-xs)' }} value={assetSearch} onChange={(e) => setAssetSearch(e.target.value)} />
                   </div>
 
-                  <div className="resource-list" style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)' }}>
-                    {filteredAssets.map(asset => (
+                  {uniqueTypes.length > 1 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: 'var(--space-2)' }}>
+                      <button type="button" onClick={() => setSelectedAssetTypes([])} className={`btn btn--sm ${selectedAssetTypes.length === 0 ? 'btn--primary' : 'btn--secondary'}`} style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}>All</button>
+                      {uniqueTypes.map(type => (
+                        <button key={type} type="button" onClick={() => toggleAssetType(type)} className={`btn btn--sm ${selectedAssetTypes.includes(type) ? 'btn--primary' : 'btn--secondary'}`} style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}>
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)', height: '160px', overflowY: 'auto' }}>
+                    {filteredAssets.length === 0 ? (
+                      <div style={{ padding: 'var(--space-4)', textAlign: 'center', color: 'var(--color-gray-400)', fontSize: 'var(--text-sm)' }}>No assets found</div>
+                    ) : filteredAssets.map(asset => (
                       <label key={asset.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: '8px var(--space-3)', borderBottom: '1px solid var(--color-gray-50)', cursor: 'pointer', background: selectedAssets.includes(asset.id!) ? 'var(--color-primary-50)' : 'white', transition: 'background var(--transition-fast)' }}>
                         <input
                           type="checkbox"
@@ -566,51 +506,41 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
                   </div>
                 </div>
 
+                {/* Personnel */}
                 <div>
-                  <h3>Assign Personnel</h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                    <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-gray-700)' }}>
+                      Personnel
+                      <span style={{ marginLeft: '6px', fontSize: 'var(--text-xs)', fontWeight: 700, background: 'var(--color-primary-100)', color: 'var(--color-primary-700)', borderRadius: '999px', padding: '0 6px' }}>
+                        {selectedPersonnel.length}
+                      </span>
+                    </label>
+                    <input type="text" placeholder="Search…" className="form-input" style={{ width: '120px', padding: '3px 8px', fontSize: 'var(--text-xs)' }} value={personnelSearch} onChange={(e) => setPersonnelSearch(e.target.value)} />
+                  </div>
+
                   {isProject && (selectedAssets.length > 0 || selectedPersonnel.length > 0) && (
                     <div style={{
                       fontSize: '11px', color: 'var(--color-primary-700)',
                       background: 'var(--color-primary-50)',
                       border: '1px solid var(--color-primary-200)',
-                      borderRadius: '4px', padding: '6px 8px', marginBottom: '8px',
+                      borderRadius: '4px', padding: '6px 8px', marginBottom: 'var(--space-2)',
                     }}>
                       ℹ️ These resources will be assigned to <strong>all {doesRepeat ? 'generated' : ''} job cycles</strong>.
                     </div>
                   )}
 
-                  <div className="filters mb-2">
-                    <input
-                      type="text"
-                      placeholder="Search personnel..."
-                      className="form-input mb-3"
-                      style={{ fontSize: '12px', padding: '6px 10px' }}
-                      value={personnelSearch}
-                      onChange={(e) => setPersonnelSearch(e.target.value)}
-                    />
-
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      <button
-                        onClick={() => setSelectedQualifications([])}
-                        className={`btn btn--sm ${selectedQualifications.length === 0 ? 'btn--primary' : 'btn--secondary'}`}
-                        style={{ borderRadius: '20px', padding: '1px 10px', fontSize: '10px' }}
-                      >
-                        All
-                      </button>
+                  {uniqueQualifications.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: 'var(--space-2)' }}>
+                      <button type="button" onClick={() => setSelectedQualifications([])} className={`btn btn--sm ${selectedQualifications.length === 0 ? 'btn--primary' : 'btn--secondary'}`} style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}>All</button>
                       {uniqueQualifications.map(qual => (
-                        <button
-                          key={qual}
-                          onClick={() => toggleQualification(qual)}
-                          className={`btn btn--sm ${selectedQualifications.includes(qual) ? 'btn--primary' : 'btn--secondary'}`}
-                          style={{ borderRadius: '20px', padding: '1px 10px', fontSize: '10px' }}
-                        >
+                        <button key={qual} type="button" onClick={() => toggleQualification(qual)} className={`btn btn--sm ${selectedQualifications.includes(qual) ? 'btn--primary' : 'btn--secondary'}`} style={{ borderRadius: '20px', padding: '1px 8px', fontSize: '10px' }}>
                           {qual}
                         </button>
                       ))}
                     </div>
-                  </div>
+                  )}
 
-                  <div className="resource-list" style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)', height: '160px', overflowY: 'auto' }}>
                     {filteredPersonnel.length === 0 ? (
                       <div style={{ padding: 'var(--space-4)', textAlign: 'center', color: 'var(--color-gray-400)', fontSize: 'var(--text-sm)' }}>No personnel found</div>
                     ) : filteredPersonnel.map(p => (
@@ -631,9 +561,73 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
                     ))}
                   </div>
                 </div>
-              </>
+
+              </div>
             )}
-          </div>
+          </section>
+
+          {/* ── Conversion Options ───────────────────────────────────────── */}
+          <section className="progression-options">
+            <h3>Conversion Options</h3>
+            <div className="flex gap-4 mb-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="convertTo"
+                  checked={convertTo === 'Job'}
+                  onChange={() => setConvertTo('Job')}
+                />
+                {isProject ? 'Create Project' : 'Direct to Job'}
+              </label>
+              {!isProject && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="convertTo"
+                    checked={convertTo === 'Quote'}
+                    onChange={() => setConvertTo('Quote')}
+                  />
+                  Create Quote
+                </label>
+              )}
+            </div>
+
+            {convertTo === 'Quote' && (
+              <div className="quote-options p-4 bg-blue-50 rounded-md border border-blue-100">
+                <label className="block mb-2 font-semibold text-blue-800">Send Quote To:</label>
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="recipient"
+                      checked={quoteRecipient === 'site'}
+                      onChange={() => setQuoteRecipient('site')}
+                    />
+                    Site Contact ({enquiry.site_contact_name || 'N/A'})
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="recipient"
+                      checked={quoteRecipient === 'billing'}
+                      onChange={() => setQuoteRecipient('billing')}
+                    />
+                    Billing Contact
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="recipient"
+                      checked={quoteRecipient === 'both'}
+                      onChange={() => setQuoteRecipient('both')}
+                    />
+                    Both
+                  </label>
+                </div>
+              </div>
+            )}
+          </section>
+
         </div>
 
         <div className="modal-footer mt-6 flex justify-end gap-3">
