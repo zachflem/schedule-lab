@@ -150,7 +150,7 @@
 .main-content {
   flex: 1;
   padding-top: var(--space-4);
-  overflow-x: hidden;
+  overflow-x: clip;
   min-width: 0;
 }
 

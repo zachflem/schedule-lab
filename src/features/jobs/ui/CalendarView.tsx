@@ -117,7 +117,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
   return (
     <div className="calendar-view shadow-2xl rounded-2xl overflow-hidden border border-gray-100 bg-white">
       <div className="calendar-header-row flex">
-        <div ref={scrollContainerRef} className="calendar-timeline-scroll flex-1 overflow-x-auto no-scrollbar scroll-smooth">
+        <div ref={scrollContainerRef} className="calendar-timeline-scroll flex-1 overflow-x-auto no-scrollbar">
           <div className="calendar-timeline-header flex border-b border-gray-100 relative" style={{ width: `${TOTAL_WIDTH}px` }}>
             <div 
               className="calendar-date-column sticky-left bg-gray-50/80 backdrop-blur-md border-r border-gray-200 z-30 shrink-0 flex items-center justify-center"
