@@ -205,15 +205,19 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
   }, [assets, selectedAssets]);
 
   const filteredPersonnel = useMemo(() => {
-    return personnel.filter(p => {
-      const matchesSearch = p.name.toLowerCase().includes(personnelSearch.toLowerCase());
-      const matchesQual = selectedQualifications.length === 0 ||
-        p.qualifications?.some(q => selectedQualifications.includes(q.name));
-      const matchesAssetQual = requiredQualIds.length === 0 ||
-        selectedPersonnel.includes(p.id!) ||
-        p.qualifications?.some(q => q.id !== undefined && requiredQualIds.includes(q.id));
-      return matchesSearch && matchesQual && matchesAssetQual;
-    });
+    return personnel
+      .filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(personnelSearch.toLowerCase());
+        const matchesQual = selectedQualifications.length === 0 ||
+          p.qualifications?.some(q => selectedQualifications.includes(q.name));
+        return matchesSearch && matchesQual;
+      })
+      .sort((a, b) => {
+        if (requiredQualIds.length === 0) return 0;
+        const aQualified = a.qualifications?.some(q => q.id !== undefined && requiredQualIds.includes(q.id)) ?? false;
+        const bQualified = b.qualifications?.some(q => q.id !== undefined && requiredQualIds.includes(q.id)) ?? false;
+        return Number(bQualified) - Number(aQualified);
+      });
   }, [personnel, personnelSearch, selectedQualifications, requiredQualIds, selectedPersonnel]);
 
   const buildRecurrencePayload = () => {
