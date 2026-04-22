@@ -150,6 +150,8 @@
 .main-content {
   flex: 1;
   padding-top: var(--space-4);
+  overflow-x: hidden;
+  min-width: 0;
 }
 
 /* ── Header user elements ───────────────────────── */

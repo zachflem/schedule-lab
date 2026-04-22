@@ -20,6 +20,11 @@ const TOTAL_WIDTH = (48 * SLOT_WIDTH) + DATE_COL_WIDTH;
 export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 10 }: CalendarViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [extraDays, setExtraDays] = useState(0);
+  const [nowMinutes, setNowMinutes] = useState(() => {
+    const n = new Date();
+    return n.getHours() * 60 + n.getMinutes();
+  });
+  const todayStr = useMemo(() => new Date().toDateString(), []);
 
   const totalDays = daysToShow + extraDays;
 
@@ -41,24 +46,29 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
   }, []);
 
   useEffect(() => {
-    // Use double-RAF so the browser has finished layout before we scroll.
-    // Override scroll-behavior to 'auto' so the jump is instant — a smooth
-    // animation triggered mid-render gets cancelled by subsequent re-renders
-    // (e.g. when the jobs API response arrives), leaving the view at midnight.
+    // Double-RAF so layout is complete before scrolling. Override scroll-behavior
+    // to 'auto' so the jump is instant — smooth animation gets cancelled by
+    // subsequent re-renders (e.g. jobs API response), leaving the view at midnight.
     let raf1: number, raf2: number;
     raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
         const el = scrollContainerRef.current;
         if (!el) return;
-        const middayOffset = 24 * SLOT_WIDTH + DATE_COL_WIDTH;
-        const containerWidth = el.clientWidth;
         el.style.scrollBehavior = 'auto';
-        el.scrollLeft = middayOffset - containerWidth / 2;
-        // Restore smooth scrolling for user-initiated scrolls
+        el.scrollLeft = 12 * SLOT_WIDTH; // 6am at left edge
         requestAnimationFrame(() => { el.style.scrollBehavior = ''; });
       });
     });
     return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
+  }, []);
+
+  useEffect(() => {
+    const tick = () => {
+      const n = new Date();
+      setNowMinutes(n.getHours() * 60 + n.getMinutes());
+    };
+    const id = setInterval(tick, 60000);
+    return () => clearInterval(id);
   }, []);
 
   const handleDrop = (e: React.DragEvent, date: Date, blockIndex: number) => {
@@ -115,17 +125,24 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
             >
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Date</span>
             </div>
-            {timeBlocks.map((time, i) => (
-              <div 
-                key={i} 
-                className="calendar-time-block shrink-0 p-3 text-center border-r border-gray-50 last:border-0"
-                style={{ width: `${SLOT_WIDTH}px` }}
-              >
-                <span className="text-[10px] font-bold text-gray-400">{i % 2 === 0 ? time.split(':')[0] : ''}</span>
-              </div>
-            ))}
-            {/* Midday indicator line */}
-            <div className="absolute top-0 bottom-0 w-1 bg-primary-500/20 z-0" style={{ left: `${24 * SLOT_WIDTH + DATE_COL_WIDTH}px` }}></div>
+            {timeBlocks.map((time, i) => {
+              const isHour = i % 2 === 0;
+              return (
+                <div
+                  key={i}
+                  className={`calendar-time-block shrink-0 text-center border-r last:border-0 flex items-end justify-center ${isHour ? 'border-gray-200 pb-1.5' : 'border-gray-100 pb-1'}`}
+                  style={{ width: `${SLOT_WIDTH}px`, height: '100%' }}
+                >
+                  {isHour && (
+                    <span className="text-[10px] font-bold text-gray-500">{time.split(':')[0]}</span>
+                  )}
+                </div>
+              );
+            })}
+            {/* Midday indicator */}
+            <div className="absolute top-0 bottom-0 w-px bg-primary-400/30 z-0" style={{ left: `${24 * SLOT_WIDTH + DATE_COL_WIDTH}px` }}></div>
+            {/* Now indicator in header */}
+            <div className="absolute top-0 bottom-0 w-0.5 bg-red-400/60 z-10" style={{ left: `${(nowMinutes / 30) * SLOT_WIDTH + DATE_COL_WIDTH}px` }}></div>
           </div>
           
           <div className="calendar-body relative" style={{ width: `${TOTAL_WIDTH}px` }}>
@@ -154,13 +171,16 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
               const totalTracks = Math.max(tracks.length, 1);
               const rowHeight = totalTracks > 1 ? `${totalTracks * 4 + 2}rem` : '7rem';
 
+              const isToday = day.toDateString() === todayStr;
               return (
-                <div key={day.toISOString()} className="calendar-day-row flex border-b border-gray-50 last:border-0 hover:bg-gray-50/30 transition-colors group" style={{ height: rowHeight }}>
-                  <div 
-                    className="calendar-date-label sticky-left bg-white group-hover:bg-gray-50/50 border-r border-gray-100 z-20 shrink-0 p-4 flex flex-col justify-center"
+                <div key={day.toISOString()} className={`calendar-day-row flex border-b border-gray-50 last:border-0 transition-colors group ${isToday ? 'bg-primary-50/40 hover:bg-primary-50/60' : 'hover:bg-gray-50/30'}`} style={{ height: rowHeight }}>
+                  <div
+                    className={`calendar-date-label sticky-left border-r z-20 shrink-0 p-4 flex flex-col justify-center ${isToday ? 'bg-primary-50/70 group-hover:bg-primary-50/90 border-primary-100' : 'bg-white group-hover:bg-gray-50/50 border-gray-100'}`}
                     style={{ width: `${DATE_COL_WIDTH}px` }}
                   >
-                      <div className="text-[10px] font-bold text-primary-500 uppercase tracking-widest mb-0.5">{day.toLocaleDateString('en-AU', { weekday: 'short' })}</div>
+                      <div className={`text-[10px] font-bold uppercase tracking-widest mb-0.5 ${isToday ? 'text-red-500' : 'text-primary-500'}`}>
+                        {isToday ? 'Today' : day.toLocaleDateString('en-AU', { weekday: 'short' })}
+                      </div>
                       <div className="text-xl font-black text-gray-900 leading-none flex items-baseline gap-1">
                           {day.getDate()}
                           <span className="text-[10px] text-gray-400 font-bold uppercase">{day.toLocaleDateString('en-AU', { month: 'short' })}</span>
@@ -169,9 +189,9 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                   
                   <div className="flex-1 flex relative">
                     {timeBlocks.map((_, i) => (
-                      <div 
-                        key={i} 
-                        className="calendar-slot border-r border-gray-50/50 last:border-0 relative transition-all shrink-0"
+                      <div
+                        key={i}
+                        className={`calendar-slot relative transition-all shrink-0 ${i % 2 === 0 ? 'border-r border-gray-200/70' : 'border-r border-gray-100/80'} last:border-0`}
                         style={{ width: `${SLOT_WIDTH}px` }}
                         onDragOver={(e) => {
                           e.preventDefault();
@@ -186,6 +206,13 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                         }}
                       />
                     ))}
+
+                    {/* Now indicator line */}
+                    {isToday && (
+                      <div className="absolute top-0 bottom-0 w-0.5 bg-red-400 z-30 pointer-events-none" style={{ left: `${(nowMinutes / 30) * SLOT_WIDTH}px` }}>
+                        <div className="absolute -top-0 -left-1 w-2.5 h-2.5 rounded-full bg-red-400 border-2 border-white shadow-sm"></div>
+                      </div>
+                    )}
 
                     {/* Jobs on this day rendered in tracks */}
                     <div className="absolute inset-0 pointer-events-none p-1">
