@@ -123,9 +123,7 @@ input, select, textarea, button {
 }
 
 .container {
-  width: 90%;
-  max-width: 1800px;
-  margin: 0 auto;
+  width: 100%;
   padding: 0 var(--space-4);
 }
 
