@@ -40,7 +40,10 @@ export function ProjectTemplateModal({ template, projectDetails, onClose, onSave
     setIsSubmitting(true);
     setError(null);
     try {
-      const res = await onSave(formData);
+      const res = await onSave({
+        ...formData,
+        recurrence_end_date: formData.recurrence_end_date || null,
+      });
       if (res.success) {
         onClose();
       } else {
@@ -61,8 +64,8 @@ export function ProjectTemplateModal({ template, projectDetails, onClose, onSave
           <button className="btn-close" onClick={onClose} type="button">&times;</button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body py-4 flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <div className="modal-body flex flex-col gap-4">
             {error && (
               <div className="bg-red-50 text-red-600 p-3 rounded text-sm border border-red-100">
                 ⚠️ {error}

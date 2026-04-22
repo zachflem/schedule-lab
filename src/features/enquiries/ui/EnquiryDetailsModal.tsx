@@ -548,18 +548,18 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
                     ))}
                   </div>
 
-                  <div className="resource-list" style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '4px' }}>
+                  <div className="resource-list" style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)' }}>
                     {filteredAssets.map(asset => (
-                      <label key={asset.id} className="flex items-center p-2 hover:bg-gray-50 cursor-pointer border-b last:border-0">
+                      <label key={asset.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: '8px var(--space-3)', borderBottom: '1px solid var(--color-gray-50)', cursor: 'pointer', background: selectedAssets.includes(asset.id!) ? 'var(--color-primary-50)' : 'white', transition: 'background var(--transition-fast)' }}>
                         <input
                           type="checkbox"
                           checked={selectedAssets.includes(asset.id!)}
                           onChange={() => handleToggleAsset(asset.id!)}
-                          className="mr-3"
+                          style={{ flexShrink: 0 }}
                         />
-                        <div className="text-sm">
-                          <div className="font-semibold">{asset.name}</div>
-                          <div className="text-xs text-gray-500">{(asset as AssetWithMetadata).asset_type_name || 'General'}</div>
+                        <div>
+                          <div style={{ fontSize: 'var(--text-sm)', fontWeight: selectedAssets.includes(asset.id!) ? 600 : 400 }}>{asset.name}</div>
+                          <div style={{ fontSize: '10px', color: 'var(--color-gray-400)' }}>{(asset as AssetWithMetadata).asset_type_name || 'General'}</div>
                         </div>
                       </label>
                     ))}
@@ -610,26 +610,25 @@ export function EnquiryDetailsModal({ enquiry, onClose, onConvert }: EnquiryDeta
                     </div>
                   </div>
 
-                  <div className="resource-list" style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '4px' }}>
-                    {filteredPersonnel.map(p => (
-                      <label key={p.id} className="flex items-center p-2 hover:bg-gray-50 cursor-pointer border-b last:border-0">
+                  <div className="resource-list" style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--color-gray-200)', borderRadius: 'var(--radius-md)' }}>
+                    {filteredPersonnel.length === 0 ? (
+                      <div style={{ padding: 'var(--space-4)', textAlign: 'center', color: 'var(--color-gray-400)', fontSize: 'var(--text-sm)' }}>No personnel found</div>
+                    ) : filteredPersonnel.map(p => (
+                      <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: '8px var(--space-3)', borderBottom: '1px solid var(--color-gray-50)', cursor: 'pointer', background: selectedPersonnel.includes(p.id!) ? 'var(--color-primary-50)' : 'white', transition: 'background var(--transition-fast)' }}>
                         <input
                           type="checkbox"
                           checked={selectedPersonnel.includes(p.id!)}
                           onChange={() => handleTogglePersonnelCorrected(p.id!)}
-                          className="mr-3"
+                          style={{ flexShrink: 0 }}
                         />
-                        <div className="text-sm">
-                          <div className="font-semibold">{p.name}</div>
-                          <div className="text-xs text-gray-500">
-                            {p.qualifications?.map(q => q.name).join(', ') || 'No Certs'}
+                        <div>
+                          <div style={{ fontSize: 'var(--text-sm)', fontWeight: selectedPersonnel.includes(p.id!) ? 600 : 400 }}>{p.name}</div>
+                          <div style={{ fontSize: '10px', color: 'var(--color-gray-400)' }}>
+                            {p.qualifications?.map(q => q.name).join(', ') || 'No qualifications'}
                           </div>
                         </div>
                       </label>
                     ))}
-                    {filteredPersonnel.length === 0 && (
-                      <div className="p-4 text-center text-gray-400 text-sm">No personnel found</div>
-                    )}
                   </div>
                 </div>
               </>

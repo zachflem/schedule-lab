@@ -29,7 +29,8 @@ export const onRequest = methodRouter({
 
     // Fetch resources
     const { results: resources } = await db.prepare(`
-      SELECT jr.*, a.name as asset_name, per.name as personnel_name, q.name as qualification_name
+      SELECT jr.*, a.name as asset_name, a.rate_hourly as asset_rate_hourly,
+             per.name as personnel_name, q.name as qualification_name, q.rate_hourly as qualification_rate_hourly
       FROM job_resources jr
       LEFT JOIN assets a ON jr.asset_id = a.id
       LEFT JOIN personnel per ON jr.personnel_id = per.id

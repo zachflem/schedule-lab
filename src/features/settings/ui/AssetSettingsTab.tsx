@@ -7,13 +7,6 @@ interface AssetType {
   checklist_questions: string[];
 }
 
-interface Qualification {
-  id: string;
-  name: string;
-  rate_hourly: number;
-  rate_after_hours: number;
-}
-
 interface ComplianceType {
   id: string;
   name: string;
@@ -21,22 +14,18 @@ interface ComplianceType {
 
 export function AssetSettingsTab() {
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
-  const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [complianceTypes, setComplianceTypes] = useState<ComplianceType[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingType, setEditingType] = useState<Partial<AssetType> | null>(null);
-  const [editingQual, setEditingQual] = useState<Partial<Qualification> | null>(null);
   const [editingCompliance, setEditingCompliance] = useState<Partial<ComplianceType> | null>(null);
 
   const fetchData = async () => {
     try {
-      const [types, quals, compliance] = await Promise.all([
+      const [types, compliance] = await Promise.all([
         api.get<AssetType[]>('/asset-types'),
-        api.get<Qualification[]>('/qualifications'),
         api.get<ComplianceType[]>('/compliance-types'),
       ]);
       setAssetTypes(types);
-      setQualifications(quals);
       setComplianceTypes(compliance);
     } catch (err) {
       console.error('Failed to fetch asset data:', err);
@@ -62,22 +51,6 @@ export function AssetSettingsTab() {
       fetchData();
     } catch (err) {
       alert('Failed to save asset type');
-    }
-  };
-
-  const handleSaveQual = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingQual?.name) return;
-    try {
-      if (editingQual.id) {
-        await api.put(`/qualifications/${editingQual.id}`, editingQual);
-      } else {
-        await api.post('/qualifications', editingQual);
-      }
-      setEditingQual(null);
-      fetchData();
-    } catch (err) {
-      alert('Failed to save qualification');
     }
   };
 
@@ -148,43 +121,6 @@ export function AssetSettingsTab() {
         </div>
       </section>
 
-      {/* Qualifications Section */}
-      <section>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-          <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>Qualifications</h3>
-          <button className="btn btn--secondary btn--sm" onClick={() => setEditingQual({ name: '', rate_hourly: 0, rate_after_hours: 0 })}>
-            + Add Qualification
-          </button>
-        </div>
-
-        <div className="card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Rate (H)</th>
-                <th>Rate (AH)</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {qualifications.map(q => (
-                <tr key={q.id}>
-                  <td style={{ fontWeight: 600 }}>{q.name}</td>
-                  <td>${q.rate_hourly}</td>
-                  <td>${q.rate_after_hours}</td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button className="btn-icon" onClick={() => setEditingQual(q)}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16 }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
       {/* Compliance Types Section */}
       <section>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
@@ -245,18 +181,18 @@ export function AssetSettingsTab() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                   {(editingType.checklist_questions || []).map((q, i) => (
                     <div key={i} style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                      <input 
-                        className="form-input" 
-                        value={q} 
+                      <input
+                        className="form-input"
+                        value={q}
                         onChange={e => {
                           const updated = [...(editingType.checklist_questions || [])];
                           updated[i] = e.target.value;
                           setEditingType({ ...editingType, checklist_questions: updated });
-                        }} 
+                        }}
                       />
-                      <button 
-                        type="button" 
-                        className="btn btn--danger btn--icon btn--sm" 
+                      <button
+                        type="button"
+                        className="btn btn--danger btn--icon btn--sm"
                         onClick={() => {
                           const updated = (editingType.checklist_questions || []).filter((_, idx) => idx !== i);
                           setEditingType({ ...editingType, checklist_questions: updated });
@@ -266,13 +202,13 @@ export function AssetSettingsTab() {
                       </button>
                     </div>
                   ))}
-                  <button 
-                    type="button" 
-                    className="btn btn--secondary btn--sm" 
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
                     style={{ alignSelf: 'flex-start', marginTop: 'var(--space-1)' }}
-                    onClick={() => setEditingType({ 
-                      ...editingType, 
-                      checklist_questions: [...(editingType.checklist_questions || []), ''] 
+                    onClick={() => setEditingType({
+                      ...editingType,
+                      checklist_questions: [...(editingType.checklist_questions || []), '']
                     })}
                   >
                     + Add Question
@@ -289,36 +225,6 @@ export function AssetSettingsTab() {
         </div>
       )}
 
-      {/* Qualification Modal/Form Overlay */}
-      {editingQual && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="card" style={{ width: '400px' }}>
-            <div className="card__header">
-              <h3>{editingQual.id ? 'Edit' : 'Add'} Qualification</h3>
-            </div>
-            <form onSubmit={handleSaveQual} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              <div className="form-group">
-                <label className="form-label">Name</label>
-                <input required className="form-input" value={editingQual.name || ''} onChange={e => setEditingQual({...editingQual, name: e.target.value})} />
-              </div>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label className="form-label">Hourly Rate ($)</label>
-                  <input type="number" className="form-input" value={editingQual.rate_hourly || 0} onChange={e => setEditingQual({...editingQual, rate_hourly: parseFloat(e.target.value)})} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">After Hours ($)</label>
-                  <input type="number" className="form-input" value={editingQual.rate_after_hours || 0} onChange={e => setEditingQual({...editingQual, rate_after_hours: parseFloat(e.target.value)})} />
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn--secondary" onClick={() => setEditingQual(null)}>Cancel</button>
-                <button type="submit" className="btn btn--primary">Save</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
       {/* Compliance Type Modal/Form Overlay */}
       {editingCompliance && (
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>

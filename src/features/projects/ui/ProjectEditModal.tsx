@@ -91,15 +91,15 @@ export function ProjectEditModal({ project, mode = 'edit', onClose, onUpdate, on
           </div>
           {!isCreate && (
             <div className="flex gap-4 border-b w-full">
-              <button 
-                className={`pb-2 px-2 border-b-2 transition-colors ${activeTab === 'settings' ? 'border-primary text-primary font-bold' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+              <button
+                className={`modal-tab${activeTab === 'settings' ? ' active' : ''}`}
                 onClick={() => setActiveTab('settings')}
               >
                 Settings
               </button>
-              <button 
+              <button
                 id="tab-streams"
-                className={`pb-2 px-2 border-b-2 transition-colors ${activeTab === 'streams' ? 'border-primary text-primary font-bold' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+                className={`modal-tab${activeTab === 'streams' ? ' active' : ''}`}
                 onClick={() => setActiveTab('streams')}
               >
                 Job Streams ({templates.length})

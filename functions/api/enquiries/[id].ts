@@ -1,5 +1,4 @@
-import { getDb, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../../lib/db';
-import { EnquirySchema } from '../../../src/shared/validation/schemas';
+import { getDb, jsonResponse, errorResponse, methodRouter, now } from '../../lib/db';
 
 export const onRequest = methodRouter({
   async GET(context) {
@@ -24,31 +23,28 @@ export const onRequest = methodRouter({
     const existing = await db.prepare('SELECT id FROM enquiries WHERE id = ?').bind(id).first();
     if (!existing) return errorResponse('Enquiry not found', 404);
 
-    const parsed = await parseBody(context.request, EnquirySchema);
-    if ('error' in parsed) return parsed.error;
-
-    const e = parsed.data;
+    const body = await context.request.json() as any;
     const timestamp = now();
 
+    const allowedFields = ['status', 'dispatcher_notes', 'is_trashed'];
+    const updates: string[] = [];
+    const params: any[] = [];
+
+    for (const field of allowedFields) {
+      if (field in body) {
+        updates.push(`${field} = ?`);
+        params.push(field === 'is_trashed' ? (body[field] ? 1 : 0) : body[field]);
+      }
+    }
+
+    if (updates.length === 0) return errorResponse('No fields to update', 400);
+
+    updates.push('updated_at = ?');
+    params.push(timestamp, id);
+
     await db.prepare(`
-      UPDATE enquiries SET 
-        enquiry_type = ?, customer_name = ?, site_contact_name = ?, 
-        contact_email = ?, contact_phone = ?, job_brief = ?, 
-        location = ?, preferred_date = ?, project_start_date = ?, 
-        project_end_date = ?, status = ?, dispatcher_notes = ?, 
-        is_trashed = ?, anticipated_hours = ?, site_inspection_required = ?, 
-        asset_type_id = ?, asset_requirement = ?, po_number = ?, 
-        updated_at = ?
-      WHERE id = ?
-    `).bind(
-      e.enquiry_type, e.customer_name, e.site_contact_name ?? null,
-      e.contact_email, e.contact_phone ?? null, e.job_brief ?? null,
-      e.location ?? null, e.preferred_date ?? null, e.project_start_date ?? null,
-      e.project_end_date ?? null, e.status, e.dispatcher_notes ?? null,
-      e.is_trashed ? 1 : 0, e.anticipated_hours ?? null, e.site_inspection_required ? 1 : 0,
-      e.asset_type_id ?? null, e.asset_requirement ?? null, e.po_number ?? null,
-      timestamp, id
-    ).run();
+      UPDATE enquiries SET ${updates.join(', ')} WHERE id = ?
+    `).bind(...params).run();
 
     return jsonResponse({ id });
   },

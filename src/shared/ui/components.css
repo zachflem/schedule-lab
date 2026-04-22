@@ -77,6 +77,27 @@
   border-radius: var(--radius-md);
 }
 
+/* ── Modal tabs ──────────────────────────────────── */
+.modal-tab {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-gray-500);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  white-space: nowrap;
+}
+.modal-tab:hover {
+  color: var(--color-gray-800);
+}
+.modal-tab.active {
+  color: var(--color-primary-600);
+  border-bottom-color: var(--color-primary-600);
+}
+
 /* ── Inputs ─────────────────────────────────────── */
 .form-group {
   display: flex;

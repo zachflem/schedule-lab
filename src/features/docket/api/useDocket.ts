@@ -29,9 +29,11 @@ interface JobData {
     resource_type: 'Asset' | 'Personnel';
     asset_id?: string;
     asset_name?: string;
+    asset_rate_hourly?: number;
     personnel_id?: string;
     personnel_name?: string;
     qualification_name?: string;
+    qualification_rate_hourly?: number;
     rate_type?: string;
     rate_amount: number;
     qty: number;
@@ -158,7 +160,7 @@ export function useDocket(jobId: string | null) {
           description: r.asset_name || r.personnel_name || r.qualification_name || 'Resource',
           inventory_code: 'AD-HOC',
           quantity: r.qty,
-          unit_rate: r.rate_amount,
+          unit_rate: r.rate_amount || (r.resource_type === 'Asset' ? r.asset_rate_hourly : r.qualification_rate_hourly) || 0,
           is_taxable: true,
         }));
 
