@@ -39,15 +39,13 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
 
   const slotIndices = useMemo(() => Array.from({ length: SLOTS }, (_, i) => i), []);
 
-  // Snap to 6am on mount — double-RAF ensures layout is complete
+  // Snap to 6am on mount — setTimeout gives the browser time to finish layout
+  // and compute scrollable dimensions before we set scrollLeft
   useEffect(() => {
-    const r1 = requestAnimationFrame(() => {
-      const r2 = requestAnimationFrame(() => {
-        if (scrollRef.current) scrollRef.current.scrollLeft = 12 * SLOT_W;
-      });
-      return () => cancelAnimationFrame(r2);
-    });
-    return () => cancelAnimationFrame(r1);
+    const id = setTimeout(() => {
+      if (scrollRef.current) scrollRef.current.scrollLeft = 12 * SLOT_W;
+    }, 50);
+    return () => clearTimeout(id);
   }, []);
 
   // Keep "now" line current
@@ -97,7 +95,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
       <div
         ref={scrollRef}
         className="cal-scroll overflow-auto"
-        style={{ height: 'min(calc(100vh - 400px), 700px)', minHeight: '360px' }}
+        style={{ height: 'min(calc(100vh - 560px), 540px)', minHeight: '260px' }}
       >
         <div style={{ width: `${INNER_W}px` }}>
 
@@ -350,20 +348,20 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
               </div>
             );
           })}
-        </div>
-      </div>
 
-      {/* Footer */}
-      <div className="shrink-0 flex justify-center py-3 bg-gray-50 border-t border-gray-100">
-        <button
-          onClick={() => setExtraDays(p => p + 7)}
-          className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold uppercase tracking-wider text-gray-500 bg-white border border-gray-200 rounded-lg hover:border-primary-300 hover:text-primary-600 transition-all shadow-sm hover:shadow"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Show another 7 days
-        </button>
+          {/* Load more — lives inside the scroll area so it's always reachable */}
+          <div className="flex justify-center py-4 border-t border-gray-100 bg-white sticky left-0" style={{ width: '100%' }}>
+            <button
+              onClick={() => setExtraDays(p => p + 7)}
+              className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold uppercase tracking-wider text-gray-500 bg-white border border-gray-200 rounded-lg hover:border-primary-300 hover:text-primary-600 transition-all shadow-sm hover:shadow"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Show another 7 days
+            </button>
+          </div>
+        </div>
       </div>
 
       <style>{`
