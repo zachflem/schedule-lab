@@ -111,24 +111,25 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
   return (
     <div
       className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col"
-      style={style}
+      style={{ minWidth: 0, ...style }}
     >
       {/* ── Scrollable timeline (both axes) ── */}
       <div
         ref={scrollRef}
         className="cal-scroll overflow-auto"
-        style={{ flex: 1, minHeight: 0 }}
+        style={{ flex: 1, minHeight: 0, minWidth: 0 }}
       >
-        <div style={{ width: `${INNER_W}px` }}>
+        {/* minWidth: '100%' ensures the grid fills the container on wide displays */}
+        <div style={{ width: `${INNER_W}px`, minWidth: '100%' }}>
 
           {/* Time header — sticky top */}
           <div
-            className="flex border-b border-gray-200 bg-gray-50/90 backdrop-blur-sm"
+            className="flex border-b border-gray-100 bg-gray-50/90 backdrop-blur-sm"
             style={{ position: 'sticky', top: 0, height: `${HEADER_H}px`, zIndex: 40 }}
           >
             {/* Corner cell — sticky on both axes */}
             <div
-              className="shrink-0 flex items-center justify-center border-r border-gray-200 bg-gray-50"
+              className="shrink-0 flex items-center justify-center border-r border-gray-100 bg-gray-50"
               style={{ width: `${DATE_COL}px`, position: 'sticky', left: 0, zIndex: 50 }}
             >
               <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Date</span>
@@ -143,7 +144,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                 return (
                   <div
                     key={i}
-                    className={`shrink-0 border-r last:border-0 ${isHour ? 'border-gray-200' : 'border-gray-100'} ${isBusinessHour ? 'bg-blue-50/30' : ''}`}
+                    className={`shrink-0 border-r last:border-0 ${isHour ? 'border-gray-100' : 'border-gray-50'} ${isBusinessHour ? 'bg-blue-50/30' : ''}`}
                     style={{ width: `${SLOT_W}px`, height: `${HEADER_H}px` }}
                   >
                     {showLabel && (
@@ -207,9 +208,9 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
               >
                 {/* Date label — sticky left */}
                 <div
-                  className={`shrink-0 flex flex-col justify-center px-4 border-r transition-colors ${
+                  className={`shrink-0 flex flex-col justify-center border-r transition-colors ${
                     isToday
-                      ? 'bg-primary-50/60 border-primary-200'
+                      ? 'bg-primary-50/60 border-primary-100'
                       : 'bg-white border-gray-100 group-hover:bg-gray-50/50'
                   }`}
                   style={{
@@ -217,6 +218,8 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                     position: 'sticky',
                     left: 0,
                     zIndex: 30,
+                    paddingLeft: '16px',
+                    paddingRight: '12px',
                     ...(isToday ? { boxShadow: 'inset 3px 0 0 var(--color-primary-500)' } : {}),
                   }}
                 >
