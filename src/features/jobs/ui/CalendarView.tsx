@@ -188,19 +188,46 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
           {days.map(day => {
             const isToday = day.toDateString() === todayStr;
 
-            const dayJobs = jobs
-              .filter(j => j.start_time && new Date(j.start_time).toDateString() === day.toDateString())
-              .sort((a, b) => +new Date(a.start_time!) - +new Date(b.start_time!));
+            // midnight boundaries for this day
+            const dayStart = day; // already set to 00:00:00 in useMemo
+            const dayEnd = new Date(+dayStart + 24 * 60 * 60 * 1000); // next midnight
 
-            // Pack overlapping jobs into tracks
-            const tracks: JobWithResources[][] = [];
-            dayJobs.forEach(job => {
+            // Find all jobs that overlap this day (including multi-day jobs)
+            type Segment = {
+              job: JobWithResources;
+              segStart: Date;
+              segEnd: Date;
+              fromPrev: boolean; // job started before this day
+              toNext: boolean;   // job ends after this day
+            };
+
+            const segments: Segment[] = jobs
+              .filter(j => {
+                if (!j.start_time || !j.end_time) return false;
+                return new Date(j.start_time) < dayEnd && new Date(j.end_time) > dayStart;
+              })
+              .map(job => {
+                const jobStart = new Date(job.start_time!);
+                const jobEnd   = new Date(job.end_time!);
+                return {
+                  job,
+                  segStart: jobStart < dayStart ? dayStart : jobStart,
+                  segEnd:   jobEnd   > dayEnd   ? dayEnd   : jobEnd,
+                  fromPrev: jobStart < dayStart,
+                  toNext:   jobEnd   > dayEnd,
+                };
+              })
+              .sort((a, b) => +a.segStart - +b.segStart);
+
+            // Pack segments into non-overlapping tracks
+            const tracks: Segment[][] = [];
+            segments.forEach(seg => {
               const lane = tracks.findIndex(t => {
                 const last = t[t.length - 1];
-                return +new Date(job.start_time!) >= +new Date(last.end_time!) - 60_000;
+                return +seg.segStart >= +last.segEnd - 60_000;
               });
-              if (lane === -1) tracks.push([job]);
-              else tracks[lane].push(job);
+              if (lane === -1) tracks.push([seg]);
+              else tracks[lane].push(seg);
             });
 
             const numTracks = Math.max(tracks.length, 1);
@@ -274,23 +301,32 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                   {/* Job cards — pointer-events-none wrapper so drop target beneath gets events */}
                   <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
                     {tracks.flatMap((track, ti) =>
-                      track.map((job, ji) => {
-                        const start = new Date(job.start_time!);
-                        const end   = new Date(job.end_time!);
-                        const startMins = start.getHours() * 60 + start.getMinutes();
-                        const durMins   = (+end - +start) / 60_000;
+                      track.map((seg, ji) => {
+                        const { job, segStart, segEnd, fromPrev, toNext } = seg;
+
+                        // Position based on the segment's effective time on this day
+                        const startMins = segStart.getHours() * 60 + segStart.getMinutes();
+                        const durMins   = (+segEnd - +segStart) / 60_000;
                         const cardLeft  = startMins * PX_PER_MIN;
                         const cardW     = Math.max(durMins * PX_PER_MIN, SLOT_W);
                         const cardTop   = ti * TRACK_H + 8;
                         const color     = STATUS_COLOR[job.status_id ?? ''] ?? '#3b82f6';
 
-                        const people = job.resources?.filter(r => r.resource_type === 'Personnel') ?? [];
-                        const assets = job.resources?.filter(r => r.resource_type === 'Asset')     ?? [];
+                        // Full job times for tooltip display
+                        const jobStart = new Date(job.start_time!);
+                        const jobEnd   = new Date(job.end_time!);
+
+                        const people = job.resources?.filter((r: any) => r.resource_type === 'Personnel') ?? [];
+                        const assets = job.resources?.filter((r: any) => r.resource_type === 'Asset')     ?? [];
+
+                        // Flatten corner radii when job continues across midnight
+                        const radLeft  = fromPrev ? '0' : '8px';
+                        const radRight = toNext   ? '0' : '8px';
 
                         return (
                           <div
-                            key={`${job.id}-${ti}-${ji}`}
-                            draggable
+                            key={`${job.id}-${day.toISOString()}-${ti}-${ji}`}
+                            draggable={!fromPrev} // only drag from the originating day
                             onDragStart={e => e.dataTransfer.setData('jobId', job.id!)}
                             className="cv-card"
                             style={{
@@ -302,36 +338,44 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                               zIndex: 10,
                               background: 'white',
                               border: '1px solid #e2e8f0',
-                              borderLeft: `3px solid ${color}`,
-                              borderRadius: '8px',
+                              borderLeft: fromPrev ? `1px solid ${color}` : `3px solid ${color}`,
+                              borderRadius: `${radLeft} ${radRight} ${radRight} ${radLeft}`,
                               boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
                               display: 'flex',
                               overflow: 'visible',
                               pointerEvents: 'auto',
-                              cursor: 'grab',
+                              cursor: fromPrev ? 'default' : 'grab',
                             }}
                           >
-                            {/* Drag handle */}
-                            <div className="cv-handle" style={{ width: '18px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', borderRight: '1px solid #f1f5f9', borderRadius: '7px 0 0 7px' }}>
-                              <div style={{ display: 'grid', gridTemplateColumns: '3px 3px', gap: '3px' }}>
-                                {[0,1,2,3,4,5].map(k => (
-                                  <div key={k} style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#cbd5e1' }} />
-                                ))}
+                            {/* Continuation arrow from previous day */}
+                            {fromPrev && (
+                              <div style={{ position: 'absolute', left: '-10px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', color, lineHeight: 1, pointerEvents: 'none' }}>◀</div>
+                            )}
+
+                            {/* Drag handle (only on originating day) */}
+                            {!fromPrev && (
+                              <div className="cv-handle" style={{ width: '18px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', borderRight: '1px solid #f1f5f9', borderRadius: '7px 0 0 7px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '3px 3px', gap: '3px' }}>
+                                  {[0,1,2,3,4,5].map(k => (
+                                    <div key={k} style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#cbd5e1' }} />
+                                  ))}
+                                </div>
                               </div>
-                            </div>
+                            )}
 
                             {/* Card content */}
                             <div style={{ flex: 1, padding: '5px 7px', overflow: 'hidden', pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                               <div style={{ fontSize: '10px', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {fromPrev && <span style={{ color, marginRight: '4px', fontSize: '9px' }}>cont.</span>}
                                 {job.customer_name}
                               </div>
                               <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', overflow: 'hidden' }}>
-                                {assets.map((a, k) => (
+                                {assets.map((a: any, k: number) => (
                                   <span key={k} className="job-pill job-pill--asset">
                                     {a.asset_number || a.asset_name.slice(0, 6)}
                                   </span>
                                 ))}
-                                {people.map((p, k) => (
+                                {people.map((p: any, k: number) => (
                                   <span key={k} className="job-pill job-pill--person">
                                     {initials(p.personnel_name || 'S')}
                                   </span>
@@ -339,7 +383,12 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                               </div>
                             </div>
 
-                            {/* Hover tooltip */}
+                            {/* Continuation arrow to next day */}
+                            {toNext && (
+                              <div style={{ position: 'absolute', right: '-10px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', color, lineHeight: 1, pointerEvents: 'none' }}>▶</div>
+                            )}
+
+                            {/* Hover tooltip — always shows full job times */}
                             <div className="cv-tip">
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '8px', marginBottom: '8px', borderBottom: '1px solid #1e293b' }}>
                                 <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#60a5fa' }}>{job.customer_name}</span>
@@ -350,8 +399,13 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                                   <div>
                                     <div style={{ fontSize: '8px', color: '#64748b', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.06em', marginBottom: '2px' }}>Scheduled Time</div>
                                     <div style={{ fontSize: '11px', fontWeight: 700, color: '#93c5fd' }}>
-                                      {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                      {jobStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – {jobEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
+                                    {(fromPrev || toNext) && (
+                                      <div style={{ fontSize: '9px', color: '#64748b', marginTop: '2px' }}>
+                                        {jobStart.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} → {jobEnd.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                                      </div>
+                                    )}
                                   </div>
                                   <div style={{ fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', border: `1px solid ${color}`, color, background: `${color}20`, whiteSpace: 'nowrap' }}>
                                     {job.status_id || 'General'}
@@ -374,7 +428,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                                     <div style={{ fontSize: '8px', color: '#64748b', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.06em', marginBottom: '3px' }}>Staff</div>
                                     <div style={{ fontSize: '10px', color: '#cbd5e1' }}>
                                       {people.length > 0
-                                        ? people.slice(0, 4).map((p, k) => <div key={k} style={{ marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>• {p.personnel_name}</div>)
+                                        ? people.slice(0, 4).map((p: any, k: number) => <div key={k} style={{ marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>• {p.personnel_name}</div>)
                                         : <span style={{ color: '#475569', fontStyle: 'italic' }}>Unassigned</span>}
                                       {people.length > 4 && <div style={{ fontSize: '9px', fontStyle: 'italic', color: '#475569' }}>+{people.length - 4} more</div>}
                                     </div>
@@ -383,7 +437,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                                     <div style={{ fontSize: '8px', color: '#64748b', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.06em', marginBottom: '3px' }}>Assets</div>
                                     <div style={{ fontSize: '10px', color: '#cbd5e1' }}>
                                       {assets.length > 0
-                                        ? assets.slice(0, 4).map((a, k) => <div key={k} style={{ marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>• {a.asset_name}</div>)
+                                        ? assets.slice(0, 4).map((a: any, k: number) => <div key={k} style={{ marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>• {a.asset_name}</div>)
                                         : <span style={{ color: '#475569', fontStyle: 'italic' }}>None</span>}
                                       {assets.length > 4 && <div style={{ fontSize: '9px', fontStyle: 'italic', color: '#475569' }}>+{assets.length - 4} more</div>}
                                     </div>
