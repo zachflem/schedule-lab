@@ -230,6 +230,37 @@ export const AssetExtensionSchema = z.object({
 });
 export type AssetExtension = z.infer<typeof AssetExtensionSchema>;
 
+// ── Asset Maintenance ──────────────────────────────────
+export const MAINTENANCE_ACTIVITY_TYPES = ['Scheduled Service', 'General Repair', 'Breakdown', 'Other'] as const;
+
+export const AssetMaintenanceActivitySchema = z.object({
+  id: z.string().optional(),
+  asset_id: z.string().optional(),
+  activity_type: z.enum(MAINTENANCE_ACTIVITY_TYPES),
+  type_other: z.string().optional().nullable(),
+  performed_by: z.string().min(1, 'Performer name is required'),
+  description: z.string().min(1, 'Description is required'),
+  cost: z.number().min(0).optional().nullable(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+export type AssetMaintenanceActivity = z.infer<typeof AssetMaintenanceActivitySchema>;
+
+export const MaintenanceFileSchema = z.object({
+  id: z.string(),
+  maintenance_id: z.string(),
+  file_key: z.string(),
+  file_name: z.string(),
+  created_at: z.string(),
+});
+export type MaintenanceFile = z.infer<typeof MaintenanceFileSchema>;
+
+export const AssetMaintenanceActivityDetailSchema = AssetMaintenanceActivitySchema.extend({
+  photos: z.array(MaintenanceFileSchema).default([]),
+  docs: z.array(MaintenanceFileSchema).default([]),
+});
+export type AssetMaintenanceActivityDetail = z.infer<typeof AssetMaintenanceActivityDetailSchema>;
+
 // ── Personnel ──────────────────────────────────────────
 export const PersonnelSchema = z.object({
   id: z.string().optional(),

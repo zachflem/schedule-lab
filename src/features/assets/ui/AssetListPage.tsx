@@ -3,6 +3,7 @@ import { api } from '@/shared/lib/api';
 import type { Asset } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
 import { AssetEditModal } from './AssetEditModal';
+import { AssetMaintenanceModal } from './AssetMaintenanceModal';
 
 interface AssetWithMetadata extends Asset {
   asset_type_name: string;
@@ -15,6 +16,7 @@ export function AssetListPage() {
   const [error, setError] = useState<string | null>(null);
   // null = closed, 'new' = create, string UUID = edit
   const [editingId, setEditingId] = useState<string | 'new' | null>(null);
+  const [maintenanceAsset, setMaintenanceAsset] = useState<{ id: string; name: string } | null>(null);
 
   const fetchAssets = useCallback(async () => {
     try {
@@ -108,7 +110,10 @@ export function AssetListPage() {
                     </div>
                   </td>
                   <td style={{ padding: 'var(--space-4)', textAlign: 'right' }}>
-                    <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(asset.id!)}>Edit</button>
+                    <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+                      <button className="btn btn--secondary btn--sm" onClick={() => setMaintenanceAsset({ id: asset.id!, name: asset.name })}>Maintenance</button>
+                      <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(asset.id!)}>Edit</button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -137,7 +142,10 @@ export function AssetListPage() {
                     {asset.asset_type_name}{asset.category ? ` · ${asset.category}` : ''}
                   </div>
                 </div>
-                <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(asset.id!)}>Edit</button>
+                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                  <button className="btn btn--secondary btn--sm" onClick={() => setMaintenanceAsset({ id: asset.id!, name: asset.name })}>Maintenance</button>
+                  <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(asset.id!)}>Edit</button>
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', fontSize: 'var(--text-sm)' }}>
                 <span style={{ color: 'var(--color-gray-600)' }}>
@@ -157,6 +165,14 @@ export function AssetListPage() {
           assetId={editingId === 'new' ? null : editingId}
           onClose={() => setEditingId(null)}
           onSaved={handleSaved}
+        />
+      )}
+
+      {maintenanceAsset !== null && (
+        <AssetMaintenanceModal
+          assetId={maintenanceAsset.id}
+          assetName={maintenanceAsset.name}
+          onClose={() => setMaintenanceAsset(null)}
         />
       )}
     </div>
