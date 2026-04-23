@@ -478,19 +478,30 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
             );
           })}
 
-          {/* Load more */}
-          <div style={{ display: 'flex', justifyContent: 'flex-start', padding: '16px', paddingLeft: DATE_W, borderTop: '1px solid #f1f5f9', background: 'white', position: 'sticky', left: 0 }}>
-            <button
-              onClick={() => setExtraDays(p => p + 7)}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 20px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.15s' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#3b82f6'; (e.currentTarget as HTMLButtonElement).style.color = '#2563eb'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#e2e8f0'; (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; }}
+          {/* Load more — lives inside the sticky date column so it's always visible */}
+          <div style={{ display: 'flex', borderTop: '1px solid #f1f5f9' }}>
+            <div
+              style={{
+                width: `${DATE_W}px`, flexShrink: 0,
+                position: 'sticky', left: 0, zIndex: 30,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '10px 8px',
+                borderRight: '2px solid #e2e8f0',
+                background: 'white',
+              }}
             >
-              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Show another 7 days
-            </button>
+              <button
+                onClick={() => setExtraDays(p => p + 7)}
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.15s', whiteSpace: 'nowrap' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#3b82f6'; (e.currentTarget as HTMLButtonElement).style.color = '#2563eb'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#e2e8f0'; (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; }}
+              >
+                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                +7 days
+              </button>
+            </div>
           </div>
 
         </div>
