@@ -479,7 +479,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
           })}
 
           {/* Load more */}
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '16px', borderTop: '1px solid #f1f5f9', background: 'white', position: 'sticky', left: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', padding: '16px', paddingLeft: DATE_W, borderTop: '1px solid #f1f5f9', background: 'white', position: 'sticky', left: 0 }}>
             <button
               onClick={() => setExtraDays(p => p + 7)}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 20px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.15s' }}
