@@ -115,7 +115,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
 
   return (
     // Fills the position:relative host in JobsPage
-    <div style={{ position: 'absolute', inset: 0, borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+    <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, right: 0, maxWidth: `${TOTAL_W}px`, borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
 
       {/* ── Single scroll container — both axes ── */}
       <div
