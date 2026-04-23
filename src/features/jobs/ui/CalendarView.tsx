@@ -1,24 +1,20 @@
-import { useMemo, useRef, useLayoutEffect, useEffect, useState } from 'react';
+import { useState, useRef, useLayoutEffect, useEffect, useMemo } from 'react';
 import type { JobWithResources } from '../api/useJobs';
 import { formatRecordId } from '@/shared/lib/format';
 
-interface CalendarViewProps {
-  jobs: JobWithResources[];
-  resources: { assets: any[]; personnel: any[] };
-  onScheduleUpdate?: (jobId: string, start: string, end: string) => void;
-  daysToShow?: number;
-}
-
-const SLOT_W = 48;
-const DATE_COL = 160;
-const SLOTS = 48;
-const INNER_W = SLOTS * SLOT_W + DATE_COL;
+// ── Layout constants ──────────────────────────────────
+const SLOT_W = 48;           // px per 30-min slot
+const DATE_W = 148;          // date column px
+const SLOTS = 48;            // 24h × 2
+const GRID_W = SLOTS * SLOT_W; // 2304px — exact, never stretched
+const TOTAL_W = DATE_W + GRID_W;
 const PX_PER_MIN = SLOT_W / 30;
 const HEADER_H = 44;
 const ROW_H = 80;
 const TRACK_H = 68;
+const SNAP_SLOT = 12;        // scroll to 6am on load
 
-const STATUS_BORDER: Record<string, string> = {
+const STATUS_COLOR: Record<string, string> = {
   'Job Booked':     '#3b82f6',
   'Job Scheduled':  '#8b5cf6',
   'Allocated':      '#f59e0b',
@@ -30,19 +26,31 @@ const STATUS_BORDER: Record<string, string> = {
   'Quote Accepted': '#10b981',
 };
 
-function formatHourLabel(h: number): string {
-  if (h === 0)  return 'midnight';
+function fmtHour(h: number): string {
+  if (h === 0) return 'midnight';
   if (h === 12) return 'noon';
   return h < 12 ? `${h}am` : `${h - 12}pm`;
 }
 
-export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 10 }: CalendarViewProps) {
+function initials(name: string): string {
+  return name.split(' ').map(n => n[0] || '').join('').toUpperCase();
+}
+
+interface CalendarViewProps {
+  jobs: JobWithResources[];
+  resources: { assets: any[]; personnel: any[] };
+  onScheduleUpdate?: (jobId: string, start: string, end: string) => void;
+  daysToShow?: number;
+}
+
+export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 14 }: CalendarViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [extraDays, setExtraDays] = useState(0);
   const [nowMins, setNowMins] = useState(() => {
     const n = new Date();
     return n.getHours() * 60 + n.getMinutes();
   });
+
   const todayStr = useMemo(() => new Date().toDateString(), []);
   const totalDays = daysToShow + extraDays;
 
@@ -52,19 +60,16 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
       d.setHours(0, 0, 0, 0);
       d.setDate(d.getDate() + i);
       return d;
-    }),
-  [totalDays]);
+    }), [totalDays]);
 
-  const slotIndices = useMemo(() => Array.from({ length: SLOTS }, (_, i) => i), []);
+  const slots = useMemo(() => Array.from({ length: SLOTS }, (_, i) => i), []);
 
-  // useLayoutEffect fires synchronously after DOM mutations (before paint), so the
-  // container already has its computed dimensions. The rAF is a safety net for
-  // browsers that reset scrollLeft during their own first-paint scroll restoration.
+  // Scroll to 6am — fires after layout so scroll container has correct dimensions
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollLeft = 12 * SLOT_W;
-    const raf = requestAnimationFrame(() => { el.scrollLeft = 12 * SLOT_W; });
+    el.scrollLeft = SNAP_SLOT * SLOT_W;
+    const raf = requestAnimationFrame(() => { el.scrollLeft = SNAP_SLOT * SLOT_W; });
     return () => cancelAnimationFrame(raf);
   }, []);
 
@@ -76,10 +81,15 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
     return () => clearInterval(id);
   }, []);
 
-  const handleDrop = (e: React.DragEvent, day: Date, slotIdx: number) => {
+  // Drop onto timeline: compute slot from mouse x relative to the grid div
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, day: Date) => {
     e.preventDefault();
     const jobId = e.dataTransfer.getData('jobId');
     if (!jobId || !onScheduleUpdate) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const slotIdx = Math.max(0, Math.min(SLOTS - 1, Math.floor(x / SLOT_W)));
 
     const start = new Date(day);
     start.setHours(Math.floor(slotIdx / 2), (slotIdx % 2) * 30, 0, 0);
@@ -103,81 +113,78 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
     );
   };
 
-  const initials = (name: string) =>
-    name.split(' ').map(n => n[0]).join('').toUpperCase();
-
   return (
-    <div
-      className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
-      style={{ position: 'absolute', inset: 0 }}
-    >
-      {/* ── Scrollable timeline (both axes) ── */}
+    // Fills the position:relative host in JobsPage
+    <div style={{ position: 'absolute', inset: 0, borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+
+      {/* ── Single scroll container — both axes ── */}
       <div
         ref={scrollRef}
-        className="cal-scroll"
+        className="cv-scroll"
         style={{ position: 'absolute', inset: 0, overflow: 'auto' }}
       >
-        {/* minWidth: '100%' ensures the grid fills the container on wide displays */}
-        <div style={{ width: `${INNER_W}px`, minWidth: '100%' }}>
+        {/* Inner content — exact width, NOT stretched to viewport on ultrawide */}
+        <div style={{ width: `${TOTAL_W}px` }}>
 
-          {/* Time header — sticky top */}
+          {/* ── Time header — sticky top ── */}
           <div
-            className="flex border-b border-gray-100 bg-gray-50/90 backdrop-blur-sm"
-            style={{ position: 'sticky', top: 0, height: `${HEADER_H}px`, zIndex: 40 }}
+            style={{
+              position: 'sticky', top: 0, zIndex: 40,
+              height: `${HEADER_H}px`, display: 'flex',
+              background: '#f8fafc', borderBottom: '2px solid #e2e8f0',
+            }}
           >
-            {/* Corner cell — sticky on both axes */}
-            <div
-              className="shrink-0 flex items-center justify-center border-r border-gray-100 bg-gray-50"
-              style={{ width: `${DATE_COL}px`, position: 'sticky', left: 0, zIndex: 50 }}
-            >
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Date</span>
+            {/* Corner — sticky on both axes */}
+            <div style={{
+              position: 'sticky', left: 0, zIndex: 50,
+              width: `${DATE_W}px`, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRight: '2px solid #e2e8f0', background: '#f8fafc',
+            }}>
+              <span style={{ fontSize: '10px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Date</span>
             </div>
 
-            {/* Hour slots */}
-            <div className="relative flex">
-              {slotIndices.map(i => {
+            {/* Hour slots — exact GRID_W, not flex-1 */}
+            <div style={{ width: `${GRID_W}px`, flexShrink: 0, position: 'relative', display: 'flex' }}>
+              {slots.map(i => {
                 const isHour = i % 2 === 0;
-                const isBusinessHour = i >= 12 && i < 36;
                 const showLabel = i % 4 === 0;
+                const isBiz = i >= 12 && i < 36;
                 return (
                   <div
                     key={i}
-                    className={`shrink-0 border-r last:border-0 ${isHour ? 'border-gray-100' : 'border-gray-50'} ${isBusinessHour ? 'bg-blue-50/30' : ''}`}
-                    style={{ width: `${SLOT_W}px`, height: `${HEADER_H}px` }}
+                    style={{
+                      width: `${SLOT_W}px`, flexShrink: 0,
+                      height: `${HEADER_H}px`,
+                      borderRight: `1px solid ${isHour ? '#e2e8f0' : '#f1f5f9'}`,
+                      background: isBiz ? 'rgba(219,234,254,0.35)' : 'transparent',
+                      position: 'relative',
+                    }}
                   >
                     {showLabel && (
-                      <span className="absolute bottom-1.5 left-1 text-[11px] font-semibold text-gray-500 select-none whitespace-nowrap">
-                        {formatHourLabel(i / 2)}
+                      <span style={{ position: 'absolute', bottom: '7px', left: '4px', fontSize: '11px', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', userSelect: 'none' }}>
+                        {fmtHour(i / 2)}
                       </span>
                     )}
                   </div>
                 );
               })}
 
-              {/* Business day start (6am) */}
-              <div
-                className="absolute inset-y-0 w-px bg-blue-300/50 pointer-events-none"
-                style={{ left: `${12 * SLOT_W}px` }}
-              />
-              {/* Midday (noon) */}
-              <div
-                className="absolute inset-y-0 w-px bg-primary-300/50 pointer-events-none"
-                style={{ left: `${24 * SLOT_W}px` }}
-              />
-              {/* Business day end (6pm) */}
-              <div
-                className="absolute inset-y-0 w-px bg-orange-300/50 pointer-events-none"
-                style={{ left: `${36 * SLOT_W}px` }}
-              />
-              {/* Current time indicator */}
-              <div
-                className="absolute inset-y-0 w-0.5 bg-red-400/70 pointer-events-none"
-                style={{ left: `${nowMins * PX_PER_MIN}px` }}
-              />
+              {/* Vertical guide lines */}
+              {([
+                [12, 'rgba(59,130,246,0.2)'],
+                [24, 'rgba(59,130,246,0.15)'],
+                [36, 'rgba(249,115,22,0.2)'],
+              ] as const).map(([slot, color]) => (
+                <div key={slot} style={{ position: 'absolute', top: 0, bottom: 0, left: `${slot * SLOT_W}px`, width: '1px', background: color, pointerEvents: 'none' }} />
+              ))}
+
+              {/* Current time */}
+              <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${nowMins * PX_PER_MIN}px`, width: '2px', background: 'rgba(239,68,68,0.5)', pointerEvents: 'none' }} />
             </div>
           </div>
 
-          {/* Day rows */}
+          {/* ── Day rows ── */}
           {days.map(day => {
             const isToday = day.toDateString() === todayStr;
 
@@ -185,14 +192,15 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
               .filter(j => j.start_time && new Date(j.start_time).toDateString() === day.toDateString())
               .sort((a, b) => +new Date(a.start_time!) - +new Date(b.start_time!));
 
+            // Pack overlapping jobs into tracks
             const tracks: JobWithResources[][] = [];
             dayJobs.forEach(job => {
-              const ti = tracks.findIndex(t => {
+              const lane = tracks.findIndex(t => {
                 const last = t[t.length - 1];
                 return +new Date(job.start_time!) >= +new Date(last.end_time!) - 60_000;
               });
-              if (ti === -1) tracks.push([job]);
-              else tracks[ti].push(job);
+              if (lane === -1) tracks.push([job]);
+              else tracks[lane].push(job);
             });
 
             const numTracks = Math.max(tracks.length, 1);
@@ -201,68 +209,70 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
             return (
               <div
                 key={day.toISOString()}
-                className={`flex border-b border-gray-100 last:border-0 group ${isToday ? 'bg-primary-50/20' : 'hover:bg-gray-50/30'}`}
-                style={{ height: `${rowH}px` }}
+                style={{
+                  display: 'flex',
+                  height: `${rowH}px`,
+                  borderBottom: '1px solid #f1f5f9',
+                  background: isToday ? 'rgba(239,246,255,0.5)' : 'white',
+                }}
               >
                 {/* Date label — sticky left */}
                 <div
-                  className={`shrink-0 flex flex-col justify-center border-r transition-colors ${
-                    isToday
-                      ? 'bg-primary-50/60 border-primary-100'
-                      : 'bg-white border-gray-100 group-hover:bg-gray-50/50'
-                  }`}
                   style={{
-                    width: `${DATE_COL}px`,
-                    position: 'sticky',
-                    left: 0,
-                    zIndex: 30,
-                    paddingLeft: '16px',
-                    paddingRight: '12px',
-                    ...(isToday ? { boxShadow: 'inset 3px 0 0 var(--color-primary-500)' } : {}),
+                    width: `${DATE_W}px`, flexShrink: 0,
+                    position: 'sticky', left: 0, zIndex: 30,
+                    display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                    paddingLeft: '16px', paddingRight: '12px',
+                    borderRight: '2px solid #e2e8f0',
+                    background: isToday ? '#eff6ff' : 'white',
+                    boxShadow: isToday ? 'inset 3px 0 0 #3b82f6' : undefined,
                   }}
                 >
-                  <div className={`text-[9px] font-black uppercase tracking-[0.15em] mb-0.5 ${
-                    isToday ? 'text-red-500' : 'text-gray-400'
-                  }`}>
+                  <div style={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em', color: isToday ? '#ef4444' : '#94a3b8', marginBottom: '2px' }}>
                     {isToday ? '● Today' : day.toLocaleDateString('en-AU', { weekday: 'short' })}
                   </div>
-                  <div className={`text-2xl font-black leading-none ${
-                    isToday ? 'text-primary-600' : 'text-gray-900'
-                  }`}>
+                  <div style={{ fontSize: '24px', fontWeight: 900, lineHeight: 1, color: isToday ? '#2563eb' : '#0f172a' }}>
                     {day.getDate()}
                   </div>
-                  <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                  <div style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8', marginTop: '3px' }}>
                     {day.toLocaleDateString('en-AU', { month: 'short' })}
                   </div>
                 </div>
 
-                {/* Slots + jobs */}
-                <div className="relative flex flex-1">
-
-                  {/* Drop-target slots */}
-                  {slotIndices.map(i => (
+                {/* Timeline — exact GRID_W, drop target, job cards */}
+                <div
+                  style={{ width: `${GRID_W}px`, flexShrink: 0, position: 'relative' }}
+                  onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('cv-drop-active'); }}
+                  onDragLeave={e => { e.currentTarget.classList.remove('cv-drop-active'); }}
+                  onDrop={e => { e.currentTarget.classList.remove('cv-drop-active'); handleDrop(e, day); }}
+                >
+                  {/* Column grid lines */}
+                  {slots.map(i => (
                     <div
                       key={i}
-                      className={`shrink-0 h-full border-r last:border-0 ${i % 2 === 0 ? 'border-gray-100' : 'border-gray-50'}`}
-                      style={{ width: `${SLOT_W}px` }}
-                      onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('is-draggover'); }}
-                      onDragLeave={e => e.currentTarget.classList.remove('is-draggover')}
-                      onDrop={e => { e.currentTarget.classList.remove('is-draggover'); handleDrop(e, day, i); }}
+                      style={{
+                        position: 'absolute', top: 0, bottom: 0,
+                        left: `${i * SLOT_W}px`, width: `${SLOT_W}px`,
+                        borderRight: `1px solid ${i % 2 === 0 ? '#f1f5f9' : '#f8fafc'}`,
+                        pointerEvents: 'none',
+                      }}
                     />
                   ))}
 
-                  {/* Current-time line */}
+                  {/* Guide lines */}
+                  {([12, 24, 36] as const).map(slot => (
+                    <div key={slot} style={{ position: 'absolute', top: 0, bottom: 0, left: `${slot * SLOT_W}px`, width: '1px', background: slot === 36 ? 'rgba(249,115,22,0.15)' : 'rgba(59,130,246,0.12)', pointerEvents: 'none' }} />
+                  ))}
+
+                  {/* Current time marker */}
                   {isToday && (
-                    <div
-                      className="absolute top-0 bottom-0 w-0.5 bg-red-400 z-20 pointer-events-none"
-                      style={{ left: `${nowMins * PX_PER_MIN}px` }}
-                    >
-                      <div className="absolute -top-px -left-[3px] w-2 h-2 rounded-full bg-red-400 border-2 border-white shadow-sm" />
+                    <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${nowMins * PX_PER_MIN}px`, width: '2px', background: '#ef4444', zIndex: 20, pointerEvents: 'none' }}>
+                      <div style={{ position: 'absolute', top: '-1px', left: '-3px', width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
                     </div>
                   )}
 
-                  {/* Job cards (pointer-events-none wrapper so slots beneath still get drag events) */}
-                  <div className="absolute inset-0 pointer-events-none">
+                  {/* Job cards — pointer-events-none wrapper so drop target beneath gets events */}
+                  <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
                     {tracks.flatMap((track, ti) =>
                       track.map((job, ji) => {
                         const start = new Date(job.start_time!);
@@ -270,53 +280,59 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                         const startMins = start.getHours() * 60 + start.getMinutes();
                         const durMins   = (+end - +start) / 60_000;
                         const cardLeft  = startMins * PX_PER_MIN;
-                        const cardW     = Math.max(durMins * PX_PER_MIN, 48);
+                        const cardW     = Math.max(durMins * PX_PER_MIN, SLOT_W);
                         const cardTop   = ti * TRACK_H + 8;
+                        const color     = STATUS_COLOR[job.status_id ?? ''] ?? '#3b82f6';
 
                         const people = job.resources?.filter(r => r.resource_type === 'Personnel') ?? [];
                         const assets = job.resources?.filter(r => r.resource_type === 'Asset')     ?? [];
-                        const borderColor = STATUS_BORDER[job.status_id ?? ''] ?? '#3b82f6';
 
                         return (
                           <div
                             key={`${job.id}-${ti}-${ji}`}
                             draggable
                             onDragStart={e => e.dataTransfer.setData('jobId', job.id!)}
-                            className="cal-job absolute flex rounded-lg overflow-visible pointer-events-auto cursor-grab active:cursor-grabbing"
+                            className="cv-card"
                             style={{
-                              left:       `${cardLeft}px`,
-                              width:      `${cardW}px`,
-                              top:        `${cardTop}px`,
-                              height:     '56px',
-                              zIndex:     10,
+                              position: 'absolute',
+                              left: `${cardLeft}px`,
+                              width: `${cardW}px`,
+                              top: `${cardTop}px`,
+                              height: '56px',
+                              zIndex: 10,
                               background: 'white',
-                              border:     '1px solid #e2e8f0',
-                              borderLeft: `3px solid ${borderColor}`,
-                              boxShadow:  '0 1px 3px rgba(0,0,0,0.07)',
+                              border: '1px solid #e2e8f0',
+                              borderLeft: `3px solid ${color}`,
+                              borderRadius: '8px',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+                              display: 'flex',
+                              overflow: 'visible',
+                              pointerEvents: 'auto',
+                              cursor: 'grab',
                             }}
                           >
                             {/* Drag handle */}
-                            <div className="cal-drag-handle w-5 shrink-0 flex items-center justify-center bg-gray-50 border-r border-gray-100 rounded-l-[7px]">
-                              <div className="cal-drag-dots grid grid-cols-2 gap-[3px]">
+                            <div className="cv-handle" style={{ width: '18px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', borderRight: '1px solid #f1f5f9', borderRadius: '7px 0 0 7px' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: '3px 3px', gap: '3px' }}>
                                 {[0,1,2,3,4,5].map(k => (
-                                  <div key={k} className="w-[3px] h-[3px] rounded-full bg-gray-400" />
+                                  <div key={k} style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#cbd5e1' }} />
                                 ))}
                               </div>
                             </div>
 
-                            {/* Content */}
-                            <div className="flex-1 px-1.5 py-1 overflow-hidden pointer-events-none flex flex-col gap-0.5">
-                              <div className="text-[10px] font-black text-gray-800 truncate uppercase tracking-tight leading-tight">
+                            {/* Card content */}
+                            <div style={{ flex: 1, padding: '5px 7px', overflow: 'hidden', pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              <div style={{ fontSize: '10px', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {job.customer_name}
                               </div>
-                              <div className="flex gap-1 flex-wrap overflow-hidden">
+                              <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', overflow: 'hidden' }}>
                                 {assets.map((a, k) => (
-                                  <span key={`a-${k}`} className="job-pill job-pill--asset">
+                                  <span key={k} className="job-pill job-pill--asset">
                                     {a.asset_number || a.asset_name.slice(0, 6)}
                                   </span>
                                 ))}
                                 {people.map((p, k) => (
-                                  <span key={`p-${k}`} className="job-pill job-pill--person">
+                                  <span key={k} className="job-pill job-pill--person">
                                     {initials(p.personnel_name || 'S')}
                                   </span>
                                 ))}
@@ -324,67 +340,57 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                             </div>
 
                             {/* Hover tooltip */}
-                            <div className="cal-tooltip">
-                              <div className="tt-header">
-                                <span className="tt-customer">{job.customer_name}</span>
-                                <span className="tt-id">{formatRecordId(job.id, job.status_id)}</span>
+                            <div className="cv-tip">
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '8px', marginBottom: '8px', borderBottom: '1px solid #1e293b' }}>
+                                <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#60a5fa' }}>{job.customer_name}</span>
+                                <span style={{ fontSize: '9px', color: '#475569', background: '#1e293b', padding: '1px 5px', borderRadius: '3px', fontFamily: 'monospace' }}>{formatRecordId(job.id, job.status_id)}</span>
                               </div>
-                              <div className="tt-body">
-                                <div className="tt-time-row">
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={{ background: 'rgba(30,41,59,0.5)', borderRadius: '6px', padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <div>
-                                    <div className="tt-label">Scheduled Time</div>
-                                    <div className="tt-value tt-value--blue">
+                                    <div style={{ fontSize: '8px', color: '#64748b', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.06em', marginBottom: '2px' }}>Scheduled Time</div>
+                                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#93c5fd' }}>
                                       {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                   </div>
-                                  <div className="tt-badge" style={{ borderColor, color: borderColor, background: `${borderColor}18` }}>
-                                    {job.status_id || job.job_type || 'General'}
+                                  <div style={{ fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', border: `1px solid ${color}`, color, background: `${color}20`, whiteSpace: 'nowrap' }}>
+                                    {job.status_id || 'General'}
                                   </div>
                                 </div>
                                 {job.job_brief && (
                                   <div>
-                                    <div className="tt-label">Job Brief</div>
-                                    <div className="tt-brief">{job.job_brief}</div>
+                                    <div style={{ fontSize: '8px', color: '#64748b', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.06em', marginBottom: '2px' }}>Brief</div>
+                                    <div style={{ fontSize: '11px', color: '#e2e8f0', lineHeight: 1.45, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{job.job_brief}</div>
                                   </div>
                                 )}
                                 {job.location && (
                                   <div>
-                                    <div className="tt-label">Location</div>
-                                    <div className="tt-location">{job.location}</div>
+                                    <div style={{ fontSize: '8px', color: '#64748b', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.06em', marginBottom: '2px' }}>Location</div>
+                                    <div style={{ fontSize: '11px', color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.location}</div>
                                   </div>
                                 )}
-                                {job.asset_requirement && (
-                                  <div className="tt-req">
-                                    <div className="tt-label tt-label--amber">Asset Requirement</div>
-                                    <div className="tt-req-text">"{job.asset_requirement}"</div>
-                                  </div>
-                                )}
-                                <div className="tt-resources">
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', paddingTop: '8px', borderTop: '1px solid #1e293b' }}>
                                   <div>
-                                    <div className="tt-label">Staff Assigned</div>
-                                    <div className="tt-list">
-                                      {people.length > 0 ? (
-                                        <>
-                                          {people.slice(0, 4).map((p, k) => <div key={k} className="tt-item">• {p.personnel_name}</div>)}
-                                          {people.length > 4 && <div className="tt-more">+{people.length - 4} more</div>}
-                                        </>
-                                      ) : <span className="tt-none">Unassigned</span>}
+                                    <div style={{ fontSize: '8px', color: '#64748b', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.06em', marginBottom: '3px' }}>Staff</div>
+                                    <div style={{ fontSize: '10px', color: '#cbd5e1' }}>
+                                      {people.length > 0
+                                        ? people.slice(0, 4).map((p, k) => <div key={k} style={{ marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>• {p.personnel_name}</div>)
+                                        : <span style={{ color: '#475569', fontStyle: 'italic' }}>Unassigned</span>}
+                                      {people.length > 4 && <div style={{ fontSize: '9px', fontStyle: 'italic', color: '#475569' }}>+{people.length - 4} more</div>}
                                     </div>
                                   </div>
                                   <div>
-                                    <div className="tt-label">Assets Allocated</div>
-                                    <div className="tt-list">
-                                      {assets.length > 0 ? (
-                                        <>
-                                          {assets.slice(0, 4).map((a, k) => <div key={k} className="tt-item">• {a.asset_name}</div>)}
-                                          {assets.length > 4 && <div className="tt-more">+{assets.length - 4} more</div>}
-                                        </>
-                                      ) : <span className="tt-none">None</span>}
+                                    <div style={{ fontSize: '8px', color: '#64748b', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.06em', marginBottom: '3px' }}>Assets</div>
+                                    <div style={{ fontSize: '10px', color: '#cbd5e1' }}>
+                                      {assets.length > 0
+                                        ? assets.slice(0, 4).map((a, k) => <div key={k} style={{ marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>• {a.asset_name}</div>)
+                                        : <span style={{ color: '#475569', fontStyle: 'italic' }}>None</span>}
+                                      {assets.length > 4 && <div style={{ fontSize: '9px', fontStyle: 'italic', color: '#475569' }}>+{assets.length - 4} more</div>}
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                              <div className="tt-arrow" />
+                              <div style={{ position: 'absolute', bottom: '-4px', left: '20px', width: '8px', height: '8px', background: '#0f172a', borderRight: '1px solid #1e293b', borderBottom: '1px solid #1e293b', transform: 'rotate(45deg)' }} />
                             </div>
                           </div>
                         );
@@ -396,91 +402,66 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
             );
           })}
 
-          {/* Load more — lives inside the scroll area so it's always reachable */}
-          <div className="flex justify-center py-4 border-t border-gray-100 bg-white sticky left-0" style={{ width: '100%' }}>
+          {/* Load more */}
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '16px', borderTop: '1px solid #f1f5f9', background: 'white', position: 'sticky', left: 0 }}>
             <button
               onClick={() => setExtraDays(p => p + 7)}
-              className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold uppercase tracking-wider text-gray-500 bg-white border border-gray-200 rounded-lg hover:border-primary-300 hover:text-primary-600 transition-all shadow-sm hover:shadow"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 20px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.15s' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#3b82f6'; (e.currentTarget as HTMLButtonElement).style.color = '#2563eb'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#e2e8f0'; (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; }}
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               Show another 7 days
             </button>
           </div>
+
         </div>
       </div>
 
       <style>{`
-        /* ── Scrollbar ── */
-        .cal-scroll::-webkit-scrollbar        { width: 6px; height: 6px; }
-        .cal-scroll::-webkit-scrollbar-track  { background: transparent; }
-        .cal-scroll::-webkit-scrollbar-thumb  { background: #d1d5db; border-radius: 99px; }
-        .cal-scroll::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
-        .cal-scroll { scrollbar-width: thin; scrollbar-color: #d1d5db transparent; }
+        /* Scrollbar */
+        .cv-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+        .cv-scroll::-webkit-scrollbar-track { background: transparent; }
+        .cv-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+        .cv-scroll::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        .cv-scroll { scrollbar-width: thin; scrollbar-color: #d1d5db transparent; }
 
-        /* ── Drag slot highlight ── */
-        .is-draggover {
-          background-color: var(--color-primary-50) !important;
-          box-shadow: inset 0 0 0 2px var(--color-primary-400);
-        }
+        /* Drop target row highlight */
+        .cv-drop-active { background: rgba(219,234,254,0.5) !important; outline: 2px solid #3b82f6; outline-offset: -2px; }
 
-        /* ── Job card ── */
-        .cal-job { transition: box-shadow 0.15s ease; }
-        .cal-job:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.13) !important; z-index: 50 !important; }
-        .cal-drag-dots { opacity: 0.3; transition: opacity 0.15s; }
-        .cal-job:hover .cal-drag-dots { opacity: 0.65; }
-        .cal-drag-handle { transition: background 0.15s; }
-        .cal-job:hover .cal-drag-handle { background: #eff6ff; }
+        /* Card hover */
+        .cv-card { transition: box-shadow 0.15s ease, transform 0.1s ease; }
+        .cv-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.13) !important; z-index: 50 !important; transform: translateY(-1px); }
+        .cv-handle { transition: background 0.15s, opacity 0.15s; opacity: 0.5; }
+        .cv-card:hover .cv-handle { opacity: 1; background: #eff6ff !important; }
 
-        /* ── Tooltip ── */
-        .cal-tooltip {
+        /* Tooltip */
+        .cv-tip {
           position: absolute;
           bottom: calc(100% + 10px);
           left: 0;
-          width: 276px;
+          width: 284px;
           background: #0f172a;
           color: white;
           padding: 12px;
-          border-radius: 8px;
+          border-radius: 10px;
           border: 1px solid #1e293b;
-          box-shadow: 0 16px 40px -8px rgba(0,0,0,0.55);
-          z-index: 1000;
+          box-shadow: 0 20px 60px -10px rgba(0,0,0,0.65);
+          z-index: 500;
           visibility: hidden;
           opacity: 0;
-          transform: translateY(-4px);
+          transform: translateY(-3px);
           transition: opacity 0.15s ease, transform 0.15s ease;
-          transition-delay: 0s;
           pointer-events: none;
         }
-        .cal-job:hover .cal-tooltip {
+        .cv-card:hover .cv-tip {
           visibility: visible;
           opacity: 1;
           transform: translateY(0);
-          transition-delay: 0.18s;
+          transition-delay: 0.2s;
         }
-
-        /* Tooltip internals */
-        .tt-header { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:8px; margin-bottom:8px; border-bottom:1px solid #1e293b; }
-        .tt-customer { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:0.08em; color:#60a5fa; }
-        .tt-id { font-size:9px; color:#64748b; background:#1e293b; padding:1px 5px; border-radius:3px; font-family:monospace; white-space:nowrap; }
-        .tt-body { display:flex; flex-direction:column; gap:8px; }
-        .tt-time-row { display:flex; justify-content:space-between; align-items:center; background:rgba(30,41,59,0.6); padding:6px 8px; border-radius:6px; }
-        .tt-label { font-size:8px; color:#64748b; text-transform:uppercase; font-weight:900; letter-spacing:0.06em; margin-bottom:2px; }
-        .tt-label--amber { color:rgba(251,191,36,0.85); }
-        .tt-value { font-size:11px; font-weight:700; }
-        .tt-value--blue { color:#93c5fd; }
-        .tt-badge { font-size:9px; font-weight:700; padding:2px 8px; border-radius:99px; border:1px solid; white-space:nowrap; }
-        .tt-brief { font-size:11px; color:#e2e8f0; line-height:1.45; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
-        .tt-location { font-size:11px; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .tt-req { background:rgba(245,158,11,0.1); border-left:2px solid #f59e0b; padding:5px 8px; border-radius:0 4px 4px 0; }
-        .tt-req-text { font-size:11px; color:#fef3c7; font-style:italic; }
-        .tt-resources { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding-top:8px; border-top:1px solid #1e293b; }
-        .tt-list { font-size:10px; color:#cbd5e1; margin-top:3px; }
-        .tt-item { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px; }
-        .tt-more { font-size:9px; font-style:italic; color:#64748b; }
-        .tt-none { font-size:10px; color:#475569; font-style:italic; }
-        .tt-arrow { position:absolute; bottom:-4px; left:20px; width:8px; height:8px; background:#0f172a; border-right:1px solid #1e293b; border-bottom:1px solid #1e293b; transform:rotate(45deg); }
       `}</style>
     </div>
   );
