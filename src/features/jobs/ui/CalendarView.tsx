@@ -3,12 +3,9 @@ import type { JobWithResources } from '../api/useJobs';
 import { formatRecordId } from '@/shared/lib/format';
 
 // ── Layout constants ──────────────────────────────────
-const SLOT_W = 48;           // px per 30-min slot
+const slotW_MIN = 48;       // minimum px per 30-min slot (narrow screens scroll)
 const DATE_W = 148;          // date column px
 const SLOTS = 48;            // 24h × 2
-const GRID_W = SLOTS * SLOT_W; // 2304px — exact, never stretched
-const TOTAL_W = DATE_W + GRID_W;
-const PX_PER_MIN = SLOT_W / 30;
 const HEADER_H = 44;
 const ROW_H = 80;
 const TRACK_H = 68;
@@ -44,12 +41,46 @@ interface CalendarViewProps {
 }
 
 export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 14 }: CalendarViewProps) {
+  const outerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const didScrollRef = useRef(false);
+  const [containerWidth, setContainerWidth] = useState(0);
   const [extraDays, setExtraDays] = useState(0);
   const [nowMins, setNowMins] = useState(() => {
     const n = new Date();
     return n.getHours() * 60 + n.getMinutes();
   });
+
+  // ── Responsive slot width ─────────────────────────────
+  // Expand slots to fill the container; fall back to slotW_MIN on narrow screens (scrolls)
+  const slotW = containerWidth > 0
+    ? Math.max(slotW_MIN, Math.floor((containerWidth - DATE_W) / SLOTS))
+    : slotW_MIN;
+  const gridW    = slotW * SLOTS;
+  const totalW   = Math.max(DATE_W + gridW, containerWidth); // never leave a gap on the right
+  const pxPerMin = slotW / 30;
+
+  // Measure container and track resizes
+  useLayoutEffect(() => {
+    const el = outerRef.current;
+    if (!el) return;
+    setContainerWidth(el.getBoundingClientRect().width);
+    const ro = new ResizeObserver(entries => setContainerWidth(entries[0].contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Scroll to 6am once after the first real measurement
+  useLayoutEffect(() => {
+    if (didScrollRef.current || containerWidth === 0) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    didScrollRef.current = true;
+    const target = SNAP_SLOT * slotW;
+    el.scrollLeft = target;
+    const raf = requestAnimationFrame(() => { el.scrollLeft = target; });
+    return () => cancelAnimationFrame(raf);
+  }, [containerWidth, slotW]);
 
   const todayStr = useMemo(() => new Date().toDateString(), []);
   const totalDays = daysToShow + extraDays;
@@ -63,15 +94,6 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
     }), [totalDays]);
 
   const slots = useMemo(() => Array.from({ length: SLOTS }, (_, i) => i), []);
-
-  // Scroll to 6am — fires after layout so scroll container has correct dimensions
-  useLayoutEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollLeft = SNAP_SLOT * SLOT_W;
-    const raf = requestAnimationFrame(() => { el.scrollLeft = SNAP_SLOT * SLOT_W; });
-    return () => cancelAnimationFrame(raf);
-  }, []);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -89,7 +111,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
 
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const slotIdx = Math.max(0, Math.min(SLOTS - 1, Math.floor(x / SLOT_W)));
+    const slotIdx = Math.max(0, Math.min(SLOTS - 1, Math.floor(x / slotW)));
 
     const start = new Date(day);
     start.setHours(Math.floor(slotIdx / 2), (slotIdx % 2) * 30, 0, 0);
@@ -115,7 +137,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
 
   return (
     // Fills the position:relative host in JobsPage
-    <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, right: 0, maxWidth: `${TOTAL_W}px`, borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+    <div ref={outerRef} style={{ position: 'absolute', inset: 0, borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
 
       {/* ── Single scroll container — both axes ── */}
       <div
@@ -124,7 +146,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
         style={{ position: 'absolute', inset: 0, overflow: 'auto' }}
       >
         {/* Inner content — exact width, NOT stretched to viewport on ultrawide */}
-        <div style={{ width: `${TOTAL_W}px` }}>
+        <div style={{ width: `${totalW}px` }}>
 
           {/* ── Time header — sticky top ── */}
           <div
@@ -144,8 +166,8 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
               <span style={{ fontSize: '10px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Date</span>
             </div>
 
-            {/* Hour slots — exact GRID_W, not flex-1 */}
-            <div style={{ width: `${GRID_W}px`, flexShrink: 0, position: 'relative', display: 'flex' }}>
+            {/* Hour slots — exact gridW, not flex-1 */}
+            <div style={{ width: `${gridW}px`, flexShrink: 0, position: 'relative', display: 'flex' }}>
               {slots.map(i => {
                 const isHour = i % 2 === 0;
                 const showLabel = i % 4 === 0;
@@ -154,7 +176,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                   <div
                     key={i}
                     style={{
-                      width: `${SLOT_W}px`, flexShrink: 0,
+                      width: `${slotW}px`, flexShrink: 0,
                       height: `${HEADER_H}px`,
                       borderRight: `1px solid ${isHour ? '#e2e8f0' : '#f1f5f9'}`,
                       background: isBiz ? 'rgba(219,234,254,0.35)' : 'transparent',
@@ -176,11 +198,11 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                 [24, 'rgba(59,130,246,0.15)'],
                 [36, 'rgba(249,115,22,0.2)'],
               ] as const).map(([slot, color]) => (
-                <div key={slot} style={{ position: 'absolute', top: 0, bottom: 0, left: `${slot * SLOT_W}px`, width: '1px', background: color, pointerEvents: 'none' }} />
+                <div key={slot} style={{ position: 'absolute', top: 0, bottom: 0, left: `${slot * slotW}px`, width: '1px', background: color, pointerEvents: 'none' }} />
               ))}
 
               {/* Current time */}
-              <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${nowMins * PX_PER_MIN}px`, width: '2px', background: 'rgba(239,68,68,0.5)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${nowMins * pxPerMin}px`, width: '2px', background: 'rgba(239,68,68,0.5)', pointerEvents: 'none' }} />
             </div>
           </div>
 
@@ -266,9 +288,9 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                   </div>
                 </div>
 
-                {/* Timeline — exact GRID_W, drop target, job cards */}
+                {/* Timeline — exact gridW, drop target, job cards */}
                 <div
-                  style={{ width: `${GRID_W}px`, flexShrink: 0, position: 'relative' }}
+                  style={{ width: `${gridW}px`, flexShrink: 0, position: 'relative' }}
                   onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('cv-drop-active'); }}
                   onDragLeave={e => { e.currentTarget.classList.remove('cv-drop-active'); }}
                   onDrop={e => { e.currentTarget.classList.remove('cv-drop-active'); handleDrop(e, day); }}
@@ -279,7 +301,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                       key={i}
                       style={{
                         position: 'absolute', top: 0, bottom: 0,
-                        left: `${i * SLOT_W}px`, width: `${SLOT_W}px`,
+                        left: `${i * slotW}px`, width: `${slotW}px`,
                         borderRight: `1px solid ${i % 2 === 0 ? '#f1f5f9' : '#f8fafc'}`,
                         pointerEvents: 'none',
                       }}
@@ -288,12 +310,12 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
 
                   {/* Guide lines */}
                   {([12, 24, 36] as const).map(slot => (
-                    <div key={slot} style={{ position: 'absolute', top: 0, bottom: 0, left: `${slot * SLOT_W}px`, width: '1px', background: slot === 36 ? 'rgba(249,115,22,0.15)' : 'rgba(59,130,246,0.12)', pointerEvents: 'none' }} />
+                    <div key={slot} style={{ position: 'absolute', top: 0, bottom: 0, left: `${slot * slotW}px`, width: '1px', background: slot === 36 ? 'rgba(249,115,22,0.15)' : 'rgba(59,130,246,0.12)', pointerEvents: 'none' }} />
                   ))}
 
                   {/* Current time marker */}
                   {isToday && (
-                    <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${nowMins * PX_PER_MIN}px`, width: '2px', background: '#ef4444', zIndex: 20, pointerEvents: 'none' }}>
+                    <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${nowMins * pxPerMin}px`, width: '2px', background: '#ef4444', zIndex: 20, pointerEvents: 'none' }}>
                       <div style={{ position: 'absolute', top: '-1px', left: '-3px', width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
                     </div>
                   )}
@@ -307,8 +329,8 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                         // Position based on the segment's effective time on this day
                         const startMins = segStart.getHours() * 60 + segStart.getMinutes();
                         const durMins   = (+segEnd - +segStart) / 60_000;
-                        const cardLeft  = startMins * PX_PER_MIN;
-                        const cardW     = Math.max(durMins * PX_PER_MIN, SLOT_W);
+                        const cardLeft  = startMins * pxPerMin;
+                        const cardW     = Math.max(durMins * pxPerMin, slotW);
                         const cardTop   = ti * TRACK_H + 8;
                         const color     = STATUS_COLOR[job.status_id ?? ''] ?? '#3b82f6';
 
