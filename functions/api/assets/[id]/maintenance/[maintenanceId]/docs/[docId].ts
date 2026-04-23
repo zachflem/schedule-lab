@@ -1,4 +1,4 @@
-import { getDb, jsonResponse, errorResponse, withRole, type BaseContext } from '../../../../../../../lib/db';
+import { getDb, jsonResponse, errorResponse, withRole, type BaseContext } from '../../../../../../lib/db';
 
 export const onRequest = async (context: BaseContext): Promise<Response> => {
   const method = context.request.method.toUpperCase();

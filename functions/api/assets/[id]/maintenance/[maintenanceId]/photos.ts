@@ -1,4 +1,4 @@
-import { getDb, jsonResponse, errorResponse, now, withRole, generateId, type BaseContext } from '../../../../../../lib/db';
+import { getDb, jsonResponse, errorResponse, now, withRole, generateId, type BaseContext } from '../../../../../lib/db';
 
 const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_PHOTOS = 10;

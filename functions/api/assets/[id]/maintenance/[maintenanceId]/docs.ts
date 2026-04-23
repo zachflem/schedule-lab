@@ -1,4 +1,4 @@
-import { getDb, jsonResponse, errorResponse, now, withRole, generateId, type BaseContext } from '../../../../../../lib/db';
+import { getDb, jsonResponse, errorResponse, now, withRole, generateId, type BaseContext } from '../../../../../lib/db';
 
 const ALLOWED_DOC_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
 const MAX_DOCS = 10;
