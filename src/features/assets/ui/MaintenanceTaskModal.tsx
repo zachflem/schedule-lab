@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '@/shared/lib/api';
 import { MAINTENANCE_ACTIVITY_TYPES, type AssetMaintenanceActivityDetail, type MaintenanceFile } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
@@ -179,8 +180,8 @@ export function MaintenanceTaskModal({ assetId, taskId, onClose, onSaved }: Main
     }
   };
 
-  return (
-    <div className="modal-overlay" style={{ zIndex: 1100 }} onClick={onClose}>
+  return createPortal(
+    <div className="modal-overlay" onClick={onClose}>
       <div
         className="modal-content modal-slide-in"
         style={{ maxWidth: '680px', width: '100%' }}
@@ -457,6 +458,7 @@ export function MaintenanceTaskModal({ assetId, taskId, onClose, onSaved }: Main
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
