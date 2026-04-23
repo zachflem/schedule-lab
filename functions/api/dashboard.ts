@@ -43,9 +43,24 @@ export const onRequest = async (context: BaseContext): Promise<Response> => {
       LIMIT 10
     `).bind(user.id, user.id).all();
 
+    // My open tasks
+    const { results: openTasks } = await db.prepare(`
+      SELECT
+        t.id, t.title, t.description, t.created_at,
+        cb.name AS created_by_name
+      FROM tasks t
+      LEFT JOIN personnel cb ON t.created_by = cb.id
+      WHERE t.status = 'Open'
+        AND EXISTS (
+          SELECT 1 FROM task_assignments ta WHERE ta.task_id = t.id AND ta.personnel_id = ?
+        )
+      ORDER BY t.created_at ASC
+    `).bind(user.id).all();
+
     return jsonResponse({
       assignedJobs,
       operatorDockets,
+      openTasks,
     });
   }
 
@@ -101,11 +116,35 @@ export const onRequest = async (context: BaseContext): Promise<Response> => {
     LIMIT 6
   `).all();
 
+  // All open tasks (admin/dispatcher see everything)
+  const { results: openTasks } = await db.prepare(`
+    SELECT
+      t.id, t.title, t.description, t.created_at,
+      cb.name AS created_by_name,
+      (
+        SELECT json_group_array(json_object('id', p.id, 'name', p.name))
+        FROM task_assignments ta
+        JOIN personnel p ON ta.personnel_id = p.id
+        WHERE ta.task_id = t.id
+      ) AS assignees_json
+    FROM tasks t
+    LEFT JOIN personnel cb ON t.created_by = cb.id
+    WHERE t.status = 'Open'
+    ORDER BY t.created_at ASC
+  `).all();
+
+  const openTasksFormatted = openTasks.map((row: any) => ({
+    ...row,
+    assignees: row.assignees_json ? JSON.parse(row.assignees_json).filter((a: any) => a.id !== null) : [],
+    assignees_json: undefined,
+  }));
+
   return jsonResponse({
     jobStatusCounts,
     enquiryStatusCounts,
     newEnquiries,
     upcomingJobs,
     activeJobs,
+    openTasks: openTasksFormatted,
   });
 };

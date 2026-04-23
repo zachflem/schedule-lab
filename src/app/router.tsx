@@ -4,6 +4,7 @@ import { DocketPage } from '@/features/docket/ui/DocketPage';
 import { CustomerListPage } from '@/features/customers/ui/CustomerListPage';
 import { AssetListPage } from '@/features/assets/ui/AssetListPage';
 import { PersonnelListPage } from '@/features/personnel/ui/PersonnelListPage';
+import { TasksPage } from '@/features/tasks/ui/TasksPage';
 import { SettingsPage } from '@/features/settings/ui/SettingsPage';
 import { PublicEnquiryPage } from '@/features/enquiries/ui/PublicEnquiryPage';
 import { EnquiriesPage } from '@/features/enquiries/ui/EnquiriesPage';
@@ -26,6 +27,7 @@ export function AppRouter() {
           <Route path="/customers" element={<CustomerListPage />} />
           <Route path="/assets" element={<AssetListPage />} />
           <Route path="/personnel" element={<PersonnelListPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/enquiries" element={<EnquiriesPage />} />
           <Route path="/enquiry" element={<PublicEnquiryPage />} />

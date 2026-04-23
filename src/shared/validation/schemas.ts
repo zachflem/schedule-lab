@@ -451,3 +451,34 @@ export const PlatformSettingsSchema = z.object({
   xero_account_code: z.string().optional().nullable(),
 });
 export type PlatformSettings = z.infer<typeof PlatformSettingsSchema>;
+
+// ── Task File ──────────────────────────────────────────
+export const TaskFileSchema = z.object({
+  id: z.string(),
+  task_id: z.string(),
+  file_key: z.string(),
+  file_name: z.string(),
+  file_type: z.string(),
+  created_at: z.string().optional(),
+});
+export type TaskFile = z.infer<typeof TaskFileSchema>;
+
+// ── Task ──────────────────────────────────────────────
+export const TaskSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(1, 'Task title is required'),
+  description: z.string().optional().nullable(),
+  status: z.enum(['Open', 'Completed']).default('Open'),
+  assignee_ids: z.array(z.string()).default([]),
+  // Read-only populated fields (not sent on create/update)
+  assignees: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
+  completed_by: z.string().optional().nullable(),
+  completed_by_name: z.string().optional().nullable(),
+  completed_at: z.string().optional().nullable(),
+  created_by: z.string().optional().nullable(),
+  created_by_name: z.string().optional().nullable(),
+  files: z.array(TaskFileSchema).optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+export type Task = z.infer<typeof TaskSchema>;

@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router';
 import type { DashboardData } from '../api/useDashboard';
 import './OperatorDashboard.css';
+import { TaskModal } from '@/features/tasks/ui/TaskModal';
 
 interface OperatorDashboardProps {
   data: DashboardData;
@@ -22,8 +24,9 @@ function formatTimeDisplay(iso: string | null): string {
   return new Date(iso).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-export function OperatorDashboard({ data, userName }: OperatorDashboardProps) {
-  const { assignedJobs = [], operatorDockets = [] } = data;
+export function OperatorDashboard({ data, userName, onTaskSaved }: OperatorDashboardProps & { onTaskSaved?: () => void }) {
+  const { assignedJobs = [], operatorDockets = [], openTasks = [] } = data;
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
 
   const urgentDockets = operatorDockets.filter(d => 
     d.docket_status === 'incomplete' || d.docket_status === 'uncompleted'
@@ -147,6 +150,41 @@ export function OperatorDashboard({ data, userName }: OperatorDashboardProps) {
         )}
       </section>
 
+      {/* ── My Open Tasks ─────────────────────────────── */}
+      {openTasks.length > 0 && (
+        <section className="jobs-section">
+          <div className="jobs-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+            My Tasks ({openTasks.length})
+          </div>
+          <div className="drafts-list">
+            {openTasks.map(task => (
+              <button
+                key={task.id}
+                type="button"
+                className="draft-item"
+                style={{ width: '100%', textAlign: 'left', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+                onClick={() => setOpenTaskId(task.id)}
+              >
+                <div className="draft-info">
+                  <span className="draft-customer">{task.title}</span>
+                  {task.description && (
+                    <span className="draft-date" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
+                      {task.description}
+                    </span>
+                  )}
+                </div>
+                <div className="draft-badge" style={{ background: '#d1fae5', color: '#065f46' }}>
+                  OPEN
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ── Draft Dockets ─────────────────────────────── */}
       {draftDockets.length > 0 && (
         <section className="drafts-section">
@@ -170,6 +208,14 @@ export function OperatorDashboard({ data, userName }: OperatorDashboardProps) {
             ))}
           </div>
         </section>
+      )}
+
+      {openTaskId && (
+        <TaskModal
+          taskId={openTaskId}
+          onClose={() => setOpenTaskId(null)}
+          onSaved={() => { setOpenTaskId(null); onTaskSaved?.(); }}
+        />
       )}
 
     </div>

@@ -91,7 +91,7 @@ export function DashboardPage() {
   if (data && user?.role === 'operator') {
     return (
       <div className="container dashboard-page">
-        <OperatorDashboard data={data} userName={user?.name} />
+        <OperatorDashboard data={data} userName={user?.name} onTaskSaved={load} />
       </div>
     );
   }
@@ -304,6 +304,60 @@ export function DashboardPage() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Open Tasks Panel */}
+        <div className="dashboard-panel dashboard-panel--full">
+          <div className="panel-header">
+            <div className="panel-title">
+              <div className="panel-title-dot" style={{ background: '#10b981' }} />
+              Open Tasks
+              {(data?.openTasks ?? []).length > 0 && (
+                <div className="action-badge">{(data?.openTasks ?? []).length}</div>
+              )}
+            </div>
+            <Link to="/tasks" className="panel-action">View all →</Link>
+          </div>
+          <div className="panel-body">
+            {(data?.openTasks ?? []).length === 0 ? (
+              <div className="panel-empty">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                </svg>
+                <p>No open tasks. All caught up!</p>
+              </div>
+            ) : (
+              <div className="enquiry-cards">
+                {(data?.openTasks ?? []).map(task => (
+                  <div key={task.id} className="enquiry-card">
+                    <div className="enquiry-avatar" style={{ background: '#d1fae5', color: '#065f46', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                      </svg>
+                    </div>
+                    <div className="enquiry-info">
+                      <div className="enquiry-customer">{task.title}</div>
+                      <div className="enquiry-brief">
+                        {task.assignees && task.assignees.length > 0
+                          ? task.assignees.map(a => a.name).join(', ')
+                          : task.description || 'Unassigned'}
+                      </div>
+                    </div>
+                    <div className="enquiry-meta">
+                      <div className="enquiry-time">{timeAgo(task.created_at)}</div>
+                      <Link
+                        to="/tasks"
+                        className="btn btn--sm btn--secondary"
+                        style={{ fontSize: '10px', padding: '2px 8px', textDecoration: 'none' }}
+                      >
+                        View
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

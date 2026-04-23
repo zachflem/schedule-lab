@@ -32,6 +32,14 @@ export interface DashboardData {
     customer_name: string;
     updated_at: string;
   }[];
+  openTasks?: {
+    id: string;
+    title: string;
+    description: string | null;
+    created_at: string;
+    created_by_name: string | null;
+    assignees?: { id: string; name: string }[];
+  }[];
   // Operator specific
   assignedJobs?: {
     id: string;
