@@ -444,7 +444,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                                   </div>
                                 </div>
                               </div>
-                              <div style={{ position: 'absolute', bottom: '-4px', left: '20px', width: '8px', height: '8px', background: '#0f172a', borderRight: '1px solid #1e293b', borderBottom: '1px solid #1e293b', transform: 'rotate(45deg)' }} />
+                              <div style={{ position: 'absolute', top: '-4px', left: '20px', width: '8px', height: '8px', background: '#0f172a', borderTop: '1px solid #1e293b', borderLeft: '1px solid #1e293b', transform: 'rotate(45deg)' }} />
                             </div>
                           </div>
                         );
@@ -494,7 +494,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
         /* Tooltip */
         .cv-tip {
           position: absolute;
-          bottom: calc(100% + 10px);
+          top: calc(100% + 8px);
           left: 0;
           width: 284px;
           background: #0f172a;
