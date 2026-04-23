@@ -152,14 +152,15 @@ export function JobsPage() {
             </div>
           </div>
 
-          <CalendarView
-            jobs={filteredJobs}
-            resources={filteredResources}
-            onScheduleUpdate={isAdminOrDispatcher ? (jobId, start, end) => {
-              updateJobSchedule(jobId, start, end);
-            } : undefined}
-            style={{ flex: 1, minHeight: 0 }}
-          />
+          <div style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
+            <CalendarView
+              jobs={filteredJobs}
+              resources={filteredResources}
+              onScheduleUpdate={isAdminOrDispatcher ? (jobId, start, end) => {
+                updateJobSchedule(jobId, start, end);
+              } : undefined}
+            />
+          </div>
         </div>
       ) : (
         <JobTable 

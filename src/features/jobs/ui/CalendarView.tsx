@@ -1,5 +1,4 @@
 import { useMemo, useRef, useLayoutEffect, useEffect, useState } from 'react';
-import type { CSSProperties } from 'react';
 import type { JobWithResources } from '../api/useJobs';
 import { formatRecordId } from '@/shared/lib/format';
 
@@ -8,7 +7,6 @@ interface CalendarViewProps {
   resources: { assets: any[]; personnel: any[] };
   onScheduleUpdate?: (jobId: string, start: string, end: string) => void;
   daysToShow?: number;
-  style?: CSSProperties;
 }
 
 const SLOT_W = 48;
@@ -38,7 +36,7 @@ function formatHourLabel(h: number): string {
   return h < 12 ? `${h}am` : `${h - 12}pm`;
 }
 
-export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 10, style }: CalendarViewProps) {
+export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 10 }: CalendarViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [extraDays, setExtraDays] = useState(0);
   const [nowMins, setNowMins] = useState(() => {
@@ -110,14 +108,14 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
 
   return (
     <div
-      className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col"
-      style={{ minWidth: 0, ...style }}
+      className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+      style={{ position: 'absolute', inset: 0 }}
     >
       {/* ── Scrollable timeline (both axes) ── */}
       <div
         ref={scrollRef}
-        className="cal-scroll overflow-auto"
-        style={{ flex: 1, minHeight: 0, minWidth: 0 }}
+        className="cal-scroll"
+        style={{ position: 'absolute', inset: 0, overflow: 'auto' }}
       >
         {/* minWidth: '100%' ensures the grid fills the container on wide displays */}
         <div style={{ width: `${INNER_W}px`, minWidth: '100%' }}>
