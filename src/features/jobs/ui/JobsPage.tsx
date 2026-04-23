@@ -24,6 +24,7 @@ export function JobsPage() {
   const [resources, setResources] = useState<{ assets: any[], personnel: any[] }>({ assets: [], personnel: [] });
   const [selectedAssetType, setSelectedAssetType] = useState<string>('All');
   const [showNewJobModal, setShowNewJobModal] = useState(false);
+  const [bucketCollapsed, setBucketCollapsed] = useState(false);
 
   useEffect(() => {
     loadJobs({ status: selectedStatuses, include: 'resources' });
@@ -74,8 +75,11 @@ export function JobsPage() {
   if (loading && !jobs.length) return <Spinner />;
 
   return (
-    <div className="container-fluid jobs-page p-6">
-      <div className="page-header mb-6" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div
+      className="container-fluid jobs-page p-6"
+      style={isScheduleView ? { height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' } : undefined}
+    >
+      <div className={`page-header ${isScheduleView ? 'mb-4' : 'mb-6'} shrink-0`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 className="text-2xl font-black text-gray-900 tracking-tight">
             {isScheduleView ? 'Schedule' : 'Jobs'}
@@ -95,7 +99,7 @@ export function JobsPage() {
 
       {error && <div className="alert alert--danger mb-6">{error}</div>}
 
-      <div className="filters mb-6" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+      <div className={`filters ${isScheduleView ? 'mb-4' : 'mb-6'} shrink-0`} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
         <FilterModal
           title="Filter by Status"
           buttonLabel="Status Filter"
@@ -118,35 +122,45 @@ export function JobsPage() {
       </div>
 
       {isScheduleView ? (
-        <>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           {isAdminOrDispatcher && (
-            <UnscheduledBucket 
-              jobs={filteredJobs} 
-              onSelectJob={(job) => {
-                setEditingJob(job);
-              }} 
-              onUnschedule={(jobId) => {
-                removeJobSchedule(jobId);
-              }}
+            <UnscheduledBucket
+              jobs={filteredJobs}
+              collapsed={bucketCollapsed}
+              onToggleCollapse={() => setBucketCollapsed(c => !c)}
+              onSelectJob={(job) => setEditingJob(job)}
+              onUnschedule={(jobId) => removeJobSchedule(jobId)}
             />
           )}
 
-          <div className="mb-4 flex justify-between items-center">
-              <h2 className="text-lg font-bold">{isAdminOrDispatcher ? 'Daily Schedule' : 'My Schedule'}</h2>
-              <div className="flex gap-2 text-xs">
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-primary-100 border-l-2 border-primary-600"></span> Scheduled</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-gray-100 border-l-2 border-gray-400"></span> Confirmed</span>
-              </div>
+          <div className="mb-2 flex justify-between items-center shrink-0">
+            <h2 className="text-lg font-bold text-gray-900">
+              {isAdminOrDispatcher ? 'Daily Schedule' : 'My Schedule'}
+            </h2>
+            <div className="flex gap-3 text-[10px] text-gray-500 font-medium items-center">
+              {([
+                ['Job Booked', '#3b82f6'],
+                ['Allocated', '#f59e0b'],
+                ['Job Scheduled', '#8b5cf6'],
+                ['Site Docket', '#ec4899'],
+              ] as const).map(([label, color]) => (
+                <span key={label} className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-sm inline-block" style={{ borderLeft: `3px solid ${color}`, background: `${color}18` }} />
+                  {label}
+                </span>
+              ))}
+            </div>
           </div>
 
-          <CalendarView 
-            jobs={filteredJobs} 
+          <CalendarView
+            jobs={filteredJobs}
             resources={filteredResources}
             onScheduleUpdate={isAdminOrDispatcher ? (jobId, start, end) => {
               updateJobSchedule(jobId, start, end);
-            } : undefined} 
+            } : undefined}
+            style={{ flex: 1, minHeight: 0 }}
           />
-        </>
+        </div>
       ) : (
         <JobTable 
           jobs={filteredJobs} 

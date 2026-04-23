@@ -1,4 +1,5 @@
-import { useMemo, useRef, useEffect, useState } from 'react';
+import { useMemo, useRef, useLayoutEffect, useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { JobWithResources } from '../api/useJobs';
 import { formatRecordId } from '@/shared/lib/format';
 
@@ -7,18 +8,37 @@ interface CalendarViewProps {
   resources: { assets: any[]; personnel: any[] };
   onScheduleUpdate?: (jobId: string, start: string, end: string) => void;
   daysToShow?: number;
+  style?: CSSProperties;
 }
 
-const SLOT_W = 48;          // px per 30-min slot
-const DATE_COL = 192;       // px, sticky left column
-const SLOTS = 48;           // 24h × 2
-const INNER_W = SLOTS * SLOT_W + DATE_COL;   // 2496px
-const PX_PER_MIN = SLOT_W / 30;              // 1.6px/min
-const HEADER_H = 44;        // px, time axis row
-const ROW_H = 80;           // px, single-track row
-const TRACK_H = 68;         // px per extra overlap track
+const SLOT_W = 48;
+const DATE_COL = 160;
+const SLOTS = 48;
+const INNER_W = SLOTS * SLOT_W + DATE_COL;
+const PX_PER_MIN = SLOT_W / 30;
+const HEADER_H = 44;
+const ROW_H = 80;
+const TRACK_H = 68;
 
-export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 10 }: CalendarViewProps) {
+const STATUS_BORDER: Record<string, string> = {
+  'Job Booked':     '#3b82f6',
+  'Job Scheduled':  '#8b5cf6',
+  'Allocated':      '#f59e0b',
+  'Site Docket':    '#ec4899',
+  'Completed':      '#22c55e',
+  'Invoiced':       '#64748b',
+  'Enquiry':        '#94a3b8',
+  'Quote':          '#f97316',
+  'Quote Accepted': '#10b981',
+};
+
+function formatHourLabel(h: number): string {
+  if (h === 0)  return 'midnight';
+  if (h === 12) return 'noon';
+  return h < 12 ? `${h}am` : `${h - 12}pm`;
+}
+
+export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 10, style }: CalendarViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [extraDays, setExtraDays] = useState(0);
   const [nowMins, setNowMins] = useState(() => {
@@ -39,16 +59,17 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
 
   const slotIndices = useMemo(() => Array.from({ length: SLOTS }, (_, i) => i), []);
 
-  // Snap to 6am on mount — setTimeout gives the browser time to finish layout
-  // and compute scrollable dimensions before we set scrollLeft
-  useEffect(() => {
-    const id = setTimeout(() => {
-      if (scrollRef.current) scrollRef.current.scrollLeft = 12 * SLOT_W;
-    }, 50);
-    return () => clearTimeout(id);
+  // useLayoutEffect fires synchronously after DOM mutations (before paint), so the
+  // container already has its computed dimensions. The rAF is a safety net for
+  // browsers that reset scrollLeft during their own first-paint scroll restoration.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollLeft = 12 * SLOT_W;
+    const raf = requestAnimationFrame(() => { el.scrollLeft = 12 * SLOT_W; });
+    return () => cancelAnimationFrame(raf);
   }, []);
 
-  // Keep "now" line current
   useEffect(() => {
     const id = setInterval(() => {
       const n = new Date();
@@ -65,7 +86,6 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
     const start = new Date(day);
     start.setHours(Math.floor(slotIdx / 2), (slotIdx % 2) * 30, 0, 0);
 
-    // Duration = highest minimum_hire_period of assigned assets, fallback 4h
     const job = jobs.find(j => j.id === jobId);
     let duration = 240;
     if (job?.resources) {
@@ -89,13 +109,15 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
     name.split(' ').map(n => n[0]).join('').toUpperCase();
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col">
-
+    <div
+      className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col"
+      style={style}
+    >
       {/* ── Scrollable timeline (both axes) ── */}
       <div
         ref={scrollRef}
         className="cal-scroll overflow-auto"
-        style={{ height: 'min(calc(100vh - 560px), 540px)', minHeight: '260px' }}
+        style={{ flex: 1, minHeight: 0 }}
       >
         <div style={{ width: `${INNER_W}px` }}>
 
@@ -104,7 +126,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
             className="flex border-b border-gray-200 bg-gray-50/90 backdrop-blur-sm"
             style={{ position: 'sticky', top: 0, height: `${HEADER_H}px`, zIndex: 40 }}
           >
-            {/* Corner cell — sticky both axes */}
+            {/* Corner cell — sticky on both axes */}
             <div
               className="shrink-0 flex items-center justify-center border-r border-gray-200 bg-gray-50"
               style={{ width: `${DATE_COL}px`, position: 'sticky', left: 0, zIndex: 50 }}
@@ -116,27 +138,39 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
             <div className="relative flex">
               {slotIndices.map(i => {
                 const isHour = i % 2 === 0;
+                const isBusinessHour = i >= 12 && i < 36;
+                const showLabel = i % 4 === 0;
                 return (
                   <div
                     key={i}
-                    className={`shrink-0 border-r last:border-0 ${isHour ? 'border-gray-200' : 'border-gray-100'}`}
+                    className={`shrink-0 border-r last:border-0 ${isHour ? 'border-gray-200' : 'border-gray-100'} ${isBusinessHour ? 'bg-blue-50/30' : ''}`}
                     style={{ width: `${SLOT_W}px`, height: `${HEADER_H}px` }}
                   >
-                    {isHour && (
-                      <span className="absolute bottom-1.5 left-1.5 text-[10px] font-semibold text-gray-400 select-none">
-                        {String(i / 2).padStart(2, '0')}
+                    {showLabel && (
+                      <span className="absolute bottom-1.5 left-1 text-[11px] font-semibold text-gray-500 select-none whitespace-nowrap">
+                        {formatHourLabel(i / 2)}
                       </span>
                     )}
                   </div>
                 );
               })}
 
-              {/* Midday marker */}
+              {/* Business day start (6am) */}
+              <div
+                className="absolute inset-y-0 w-px bg-blue-300/50 pointer-events-none"
+                style={{ left: `${12 * SLOT_W}px` }}
+              />
+              {/* Midday (noon) */}
               <div
                 className="absolute inset-y-0 w-px bg-primary-300/50 pointer-events-none"
                 style={{ left: `${24 * SLOT_W}px` }}
               />
-              {/* Current time in header */}
+              {/* Business day end (6pm) */}
+              <div
+                className="absolute inset-y-0 w-px bg-orange-300/50 pointer-events-none"
+                style={{ left: `${36 * SLOT_W}px` }}
+              />
+              {/* Current time indicator */}
               <div
                 className="absolute inset-y-0 w-0.5 bg-red-400/70 pointer-events-none"
                 style={{ left: `${nowMins * PX_PER_MIN}px` }}
@@ -148,7 +182,6 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
           {days.map(day => {
             const isToday = day.toDateString() === todayStr;
 
-            // Sort jobs for this day and stack overlapping ones into tracks
             const dayJobs = jobs
               .filter(j => j.start_time && new Date(j.start_time).toDateString() === day.toDateString())
               .sort((a, b) => +new Date(a.start_time!) - +new Date(b.start_time!));
@@ -176,19 +209,29 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                 <div
                   className={`shrink-0 flex flex-col justify-center px-4 border-r transition-colors ${
                     isToday
-                      ? 'bg-primary-50/50 border-primary-100'
+                      ? 'bg-primary-50/60 border-primary-200'
                       : 'bg-white border-gray-100 group-hover:bg-gray-50/50'
                   }`}
-                  style={{ width: `${DATE_COL}px`, position: 'sticky', left: 0, zIndex: 30 }}
+                  style={{
+                    width: `${DATE_COL}px`,
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 30,
+                    ...(isToday ? { boxShadow: 'inset 3px 0 0 var(--color-primary-500)' } : {}),
+                  }}
                 >
-                  <div className={`text-[9px] font-bold uppercase tracking-widest mb-0.5 ${isToday ? 'text-red-500' : 'text-primary-500'}`}>
-                    {isToday ? 'Today' : day.toLocaleDateString('en-AU', { weekday: 'short' })}
+                  <div className={`text-[9px] font-black uppercase tracking-[0.15em] mb-0.5 ${
+                    isToday ? 'text-red-500' : 'text-gray-400'
+                  }`}>
+                    {isToday ? '● Today' : day.toLocaleDateString('en-AU', { weekday: 'short' })}
                   </div>
-                  <div className="text-xl font-black text-gray-900 leading-none flex items-baseline gap-1">
+                  <div className={`text-2xl font-black leading-none ${
+                    isToday ? 'text-primary-600' : 'text-gray-900'
+                  }`}>
                     {day.getDate()}
-                    <span className="text-[9px] font-bold text-gray-400 uppercase">
-                      {day.toLocaleDateString('en-AU', { month: 'short' })}
-                    </span>
+                  </div>
+                  <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                    {day.toLocaleDateString('en-AU', { month: 'short' })}
                   </div>
                 </div>
 
@@ -231,6 +274,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
 
                         const people = job.resources?.filter(r => r.resource_type === 'Personnel') ?? [];
                         const assets = job.resources?.filter(r => r.resource_type === 'Asset')     ?? [];
+                        const borderColor = STATUS_BORDER[job.status_id ?? ''] ?? '#3b82f6';
 
                         return (
                           <div
@@ -239,15 +283,15 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                             onDragStart={e => e.dataTransfer.setData('jobId', job.id!)}
                             className="cal-job absolute flex rounded-lg overflow-visible pointer-events-auto cursor-grab active:cursor-grabbing"
                             style={{
-                              left:   `${cardLeft}px`,
-                              width:  `${cardW}px`,
-                              top:    `${cardTop}px`,
-                              height: '56px',
-                              zIndex: 10,
+                              left:       `${cardLeft}px`,
+                              width:      `${cardW}px`,
+                              top:        `${cardTop}px`,
+                              height:     '56px',
+                              zIndex:     10,
                               background: 'white',
-                              border: '1px solid #e2e8f0',
-                              borderLeft: '3px solid var(--color-primary-500)',
-                              boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+                              border:     '1px solid #e2e8f0',
+                              borderLeft: `3px solid ${borderColor}`,
+                              boxShadow:  '0 1px 3px rgba(0,0,0,0.07)',
                             }}
                           >
                             {/* Drag handle */}
@@ -292,7 +336,9 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
                                       {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                   </div>
-                                  <div className="tt-badge">{job.job_type || 'General'}</div>
+                                  <div className="tt-badge" style={{ borderColor, color: borderColor, background: `${borderColor}18` }}>
+                                    {job.status_id || job.job_type || 'General'}
+                                  </div>
                                 </div>
                                 {job.job_brief && (
                                   <div>
@@ -423,7 +469,7 @@ export function CalendarView({ jobs, resources, onScheduleUpdate, daysToShow = 1
         .tt-label--amber { color:rgba(251,191,36,0.85); }
         .tt-value { font-size:11px; font-weight:700; }
         .tt-value--blue { color:#93c5fd; }
-        .tt-badge { font-size:9px; font-weight:700; padding:2px 8px; background:rgba(51,65,85,0.6); color:#cbd5e1; border-radius:99px; border:1px solid #475569; white-space:nowrap; }
+        .tt-badge { font-size:9px; font-weight:700; padding:2px 8px; border-radius:99px; border:1px solid; white-space:nowrap; }
         .tt-brief { font-size:11px; color:#e2e8f0; line-height:1.45; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
         .tt-location { font-size:11px; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .tt-req { background:rgba(245,158,11,0.1); border-left:2px solid #f59e0b; padding:5px 8px; border-radius:0 4px 4px 0; }
