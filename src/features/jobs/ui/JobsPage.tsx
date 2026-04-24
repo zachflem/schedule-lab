@@ -3,6 +3,7 @@ import { useLocation } from 'react-router';
 import { useJobs, type JobWithResources } from '../api/useJobs';
 import { UnscheduledBucket } from './UnscheduledBucket';
 import { CalendarView } from './CalendarView';
+import { ScheduleMobileView } from './ScheduleMobileView';
 import { JobTable } from './JobTable';
 import { JobEditModal } from './JobEditModal';
 import { NewJobModal } from './NewJobModal';
@@ -76,7 +77,7 @@ export function JobsPage() {
 
   return (
     <div
-      className="container-fluid jobs-page p-6"
+      className={`container-fluid jobs-page p-6${isScheduleView ? ' jobs-page--schedule' : ''}`}
       style={isScheduleView ? { height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' } : undefined}
     >
       <div className={`page-header ${isScheduleView ? 'mb-4' : 'mb-6'} shrink-0`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -122,46 +123,54 @@ export function JobsPage() {
       </div>
 
       {isScheduleView ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
-          {isAdminOrDispatcher && (
-            <UnscheduledBucket
-              jobs={filteredJobs}
-              collapsed={bucketCollapsed}
-              onToggleCollapse={() => setBucketCollapsed(c => !c)}
-              onSelectJob={(job) => setEditingJob(job)}
-              onUnschedule={(jobId) => removeJobSchedule(jobId)}
-            />
-          )}
+        <>
+          {/* Desktop calendar view */}
+          <div className="schedule-desktop">
+            {isAdminOrDispatcher && (
+              <UnscheduledBucket
+                jobs={filteredJobs}
+                collapsed={bucketCollapsed}
+                onToggleCollapse={() => setBucketCollapsed(c => !c)}
+                onSelectJob={(job) => setEditingJob(job)}
+                onUnschedule={(jobId) => removeJobSchedule(jobId)}
+              />
+            )}
 
-          <div className="mb-2 flex justify-between items-center shrink-0">
-            <h2 className="text-lg font-bold text-gray-900">
-              {isAdminOrDispatcher ? 'Daily Schedule' : 'My Schedule'}
-            </h2>
-            <div className="flex gap-3 text-[10px] text-gray-500 font-medium items-center">
-              {([
-                ['Job Booked', '#3b82f6'],
-                ['Allocated', '#f59e0b'],
-                ['Job Scheduled', '#8b5cf6'],
-                ['Site Docket', '#ec4899'],
-              ] as const).map(([label, color]) => (
-                <span key={label} className="flex items-center gap-1">
-                  <span className="w-3 h-3 rounded-sm inline-block" style={{ borderLeft: `3px solid ${color}`, background: `${color}18` }} />
-                  {label}
-                </span>
-              ))}
+            <div className="mb-2 flex justify-between items-center shrink-0">
+              <h2 className="text-lg font-bold text-gray-900">
+                {isAdminOrDispatcher ? 'Daily Schedule' : 'My Schedule'}
+              </h2>
+              <div className="flex gap-3 text-[10px] text-gray-500 font-medium items-center">
+                {([
+                  ['Job Booked', '#3b82f6'],
+                  ['Allocated', '#f59e0b'],
+                  ['Job Scheduled', '#8b5cf6'],
+                  ['Site Docket', '#ec4899'],
+                ] as const).map(([label, color]) => (
+                  <span key={label} className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded-sm inline-block" style={{ borderLeft: `3px solid ${color}`, background: `${color}18` }} />
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
+              <CalendarView
+                jobs={filteredJobs}
+                resources={filteredResources}
+                onScheduleUpdate={isAdminOrDispatcher ? (jobId, start, end) => {
+                  updateJobSchedule(jobId, start, end);
+                } : undefined}
+              />
             </div>
           </div>
 
-          <div style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
-            <CalendarView
-              jobs={filteredJobs}
-              resources={filteredResources}
-              onScheduleUpdate={isAdminOrDispatcher ? (jobId, start, end) => {
-                updateJobSchedule(jobId, start, end);
-              } : undefined}
-            />
+          {/* Mobile card view */}
+          <div className="schedule-mobile">
+            <ScheduleMobileView jobs={filteredJobs} />
           </div>
-        </div>
+        </>
       ) : (
         <JobTable 
           jobs={filteredJobs} 
