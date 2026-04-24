@@ -40,6 +40,20 @@ export interface DashboardData {
     created_by_name: string | null;
     assignees?: { id: string; name: string }[];
   }[];
+  maintenanceStats?: {
+    tasksThisMonth: number;
+    breakdownsThisMonth: number;
+    assetsNeedingService: {
+      id: string;
+      name: string;
+      service_interval_type: 'hours' | 'odometer';
+      current_machine_hours: number;
+      current_odometer: number;
+      last_service_meter_reading: number;
+      service_interval_value: number;
+      remaining: number;
+    }[];
+  };
   // Operator specific
   assignedJobs?: {
     id: string;

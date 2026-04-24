@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/shared/lib/api';
 import type { Asset } from '@/shared/validation/schemas';
-import { Spinner } from '@/shared/ui';
+import { Spinner, ErrorMessage } from '@/shared/ui';
 import { AssetEditModal } from './AssetEditModal';
 import { AssetMaintenanceModal } from './AssetMaintenanceModal';
 import { AllMaintenanceModal } from './AllMaintenanceModal';
@@ -72,11 +72,7 @@ export function AssetListPage() {
         </div>
       </div>
 
-      {error && (
-        <div style={{ padding: 'var(--space-4)', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)' }}>
-          {error}
-        </div>
-      )}
+      {error && <ErrorMessage message={error} style={{ marginBottom: 'var(--space-4)' }} />}
 
       {/* Desktop table */}
       <div className="list-table-view card" style={{ overflow: 'hidden' }}>

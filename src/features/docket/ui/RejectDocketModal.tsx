@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '@/shared/lib/api';
+import { ErrorMessage } from '@/shared/ui';
 
 interface RejectDocketModalProps {
   docketId: string;
@@ -40,11 +41,7 @@ export function RejectDocketModal({ docketId, customerName, onClose, onSuccess }
           Customer: <strong>{customerName}</strong>
         </p>
 
-        {error && (
-          <div style={{ color: 'var(--color-danger-700)', background: 'var(--color-danger-50)', padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-3)' }}>
-            {error}
-          </div>
-        )}
+        {error && <ErrorMessage message={error} style={{ marginBottom: 'var(--space-3)' }} />}
 
         <div className="form-group">
           <label className="form-label" htmlFor="dispatcher_notes">

@@ -18,6 +18,8 @@ async function listAll(context: BaseContext): Promise<Response> {
       a.asset_id,
       ast.name   AS asset_name,
       ast.service_interval_type,
+      ast.current_machine_hours,
+      ast.current_odometer,
       a.activity_type,
       a.type_other,
       a.performed_by,

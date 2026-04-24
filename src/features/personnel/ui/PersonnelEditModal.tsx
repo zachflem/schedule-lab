@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { api, ApiRequestError } from '@/shared/lib/api';
 import { PersonnelSchema, type Personnel, type Qualification } from '@/shared/validation/schemas';
-import { Spinner } from '@/shared/ui';
+import { Spinner, ErrorMessage } from '@/shared/ui';
 import { useToast } from '@/shared/lib/toast';
 import { InviteModal } from './InviteModal';
 
@@ -224,11 +224,7 @@ export function PersonnelEditModal({ personnelId, onClose, onSaved }: PersonnelE
               onSubmit={handleSubmit}
               style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}
             >
-              {error && (
-                <div style={{ padding: 'var(--space-4)', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', borderRadius: 'var(--radius-md)' }}>
-                  {error}
-                </div>
-              )}
+              {error && <ErrorMessage message={error} />}
 
                 {/* Contact Details */}
                 <div className="card" style={{ padding: 'var(--space-6)' }}>

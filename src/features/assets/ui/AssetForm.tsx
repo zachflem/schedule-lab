@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/shared/lib/api';
+import { ErrorMessage } from '@/shared/ui';
 import { type Asset, type AssetCompliance, type ComplianceType, type ExtensionFieldDefinition } from '@/shared/validation/schemas';
 
 interface AssetWithExtensions extends Asset {
@@ -195,11 +196,7 @@ export function AssetForm({ initialData, onSave, onCancel, saving }: AssetFormPr
   return (
     <>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-        {error && (
-          <div style={{ padding: 'var(--space-3)', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', borderRadius: 'var(--radius-md)' }}>
-            {error}
-          </div>
-        )}
+        {error && <ErrorMessage message={error} style={{ padding: 'var(--space-3)' }} />}
 
         {/* General Settings */}
         <div className="card">

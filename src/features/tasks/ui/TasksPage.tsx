@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/shared/lib/api';
 import type { Task } from '@/shared/validation/schemas';
-import { Spinner } from '@/shared/ui';
+import { Spinner, ErrorMessage } from '@/shared/ui';
 import { useAuth } from '@/shared/lib/auth';
 import { TaskModal } from './TaskModal';
 
@@ -57,11 +57,7 @@ export function TasksPage() {
         )}
       </div>
 
-      {error && (
-        <div style={{ padding: 'var(--space-4)', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)' }}>
-          {error}
-        </div>
-      )}
+      {error && <ErrorMessage message={error} style={{ marginBottom: 'var(--space-4)' }} />}
 
       {/* Filter tabs */}
       <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>

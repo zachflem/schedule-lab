@@ -6,7 +6,7 @@ import { CalendarView } from './CalendarView';
 import { JobTable } from './JobTable';
 import { JobEditModal } from './JobEditModal';
 import { NewJobModal } from './NewJobModal';
-import { Spinner, FilterModal } from '@/shared/ui';
+import { Spinner, FilterModal, ErrorMessage } from '@/shared/ui';
 import { JOB_ONLY_STATUSES, type JobStatus } from '@/shared/validation/schemas';
 import { api } from '@/shared/lib/api';
 import { useState, useMemo } from 'react';
@@ -97,7 +97,7 @@ export function JobsPage() {
         )}
       </div>
 
-      {error && <div className="alert alert--danger mb-6">{error}</div>}
+      {error && <ErrorMessage message={error} style={{ marginBottom: 'var(--space-6)' }} />}
 
       <div className={`filters ${isScheduleView ? 'mb-4' : 'mb-6'} shrink-0`} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
         <FilterModal

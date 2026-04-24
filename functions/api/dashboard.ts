@@ -116,6 +116,30 @@ export const onRequest = async (context: BaseContext): Promise<Response> => {
     LIMIT 6
   `).all();
 
+  // Maintenance stats this month + assets needing service
+  const { results: [maintenanceMonthly] } = await db.prepare(`
+    SELECT
+      COUNT(*) AS tasks_this_month,
+      SUM(CASE WHEN activity_type = 'Breakdown' THEN 1 ELSE 0 END) AS breakdowns_this_month
+    FROM asset_maintenance_activities
+    WHERE substr(COALESCE(performed_at, created_at), 1, 7) = strftime('%Y-%m', 'now')
+  `).all() as { results: { tasks_this_month: number; breakdowns_this_month: number }[] };
+
+  const { results: assetsNeedingService } = await db.prepare(`
+    SELECT id, name, service_interval_type,
+           current_machine_hours, current_odometer,
+           last_service_meter_reading, service_interval_value,
+           (last_service_meter_reading + service_interval_value) -
+             CASE WHEN service_interval_type = 'hours' THEN current_machine_hours ELSE current_odometer END
+           AS remaining
+    FROM assets
+    WHERE (last_service_meter_reading + service_interval_value) -
+            CASE WHEN service_interval_type = 'hours' THEN current_machine_hours ELSE current_odometer END
+          <= service_interval_value * 0.2
+    ORDER BY remaining ASC
+    LIMIT 10
+  `).all();
+
   // All open tasks (admin/dispatcher see everything)
   const { results: openTasks } = await db.prepare(`
     SELECT
@@ -146,5 +170,10 @@ export const onRequest = async (context: BaseContext): Promise<Response> => {
     upcomingJobs,
     activeJobs,
     openTasks: openTasksFormatted,
+    maintenanceStats: {
+      tasksThisMonth: maintenanceMonthly?.tasks_this_month ?? 0,
+      breakdownsThisMonth: maintenanceMonthly?.breakdowns_this_month ?? 0,
+      assetsNeedingService,
+    },
   });
 };

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/shared/lib/api';
 import type { Customer } from '@/shared/validation/schemas';
 import { CustomerEditModal } from '@/features/customers/ui/CustomerEditModal';
+import { ErrorMessage } from '@/shared/ui';
 
 interface NewJobModalProps {
   onClose: () => void;
@@ -84,7 +85,7 @@ export function NewJobModal({ onClose, onCreate }: NewJobModalProps) {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, overflow: 'hidden' }}>
           <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            {error && <div className="alert alert--danger">{error}</div>}
+            {error && <ErrorMessage message={error} />}
 
             <div style={twoCol}>
               <div className="form-group" style={spanFull}>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '@/shared/lib/api';
 import { MAINTENANCE_ACTIVITY_TYPES, type AssetMaintenanceActivityDetail, type MaintenanceFile } from '@/shared/validation/schemas';
-import { Spinner } from '@/shared/ui';
+import { Spinner, ErrorMessage } from '@/shared/ui';
 
 interface MaintenanceTaskModalProps {
   assetId: string;
@@ -222,11 +222,7 @@ export function MaintenanceTaskModal({ assetId, taskId, serviceIntervalType, cur
             <Spinner />
           ) : (
             <>
-              {error && (
-                <div style={{ padding: 'var(--space-4)', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)' }}>
-                  {error}
-                </div>
-              )}
+              {error && <ErrorMessage message={error} style={{ marginBottom: 'var(--space-4)' }} />}
 
               {/* Activity Type */}
               <div className="card" style={{ marginBottom: 'var(--space-4)' }}>

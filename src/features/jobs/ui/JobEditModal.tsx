@@ -3,7 +3,7 @@ import { api } from '@/shared/lib/api';
 import type { Asset, Personnel, AssetCompliance } from '@/shared/validation/schemas';
 import { JobStatusEnum } from '@/shared/validation/schemas';
 import type { JobWithResources } from '../api/useJobs';
-import { Spinner } from '@/shared/ui';
+import { Spinner, ErrorMessage } from '@/shared/ui';
 import { useToast } from '@/shared/lib/toast';
 
 interface AssetWithMetadata extends Asset {
@@ -303,7 +303,7 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, overflow: 'hidden' }}>
           <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
 
-            {error && <div className="alert alert--danger">{error}</div>}
+            {error && <ErrorMessage message={error} />}
 
             {/* ── Section 1: Job Info ─────────────────────── */}
             <section>

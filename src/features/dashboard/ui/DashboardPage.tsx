@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router';
 import { useDashboard } from '../api/useDashboard';
 import { useAuth } from '@/shared/lib/auth';
-import { Spinner } from '@/shared/ui';
+import { Spinner, ErrorMessage } from '@/shared/ui';
 import { OperatorDashboard } from './OperatorDashboard';
 import './DashboardPage.css';
 
@@ -132,7 +132,7 @@ export function DashboardPage() {
         <p>Here's what's happening in your operations today.</p>
       </div>
 
-      {error && <div className="alert alert--danger mb-6">{error}</div>}
+      {error && <ErrorMessage message={error} style={{ marginBottom: 'var(--space-6)' }} />}
 
       {/* ── Stat Cards ───────────────────────────────── */}
       <div className="stats-grid">
@@ -362,6 +362,86 @@ export function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* Fleet Maintenance Panel */}
+        {data?.maintenanceStats && (
+          <div className="dashboard-panel dashboard-panel--full">
+            <div className="panel-header">
+              <div className="panel-title">
+                <div className="panel-title-dot" style={{ background: '#f97316' }} />
+                Fleet Maintenance
+              </div>
+              <Link to="/assets" className="panel-action">View fleet →</Link>
+            </div>
+            <div className="panel-body">
+              <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '120px', background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
+                  <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--color-gray-900)' }}>{data.maintenanceStats.tasksThisMonth}</div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)', marginTop: '2px' }}>Tasks this month</div>
+                </div>
+                <div style={{ flex: 1, minWidth: '120px', background: data.maintenanceStats.breakdownsThisMonth > 0 ? 'var(--color-danger-50)' : 'var(--color-gray-50)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
+                  <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: data.maintenanceStats.breakdownsThisMonth > 0 ? 'var(--color-danger-700)' : 'var(--color-gray-900)' }}>{data.maintenanceStats.breakdownsThisMonth}</div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: data.maintenanceStats.breakdownsThisMonth > 0 ? 'var(--color-danger-600)' : 'var(--color-gray-500)', marginTop: '2px' }}>Breakdowns this month</div>
+                </div>
+                <div style={{ flex: 1, minWidth: '120px', background: data.maintenanceStats.assetsNeedingService.length > 0 ? 'var(--color-warning-50)' : 'var(--color-gray-50)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
+                  <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: data.maintenanceStats.assetsNeedingService.length > 0 ? 'var(--color-warning-700)' : 'var(--color-gray-900)' }}>{data.maintenanceStats.assetsNeedingService.length}</div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: data.maintenanceStats.assetsNeedingService.length > 0 ? 'var(--color-warning-600)' : 'var(--color-gray-500)', marginTop: '2px' }}>Assets need service</div>
+                </div>
+              </div>
+              {data.maintenanceStats.assetsNeedingService.length > 0 && (
+                <div className="enquiry-cards">
+                  {data.maintenanceStats.assetsNeedingService.map(asset => {
+                    const isOverdue = asset.remaining <= 0;
+                    const unit = asset.service_interval_type === 'hours' ? 'hrs' : 'km';
+                    return (
+                      <div key={asset.id} className="enquiry-card">
+                        <div
+                          className="enquiry-avatar"
+                          style={{
+                            background: isOverdue ? 'var(--color-danger-50)' : 'var(--color-warning-50)',
+                            color: isOverdue ? 'var(--color-danger-700)' : 'var(--color-warning-700)',
+                            fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                          </svg>
+                        </div>
+                        <div className="enquiry-info">
+                          <div className="enquiry-customer">{asset.name}</div>
+                          <div className="enquiry-brief">
+                            {isOverdue
+                              ? `${Math.abs(asset.remaining)} ${unit} overdue`
+                              : `${asset.remaining} ${unit} until service`}
+                          </div>
+                        </div>
+                        <div className="enquiry-meta">
+                          <span style={{
+                            display: 'inline-block', padding: '2px 8px', borderRadius: '999px',
+                            fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                            background: isOverdue ? 'var(--color-danger-50)' : 'var(--color-warning-50)',
+                            color: isOverdue ? 'var(--color-danger-700)' : 'var(--color-warning-700)',
+                            border: `1px solid ${isOverdue ? 'var(--color-danger-200)' : 'var(--color-warning-200)'}`,
+                          }}>
+                            {isOverdue ? 'Overdue' : 'Due Soon'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {data.maintenanceStats.assetsNeedingService.length === 0 && (
+                <div className="panel-empty">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                  <p>All assets are within service intervals.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Active Jobs Panel */}
         <div className="dashboard-panel dashboard-panel--full">

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { api } from '@/shared/lib/api';
 import type { Task, TaskFile } from '@/shared/validation/schemas';
 import type { Personnel } from '@/shared/validation/schemas';
-import { Spinner } from '@/shared/ui';
+import { Spinner, ErrorMessage } from '@/shared/ui';
 import { useAuth } from '@/shared/lib/auth';
 
 interface TaskModalProps {
@@ -183,11 +183,7 @@ export function TaskModal({ taskId, onClose, onSaved }: TaskModalProps) {
             <Spinner />
           ) : (
             <>
-              {error && (
-                <div style={{ padding: 'var(--space-4)', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)' }}>
-                  {error}
-                </div>
-              )}
+              {error && <ErrorMessage message={error} style={{ marginBottom: 'var(--space-4)' }} />}
 
               {/* Status banner for completed tasks */}
               {isCompleted && (

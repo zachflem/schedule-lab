@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useEnquiries } from '../api/useEnquiries';
-import { Spinner, FilterModal } from '@/shared/ui';
+import { Spinner, FilterModal, ErrorMessage } from '@/shared/ui';
 import { EnquiryDetailsModal } from './EnquiryDetailsModal';
 import { CreateEnquiryModal } from './CreateEnquiryModal';
 import { formatRecordId } from '@/shared/lib/format';
@@ -93,7 +93,7 @@ export function EnquiriesPage() {
         </button>
       </div>
 
-      {error && <div className="alert alert--danger mb-4">{error}</div>}
+      {error && <ErrorMessage message={error} style={{ marginBottom: 'var(--space-4)' }} />}
 
       {/* Desktop table */}
       <div className="list-table-view data-table-container">
