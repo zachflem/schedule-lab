@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '@/shared/lib/api';
 import { Spinner } from '@/shared/ui';
@@ -31,6 +31,14 @@ const TYPE_COLORS: Record<string, { bg: string; color: string }> = {
   'Other':             { bg: 'var(--color-gray-100)',   color: 'var(--color-gray-700)'    },
 };
 
+const DEFAULT_DAYS = 90;
+
+function nDaysAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
 function formatCost(cost: number | null | undefined): string {
   if (cost == null) return '—';
   return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(cost);
@@ -43,23 +51,50 @@ function formatDateTime(value: string | null | undefined): string {
   return d.toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
+function formatDateShort(iso: string): string {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 function dateOf(task: MaintenanceTaskSummary): string {
   return (task.performed_at ?? task.created_at).slice(0, 10);
 }
 
 export function AllMaintenanceModal({ onClose }: AllMaintenanceModalProps) {
-  const [tasks, setTasks]   = useState<MaintenanceTaskSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState<string | null>(null);
+  const defaultFrom = useMemo(() => nDaysAgo(DEFAULT_DAYS), []);
+
+  const [tasks, setTasks]       = useState<MaintenanceTaskSummary[]>([]);
+  const [loading, setLoading]   = useState(true);   // initial load
+  const [fetching, setFetching] = useState(false);  // background re-fetch (table stays visible)
+  const [error, setError]       = useState<string | null>(null);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate]     = useState('');
+  const [loadedFrom, setLoadedFrom] = useState(defaultFrom);
 
-  useEffect(() => {
-    api.get<MaintenanceTaskSummary[]>('/maintenance')
-      .then(setTasks)
-      .catch(err => setError(err instanceof Error ? err.message : 'Failed to load maintenance tasks'))
-      .finally(() => setLoading(false));
+  const fetchTasks = useCallback(async (from: string) => {
+    setFetching(true);
+    setError(null);
+    try {
+      const data = await api.get<MaintenanceTaskSummary[]>('/maintenance', { from });
+      setTasks(data);
+      setLoadedFrom(from);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load maintenance tasks');
+    } finally {
+      setLoading(false);
+      setFetching(false);
+    }
   }, []);
+
+  // Initial load: last 90 days
+  useEffect(() => { fetchTasks(defaultFrom); }, [fetchTasks, defaultFrom]);
+
+  // If user picks a from-date earlier than what's loaded, expand the window from the server
+  useEffect(() => {
+    if (fromDate && fromDate < loadedFrom) {
+      fetchTasks(fromDate);
+    }
+  }, [fromDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = useMemo(() => {
     return tasks.filter(t => {
@@ -76,6 +111,7 @@ export function AllMaintenanceModal({ onClose }: AllMaintenanceModalProps) {
   );
 
   const hasFilter = fromDate || toDate;
+  const expandedBeyondDefault = loadedFrom < defaultFrom;
 
   return createPortal(
     <div className="modal-overlay" onClick={onClose}>
@@ -94,37 +130,54 @@ export function AllMaintenanceModal({ onClose }: AllMaintenanceModalProps) {
           <button type="button" className="btn-close" onClick={onClose}>&times;</button>
         </div>
 
-        {/* Date range filter bar */}
-        <div style={{ padding: 'var(--space-3) var(--space-6)', borderBottom: '1px solid var(--color-gray-200)', background: 'var(--color-gray-50)', display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--color-gray-600)', whiteSpace: 'nowrap' }}>Date range</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <input
-              type="date"
-              className="form-input"
-              style={{ width: '160px', fontSize: 'var(--text-sm)', padding: 'var(--space-1) var(--space-2)' }}
-              value={fromDate}
-              onChange={e => setFromDate(e.target.value)}
-            />
-            <span style={{ color: 'var(--color-gray-400)', fontSize: 'var(--text-sm)' }}>to</span>
-            <input
-              type="date"
-              className="form-input"
-              style={{ width: '160px', fontSize: 'var(--text-sm)', padding: 'var(--space-1) var(--space-2)' }}
-              value={toDate}
-              onChange={e => setToDate(e.target.value)}
-            />
+        {/* Filter bar */}
+        <div style={{ padding: 'var(--space-3) var(--space-6)', borderBottom: '1px solid var(--color-gray-200)', background: 'var(--color-gray-50)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--color-gray-600)', whiteSpace: 'nowrap' }}>Date range</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+              <input
+                type="date"
+                className="form-input"
+                style={{ width: '160px', fontSize: 'var(--text-sm)', padding: 'var(--space-1) var(--space-2)' }}
+                value={fromDate}
+                disabled={fetching}
+                onChange={e => setFromDate(e.target.value)}
+              />
+              <span style={{ color: 'var(--color-gray-400)', fontSize: 'var(--text-sm)' }}>to</span>
+              <input
+                type="date"
+                className="form-input"
+                style={{ width: '160px', fontSize: 'var(--text-sm)', padding: 'var(--space-1) var(--space-2)' }}
+                value={toDate}
+                disabled={fetching}
+                onChange={e => setToDate(e.target.value)}
+              />
+            </div>
+            {fetching && (
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-600)', display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                <Spinner /> Loading…
+              </span>
+            )}
+            {hasFilter && !fetching && (
+              <button className="btn btn--secondary btn--sm" onClick={() => { setFromDate(''); setToDate(''); }}>
+                Clear
+              </button>
+            )}
+            {!loading && filtered.length > 0 && (
+              <div style={{ marginLeft: 'auto', fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)' }}>
+                Total cost: <strong style={{ color: 'var(--color-gray-900)' }}>{formatCost(totalCost)}</strong>
+              </div>
+            )}
           </div>
-          {hasFilter && (
-            <button
-              className="btn btn--secondary btn--sm"
-              onClick={() => { setFromDate(''); setToDate(''); }}
-            >
-              Clear
-            </button>
-          )}
-          {!loading && filtered.length > 0 && (
-            <div style={{ marginLeft: 'auto', fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)' }}>
-              Total cost: <strong style={{ color: 'var(--color-gray-900)' }}>{formatCost(totalCost)}</strong>
+
+          {/* Loaded-window hint */}
+          {!loading && (
+            <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)' }}>
+              {expandedBeyondDefault
+                ? `Loaded from ${formatDateShort(loadedFrom)} to today.`
+                : `Showing last ${DEFAULT_DAYS} days (from ${formatDateShort(loadedFrom)}).`
+              }
+              {' '}Set an earlier start date to load further back.
             </div>
           )}
         </div>
