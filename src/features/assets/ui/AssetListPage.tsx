@@ -4,6 +4,7 @@ import type { Asset } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
 import { AssetEditModal } from './AssetEditModal';
 import { AssetMaintenanceModal } from './AssetMaintenanceModal';
+import { AllMaintenanceModal } from './AllMaintenanceModal';
 
 interface AssetWithMetadata extends Asset {
   asset_type_name: string;
@@ -16,6 +17,7 @@ export function AssetListPage() {
   const [error, setError] = useState<string | null>(null);
   // null = closed, 'new' = create, string UUID = edit
   const [editingId, setEditingId] = useState<string | 'new' | null>(null);
+  const [showAllMaintenance, setShowAllMaintenance] = useState(false);
   const [maintenanceAsset, setMaintenanceAsset] = useState<{
     id: string;
     name: string;
@@ -63,7 +65,10 @@ export function AssetListPage() {
             <h1 className="docket-page__title" style={{ marginBottom: 'var(--space-1)' }}>Asset Fleet</h1>
             <p style={{ color: 'var(--color-gray-500)', fontSize: 'var(--text-sm)' }}>Manage machines, trucks, and other equipment metrics.</p>
           </div>
-          <button className="btn btn--primary" onClick={() => setEditingId('new')}>Add Asset</button>
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <button className="btn btn--secondary" onClick={() => setShowAllMaintenance(true)}>View Maintenance Tasks</button>
+            <button className="btn btn--primary" onClick={() => setEditingId('new')}>Add Asset</button>
+          </div>
         </div>
       </div>
 
@@ -165,6 +170,10 @@ export function AssetListPage() {
           );
         })}
       </div>
+
+      {showAllMaintenance && (
+        <AllMaintenanceModal onClose={() => setShowAllMaintenance(false)} />
+      )}
 
       {editingId !== null && (
         <AssetEditModal
