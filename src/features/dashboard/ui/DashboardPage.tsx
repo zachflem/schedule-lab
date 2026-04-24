@@ -310,7 +310,7 @@ export function DashboardPage() {
         </div>
 
         {/* Open Tasks Panel */}
-        <div className="dashboard-panel dashboard-panel--full">
+        <div className="dashboard-panel">
           <div className="panel-header">
             <div className="panel-title">
               <div className="panel-title-dot" style={{ background: '#10b981' }} />
@@ -365,7 +365,7 @@ export function DashboardPage() {
 
         {/* Fleet Maintenance Panel */}
         {data?.maintenanceStats && (
-          <div className="dashboard-panel dashboard-panel--full">
+          <div className="dashboard-panel">
             <div className="panel-header">
               <div className="panel-title">
                 <div className="panel-title-dot" style={{ background: '#f97316' }} />
