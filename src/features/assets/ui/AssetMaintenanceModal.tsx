@@ -7,21 +7,17 @@ import { MaintenanceTaskModal } from './MaintenanceTaskModal';
 interface AssetMaintenanceModalProps {
   assetId: string;
   assetName: string;
+  serviceIntervalType: 'hours' | 'odometer';
+  currentMachineHours: number;
+  currentOdometer: number;
   onClose: () => void;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  'Scheduled Service': 'Scheduled Service',
-  'General Repair': 'General Repair',
-  'Breakdown': 'Breakdown',
-  'Other': 'Other',
-};
-
 const TYPE_COLORS: Record<string, { bg: string; color: string }> = {
   'Scheduled Service': { bg: 'var(--color-primary-50)', color: 'var(--color-primary-700)' },
-  'General Repair': { bg: 'var(--color-warning-50)', color: 'var(--color-warning-700)' },
-  'Breakdown': { bg: 'var(--color-danger-50)', color: 'var(--color-danger-700)' },
-  'Other': { bg: 'var(--color-gray-100)', color: 'var(--color-gray-700)' },
+  'General Repair':    { bg: 'var(--color-warning-50)', color: 'var(--color-warning-700)' },
+  'Breakdown':         { bg: 'var(--color-danger-50)',  color: 'var(--color-danger-700)'  },
+  'Other':             { bg: 'var(--color-gray-100)',   color: 'var(--color-gray-700)'    },
 };
 
 function formatCost(cost: number | null | undefined): string {
@@ -29,15 +25,25 @@ function formatCost(cost: number | null | undefined): string {
   return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(cost);
 }
 
-function formatDate(isoString: string): string {
-  return new Date(isoString).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  const d = new Date(value.includes('T') ? value : value.replace(' ', 'T'));
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
-export function AssetMaintenanceModal({ assetId, assetName, onClose }: AssetMaintenanceModalProps) {
+export function AssetMaintenanceModal({
+  assetId, assetName, serviceIntervalType, currentMachineHours, currentOdometer, onClose,
+}: AssetMaintenanceModalProps) {
   const [activities, setActivities] = useState<AssetMaintenanceActivityDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | 'new' | null>(null);
+
+  // Keep a live copy of the current reading so the task modal sees updates after saves
+  const [currentReading, setCurrentReading] = useState(
+    serviceIntervalType === 'hours' ? currentMachineHours : currentOdometer
+  );
 
   const fetchActivities = useCallback(async () => {
     try {
@@ -55,15 +61,25 @@ export function AssetMaintenanceModal({ assetId, assetName, onClose }: AssetMain
   const handleTaskSaved = () => {
     setTaskId(null);
     setLoading(true);
-    fetchActivities();
+    // Re-fetch activities; also refresh the current reading from the latest activity meter values
+    fetchActivities().then(() => {
+      // Pull the highest meter reading recorded to keep the hint accurate
+      setActivities(prev => {
+        const highest = prev.reduce((max, a) => (a.meter_reading ?? 0) > max ? (a.meter_reading ?? 0) : max, currentReading);
+        setCurrentReading(highest);
+        return prev;
+      });
+    });
   };
+
+  const meterUnit = serviceIntervalType === 'hours' ? 'hrs' : 'km';
 
   return (
     <>
       <div className="modal-overlay" onClick={onClose}>
         <div
           className="modal-content modal-slide-in"
-          style={{ maxWidth: '860px', width: '100%' }}
+          style={{ maxWidth: '920px', width: '100%' }}
           onClick={e => e.stopPropagation()}
         >
           <div className="modal-header">
@@ -100,10 +116,11 @@ export function AssetMaintenanceModal({ assetId, assetName, onClose }: AssetMain
                       <tr style={{ background: 'var(--color-gray-50)', borderBottom: '1px solid var(--color-gray-200)' }}>
                         <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)' }}>Type</th>
                         <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)' }}>Performed By</th>
-                        <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', maxWidth: '260px' }}>Description</th>
+                        <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', maxWidth: '220px' }}>Description</th>
                         <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)' }}>Cost</th>
+                        <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)' }}>Meter ({meterUnit})</th>
                         <th style={{ textAlign: 'center', padding: 'var(--space-3) var(--space-4)' }}>Files</th>
-                        <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)' }}>Date</th>
+                        <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', whiteSpace: 'nowrap' }}>Date / Time</th>
                         <th style={{ padding: 'var(--space-3) var(--space-4)' }}></th>
                       </tr>
                     </thead>
@@ -112,7 +129,8 @@ export function AssetMaintenanceModal({ assetId, assetName, onClose }: AssetMain
                         const typeColor = TYPE_COLORS[activity.activity_type] ?? TYPE_COLORS['Other'];
                         const label = activity.activity_type === 'Other' && activity.type_other
                           ? `Other: ${activity.type_other}`
-                          : TYPE_LABELS[activity.activity_type];
+                          : activity.activity_type;
+                        const displayDate = activity.performed_at ?? activity.created_at;
                         return (
                           <tr key={activity.id} style={{ borderBottom: '1px solid var(--color-gray-100)' }}>
                             <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
@@ -123,13 +141,14 @@ export function AssetMaintenanceModal({ assetId, assetName, onClose }: AssetMain
                             <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-gray-700)' }}>
                               {activity.performed_by}
                             </td>
-                            <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', maxWidth: '260px' }}>
-                              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {activity.description}
-                              </div>
+                            <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', maxWidth: '220px' }}>
+                              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activity.description}</div>
                             </td>
                             <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontSize: 'var(--text-sm)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                               {formatCost(activity.cost)}
+                            </td>
+                            <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontSize: 'var(--text-sm)', color: 'var(--color-gray-700)', whiteSpace: 'nowrap' }}>
+                              {activity.meter_reading != null ? `${activity.meter_reading.toLocaleString()} ${meterUnit}` : '—'}
                             </td>
                             <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)' }}>
                               {activity.photos.length > 0 && <span title={`${activity.photos.length} photo(s)`}>📷 {activity.photos.length}</span>}
@@ -137,7 +156,7 @@ export function AssetMaintenanceModal({ assetId, assetName, onClose }: AssetMain
                               {activity.photos.length === 0 && activity.docs.length === 0 && '—'}
                             </td>
                             <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', whiteSpace: 'nowrap' }}>
-                              {formatDate(activity.created_at!)}
+                              {formatDateTime(displayDate)}
                             </td>
                             <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>
                               <button className="btn btn--secondary btn--sm" onClick={() => setTaskId(activity.id!)}>Edit</button>
@@ -155,7 +174,8 @@ export function AssetMaintenanceModal({ assetId, assetName, onClose }: AssetMain
                     const typeColor = TYPE_COLORS[activity.activity_type] ?? TYPE_COLORS['Other'];
                     const label = activity.activity_type === 'Other' && activity.type_other
                       ? `Other: ${activity.type_other}`
-                      : TYPE_LABELS[activity.activity_type];
+                      : activity.activity_type;
+                    const displayDate = activity.performed_at ?? activity.created_at;
                     return (
                       <div key={activity.id} className="card" style={{ padding: 'var(--space-4)', marginBottom: 'var(--space-3)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-2)' }}>
@@ -166,8 +186,9 @@ export function AssetMaintenanceModal({ assetId, assetName, onClose }: AssetMain
                         </div>
                         <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-gray-800)', marginBottom: 'var(--space-1)' }}>{activity.performed_by}</div>
                         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', marginBottom: 'var(--space-2)' }}>{activity.description}</div>
-                        <div style={{ display: 'flex', gap: 'var(--space-4)', fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)' }}>
-                          <span>{formatDate(activity.created_at!)}</span>
+                        <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)' }}>
+                          <span>{formatDateTime(displayDate)}</span>
+                          {activity.meter_reading != null && <span>{activity.meter_reading.toLocaleString()} {meterUnit}</span>}
                           {activity.cost != null && <span style={{ fontWeight: 600, color: 'var(--color-gray-700)' }}>{formatCost(activity.cost)}</span>}
                           {activity.photos.length > 0 && <span>📷 {activity.photos.length}</span>}
                           {activity.docs.length > 0 && <span>📄 {activity.docs.length}</span>}
@@ -186,6 +207,8 @@ export function AssetMaintenanceModal({ assetId, assetName, onClose }: AssetMain
         <MaintenanceTaskModal
           assetId={assetId}
           taskId={taskId === 'new' ? null : taskId}
+          serviceIntervalType={serviceIntervalType}
+          currentReading={currentReading}
           onClose={() => setTaskId(null)}
           onSaved={handleTaskSaved}
         />

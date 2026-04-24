@@ -241,6 +241,8 @@ export const AssetMaintenanceActivitySchema = z.object({
   performed_by: z.string().min(1, 'Performer name is required'),
   description: z.string().min(1, 'Description is required'),
   cost: z.number().min(0).optional().nullable(),
+  performed_at: z.string().optional().nullable(),
+  meter_reading: z.number().min(0).optional().nullable(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });

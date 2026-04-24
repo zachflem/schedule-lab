@@ -48,16 +48,38 @@ async function updateActivity(context: BaseContext): Promise<Response> {
   let body: any;
   try { body = await context.request.json(); } catch { return errorResponse('Invalid JSON', 400); }
 
-  const { activity_type, type_other, performed_by, description, cost } = body;
+  const { activity_type, type_other, performed_by, description, cost, performed_at, meter_reading } = body;
 
   if (!activity_type || !VALID_TYPES.includes(activity_type)) return errorResponse('Invalid activity type', 422);
   if (!performed_by?.trim()) return errorResponse('Performer name is required', 422);
   if (!description?.trim()) return errorResponse('Description is required', 422);
   if (activity_type === 'Other' && !type_other?.trim()) return errorResponse('Please describe the activity type', 422);
 
+  // Validate and apply meter reading update
+  if (meter_reading != null) {
+    const asset = await db.prepare(
+      'SELECT service_interval_type, current_machine_hours, current_odometer FROM assets WHERE id = ?'
+    ).bind(assetId).first<{ service_interval_type: string; current_machine_hours: number; current_odometer: number }>();
+
+    if (!asset) return errorResponse('Asset not found', 404);
+
+    const current = asset.service_interval_type === 'hours' ? asset.current_machine_hours : asset.current_odometer;
+    if (meter_reading < current) {
+      const unit = asset.service_interval_type === 'hours' ? 'hrs' : 'km';
+      return errorResponse(`Meter reading (${meter_reading} ${unit}) cannot be less than the current reading (${current} ${unit})`, 422);
+    }
+
+    if (meter_reading > current) {
+      const col = asset.service_interval_type === 'hours' ? 'current_machine_hours' : 'current_odometer';
+      await db.prepare(
+        `UPDATE assets SET ${col} = ?, last_service_meter_reading = ?, updated_at = ? WHERE id = ?`
+      ).bind(meter_reading, meter_reading, now(), assetId).run();
+    }
+  }
+
   await db.prepare(
-    'UPDATE asset_maintenance_activities SET activity_type = ?, type_other = ?, performed_by = ?, description = ?, cost = ?, updated_at = ? WHERE id = ?'
-  ).bind(activity_type, type_other ?? null, performed_by.trim(), description.trim(), cost ?? null, now(), maintenanceId).run();
+    'UPDATE asset_maintenance_activities SET activity_type = ?, type_other = ?, performed_by = ?, description = ?, cost = ?, performed_at = ?, meter_reading = ?, updated_at = ? WHERE id = ?'
+  ).bind(activity_type, type_other ?? null, performed_by.trim(), description.trim(), cost ?? null, performed_at ?? null, meter_reading ?? null, now(), maintenanceId).run();
 
   return jsonResponse({ success: true });
 }
@@ -72,7 +94,6 @@ async function deleteActivity(context: BaseContext): Promise<Response> {
   ).bind(maintenanceId, assetId).first();
   if (!existing) return errorResponse('Maintenance activity not found', 404);
 
-  // Delete associated R2 files before removing DB rows
   const { results: photos } = await db.prepare(
     'SELECT file_key FROM asset_maintenance_photos WHERE maintenance_id = ?'
   ).bind(maintenanceId).all<{ file_key: string }>();

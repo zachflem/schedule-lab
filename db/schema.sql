@@ -123,6 +123,8 @@ CREATE TABLE IF NOT EXISTS asset_maintenance_activities (
   performed_by  TEXT NOT NULL,
   description   TEXT NOT NULL,
   cost          REAL,
+  performed_at  TEXT,
+  meter_reading REAL,
   created_at    TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );

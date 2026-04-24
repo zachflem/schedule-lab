@@ -7,6 +7,8 @@ import { Spinner } from '@/shared/ui';
 interface MaintenanceTaskModalProps {
   assetId: string;
   taskId: string | null; // null = new
+  serviceIntervalType: 'hours' | 'odometer';
+  currentReading: number;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -17,34 +19,46 @@ interface FormState {
   performed_by: string;
   description: string;
   cost: string;
+  performed_at: string;
+  meter_reading: string;
 }
 
-const DEFAULT_FORM: FormState = {
-  activity_type: 'Scheduled Service',
-  type_other: '',
-  performed_by: '',
-  description: '',
-  cost: '',
-};
+function localDateTimeNow(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
-export function MaintenanceTaskModal({ assetId, taskId, onClose, onSaved }: MaintenanceTaskModalProps) {
+function defaultForm(): FormState {
+  return {
+    activity_type: 'Scheduled Service',
+    type_other: '',
+    performed_by: '',
+    description: '',
+    cost: '',
+    performed_at: localDateTimeNow(),
+    meter_reading: '',
+  };
+}
+
+export function MaintenanceTaskModal({ assetId, taskId, serviceIntervalType, currentReading, onClose, onSaved }: MaintenanceTaskModalProps) {
   const isNew = taskId === null;
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>(DEFAULT_FORM);
+  const [form, setForm] = useState<FormState>(defaultForm());
 
-  // Existing files (for edit mode)
   const [existingPhotos, setExistingPhotos] = useState<MaintenanceFile[]>([]);
   const [existingDocs, setExistingDocs] = useState<MaintenanceFile[]>([]);
-
-  // Pending uploads (queued before save)
   const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
   const [pendingDocs, setPendingDocs] = useState<File[]>([]);
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
+
+  const meterLabel = serviceIntervalType === 'hours' ? 'Machine Hours' : 'Odometer (km)';
+  const meterUnit  = serviceIntervalType === 'hours' ? 'hrs' : 'km';
 
   useEffect(() => {
     if (!isNew) {
@@ -56,6 +70,8 @@ export function MaintenanceTaskModal({ assetId, taskId, onClose, onSaved }: Main
             performed_by: data.performed_by,
             description: data.description,
             cost: data.cost != null ? String(data.cost) : '',
+            performed_at: data.performed_at ?? localDateTimeNow(),
+            meter_reading: data.meter_reading != null ? String(data.meter_reading) : '',
           });
           setExistingPhotos(data.photos);
           setExistingDocs(data.docs);
@@ -66,7 +82,7 @@ export function MaintenanceTaskModal({ assetId, taskId, onClose, onSaved }: Main
   }, [assetId, taskId, isNew]);
 
   const totalPhotos = existingPhotos.length + pendingPhotos.length;
-  const totalDocs = existingDocs.length + pendingDocs.length;
+  const totalDocs   = existingDocs.length + pendingDocs.length;
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -121,12 +137,21 @@ export function MaintenanceTaskModal({ assetId, taskId, onClose, onSaved }: Main
       return;
     }
 
+    const meterValue = form.meter_reading.trim() ? parseFloat(form.meter_reading) : null;
+    if (form.meter_reading.trim() && (isNaN(meterValue!) || meterValue! < 0)) {
+      setError(`${meterLabel} must be a valid positive number`);
+      setSaving(false);
+      return;
+    }
+
     const payload = {
       activity_type: form.activity_type,
       type_other: form.activity_type === 'Other' ? form.type_other.trim() || null : null,
       performed_by: form.performed_by.trim(),
       description: form.description.trim(),
       cost: costValue,
+      performed_at: form.performed_at || null,
+      meter_reading: meterValue,
     };
 
     try {
@@ -139,7 +164,6 @@ export function MaintenanceTaskModal({ assetId, taskId, onClose, onSaved }: Main
         await api.put(`/assets/${assetId}/maintenance/${taskId}`, payload);
       }
 
-      // Upload pending photos
       for (const file of pendingPhotos) {
         const fd = new FormData();
         fd.append('photo', file);
@@ -150,7 +174,6 @@ export function MaintenanceTaskModal({ assetId, taskId, onClose, onSaved }: Main
         }
       }
 
-      // Upload pending docs
       for (const file of pendingDocs) {
         const fd = new FormData();
         fd.append('doc', file);
@@ -247,6 +270,15 @@ export function MaintenanceTaskModal({ assetId, taskId, onClose, onSaved }: Main
                 <div className="card__body">
                   <div className="form-grid" style={{ gap: 'var(--space-4)' }}>
                     <div className="form-group">
+                      <label className="form-label">Date &amp; Time <span style={{ color: 'var(--color-danger-500)' }}>*</span></label>
+                      <input
+                        type="datetime-local"
+                        className="form-input"
+                        value={form.performed_at}
+                        onChange={e => setForm(prev => ({ ...prev, performed_at: e.target.value }))}
+                      />
+                    </div>
+                    <div className="form-group">
                       <label className="form-label">Performed By <span style={{ color: 'var(--color-danger-500)' }}>*</span></label>
                       <input
                         type="text"
@@ -272,6 +304,23 @@ export function MaintenanceTaskModal({ assetId, taskId, onClose, onSaved }: Main
                         />
                       </div>
                     </div>
+                    <div className="form-group">
+                      <label className="form-label">{meterLabel}</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="number"
+                          className="form-input"
+                          placeholder={`Current: ${currentReading.toLocaleString()} ${meterUnit}`}
+                          min={currentReading}
+                          step={serviceIntervalType === 'hours' ? '0.1' : '1'}
+                          value={form.meter_reading}
+                          onChange={e => setForm(prev => ({ ...prev, meter_reading: e.target.value }))}
+                        />
+                      </div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', marginTop: '4px' }}>
+                        Current reading: {currentReading.toLocaleString()} {meterUnit}. Leave blank to skip update.
+                      </div>
+                    </div>
                   </div>
                   <div className="form-group" style={{ marginTop: 'var(--space-4)' }}>
                     <label className="form-label">Service Description <span style={{ color: 'var(--color-danger-500)' }}>*</span></label>
@@ -292,11 +341,7 @@ export function MaintenanceTaskModal({ assetId, taskId, onClose, onSaved }: Main
                 <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Photos <span style={{ color: 'var(--color-gray-400)', fontWeight: 400 }}>({totalPhotos}/10)</span></h3>
                   {totalPhotos < 10 && (
-                    <button
-                      type="button"
-                      className="btn btn--secondary btn--sm"
-                      onClick={() => photoInputRef.current?.click()}
-                    >
+                    <button type="button" className="btn btn--secondary btn--sm" onClick={() => photoInputRef.current?.click()}>
                       Add Photos
                     </button>
                   )}
@@ -363,11 +408,7 @@ export function MaintenanceTaskModal({ assetId, taskId, onClose, onSaved }: Main
                 <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Documents / Reports <span style={{ color: 'var(--color-gray-400)', fontWeight: 400 }}>({totalDocs}/10)</span></h3>
                   {totalDocs < 10 && (
-                    <button
-                      type="button"
-                      className="btn btn--secondary btn--sm"
-                      onClick={() => docInputRef.current?.click()}
-                    >
+                    <button type="button" className="btn btn--secondary btn--sm" onClick={() => docInputRef.current?.click()}>
                       Add Documents
                     </button>
                   )}
