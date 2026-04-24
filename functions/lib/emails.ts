@@ -249,6 +249,55 @@ export async function sendJobScheduledEmail(
   }
 }
 
+// ── Error Report ─────────────────────────────────────────────────────────────
+
+export async function sendErrorReportEmail(
+  db: D1Database,
+  errorMessage: string,
+  reportedBy: string,
+  pageUrl: string,
+  apiKey: string,
+): Promise<void> {
+  const [{ results: recipients }, { company_name, logo_url }] = await Promise.all([
+    db.prepare(`
+      SELECT name, email FROM personnel
+      WHERE role = 'admin' AND email IS NOT NULL AND can_login = 1 AND receives_emails = 1
+    `).all() as Promise<{ results: Array<{ name: string; email: string }> }>,
+    getCompanySettings(db),
+  ]);
+
+  if (recipients.length === 0) return;
+
+  const subject = `Error Report — ${company_name}`;
+  const timestamp = new Date().toUTCString();
+
+  for (const recipient of recipients) {
+    const body = `
+      <h2 style="margin:0 0 8px;font-size:20px;color:#111827;">User Error Report</h2>
+      <p style="margin:0 0 20px;color:#6b7280;font-size:14px;">Hi ${recipient.name}, a user has submitted an error report from the application.</p>
+
+      ${dangerBox(`
+        <p style="margin:0 0 4px;font-weight:700;color:#991b1b;font-size:13px;">ERROR MESSAGE</p>
+        <p style="margin:0;color:#7f1d1d;font-size:14px;">${errorMessage}</p>
+      `)}
+
+      <table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:14px;">
+        <tr><td style="padding:8px 0;color:#6b7280;width:40%;">Reported By</td><td style="padding:8px 0;font-weight:600;color:#111827;">${reportedBy}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Page URL</td><td style="padding:8px 0;font-weight:600;color:#111827;">${pageUrl}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Timestamp</td><td style="padding:8px 0;font-weight:600;color:#111827;">${timestamp}</td></tr>
+      </table>
+    `;
+
+    await sendEmail({
+      to: recipient.email,
+      subject,
+      content: emailWrapper(subject, body, company_name, logo_url),
+      fromName: company_name,
+      apiKey,
+    });
+  }
+}
+
 // ── Test Email ────────────────────────────────────────────────────────────────
 
 export async function sendTestEmail(
