@@ -340,6 +340,29 @@ export const ProjectSchema = z.object({
 });
 export type Project = z.infer<typeof ProjectSchema>;
 
+// ── Project Document ───────────────────────────────────
+export const ProjectDocumentVisibilityEnum = z.enum(['operator', 'dispatcher', 'admin']);
+export type ProjectDocumentVisibility = z.infer<typeof ProjectDocumentVisibilityEnum>;
+
+export const DOCUMENT_VISIBILITY_LABELS: Record<ProjectDocumentVisibility, string> = {
+  operator: 'All staff',
+  dispatcher: 'Office & Admin',
+  admin: 'Admin only',
+};
+
+export const ProjectDocumentSchema = z.object({
+  id: z.string(),
+  project_id: z.string(),
+  file_key: z.string(),
+  file_name: z.string(),
+  file_type: z.string(),
+  label: z.string().optional().nullable(),
+  visibility: ProjectDocumentVisibilityEnum,
+  sort_order: z.number().optional(),
+  created_at: z.string().optional(),
+});
+export type ProjectDocument = z.infer<typeof ProjectDocumentSchema>;
+
 export const ProjectJobTemplateStatusEnum = z.enum(['Active', 'Paused', 'Completed']);
 
 export const ProjectJobTemplateSchema = z.object({

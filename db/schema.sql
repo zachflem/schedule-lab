@@ -441,6 +441,22 @@ CREATE TABLE IF NOT EXISTS task_files (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- PROJECT DOCUMENTS
+CREATE TABLE IF NOT EXISTS project_documents (
+  id         TEXT    PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  project_id TEXT    NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  file_key   TEXT    NOT NULL,
+  file_name  TEXT    NOT NULL,
+  file_type  TEXT    NOT NULL,
+  label      TEXT,
+  -- visibility: minimum role required to view ('operator' = all, 'dispatcher' = office+, 'admin' = admin only)
+  visibility TEXT    NOT NULL DEFAULT 'dispatcher'
+    CHECK(visibility IN ('operator','dispatcher','admin')),
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_project_documents_project_id ON project_documents(project_id);
+
 -- ============================================
 -- INDEXES
 -- ============================================

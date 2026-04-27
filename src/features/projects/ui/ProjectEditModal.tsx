@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/shared/lib/api';
-import type { Project, Customer, ProjectJobTemplate, ProjectContact, CustomerContact } from '@/shared/validation/schemas';
-import { ProjectStatusEnum, CustomerContactRoleEnum } from '@/shared/validation/schemas';
+import type { Project, Customer, ProjectJobTemplate, ProjectContact, CustomerContact, ProjectDocument, ProjectDocumentVisibility } from '@/shared/validation/schemas';
+import { ProjectStatusEnum, CustomerContactRoleEnum, ProjectDocumentVisibilityEnum, DOCUMENT_VISIBILITY_LABELS } from '@/shared/validation/schemas';
 import { ProjectTemplateModal } from './ProjectTemplateModal';
 
 interface ProjectModalProps {
@@ -46,9 +46,14 @@ export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [templates, setTemplates] = useState<ProjectJobTemplate[]>([]);
   const [customerContacts, setCustomerContacts] = useState<CustomerContact[]>([]);
+  const [documents, setDocuments] = useState<ProjectDocument[]>([]);
+  const [pendingDocs, setPendingDocs] = useState<{ file: File; label: string; visibility: ProjectDocumentVisibility }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const docFileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'settings' | 'contacts' | 'streams'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'contacts' | 'documents' | 'streams'>('settings');
   const [editingTemplate, setEditingTemplate] = useState<Partial<ProjectJobTemplate> | null>(null);
 
   const contacts = (formData.contacts ?? []) as ProjectContact[];
@@ -72,11 +77,22 @@ export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, 
     }
   };
 
+  const loadDocuments = async () => {
+    if (!project?.id) return;
+    try {
+      const data = await api.get<ProjectDocument[]>(`/projects/${project.id}/documents`);
+      setDocuments(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     if (isCreate && !customerId) {
       api.get<Customer[]>('/customers').then(setCustomers).catch(console.error);
     } else if (!isCreate) {
       loadTemplates();
+      loadDocuments();
       if (project?.customer_id) loadCustomerContacts(project.customer_id);
     }
   }, [isCreate, project?.id, customerId]);
@@ -110,6 +126,48 @@ export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, 
   const updateContact = (index: number, field: keyof ProjectContact, value: string) => {
     const updated = contacts.map((c, i) => i === index ? { ...c, [field]: value } : c);
     setFormData(p => ({ ...p, contacts: updated }));
+  };
+
+  const handleDocFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    const newPending = files.map(f => ({ file: f, label: '', visibility: 'dispatcher' as ProjectDocumentVisibility }));
+    setPendingDocs(prev => [...prev, ...newPending]);
+    e.target.value = '';
+  };
+
+  const handleUploadPending = async () => {
+    if (pendingDocs.length === 0 || !project?.id) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      for (const pending of pendingDocs) {
+        const fd = new FormData();
+        fd.append('file', pending.file);
+        fd.append('visibility', pending.visibility);
+        if (pending.label.trim()) fd.append('label', pending.label.trim());
+        const res = await fetch(`/api/projects/${project.id}/documents`, { method: 'POST', body: fd });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+          throw new Error((err as any).error ?? 'Upload failed');
+        }
+      }
+      setPendingDocs([]);
+      await loadDocuments();
+    } catch (err: any) {
+      setUploadError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string) => {
+    if (!project?.id) return;
+    try {
+      await api.delete(`/projects/${project.id}/documents/${docId}`);
+      setDocuments(prev => prev.filter(d => d.id !== docId));
+    } catch (err: any) {
+      setUploadError(err.message);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -161,6 +219,12 @@ export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, 
                 onClick={() => setActiveTab('contacts')}
               >
                 Contacts {contacts.length > 0 && `(${contacts.length})`}
+              </button>
+              <button
+                className={`modal-tab${activeTab === 'documents' ? ' active' : ''}`}
+                onClick={() => setActiveTab('documents')}
+              >
+                Documents {documents.length > 0 && `(${documents.length})`}
               </button>
               <button
                 id="tab-streams"
@@ -303,6 +367,122 @@ export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, 
               </button>
             </div>
           </form>
+        )}
+
+        {activeTab === 'documents' && (
+          <div className="modal-body py-4 flex flex-col gap-4">
+            {uploadError && (
+              <div className="bg-red-50 text-red-600 p-3 rounded text-sm border border-red-100">
+                ⚠️ {uploadError}
+              </div>
+            )}
+
+            {/* Existing documents */}
+            {documents.length === 0 && pendingDocs.length === 0 ? (
+              <div
+                style={{ border: '2px dashed var(--color-gray-200)', borderRadius: 'var(--radius-md)', padding: 'var(--space-8)', textAlign: 'center', cursor: 'pointer', color: 'var(--color-gray-400)', fontSize: 'var(--text-sm)' }}
+                onClick={() => docFileInputRef.current?.click()}
+              >
+                Click to upload project documents (PDF, Word, Excel, images · max 20 MB)
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                {documents.map(doc => (
+                  <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-gray-200)' }}>
+                    <span style={{ fontSize: '18px' }}>{doc.file_type === 'application/pdf' ? '📄' : doc.file_type.startsWith('image/') ? '🖼️' : '📎'}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <a
+                        href={`/api/projects/${project?.id}/documents/${doc.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ fontSize: 'var(--text-sm)', color: 'var(--color-primary-600)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}
+                      >
+                        {doc.label || doc.file_name}
+                      </a>
+                      {doc.label && (
+                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)' }}>{doc.file_name}</span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      {DOCUMENT_VISIBILITY_LABELS[doc.visibility as ProjectDocumentVisibility]}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteDocument(doc.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-danger-600)', fontSize: 'var(--text-lg)', lineHeight: 1, padding: '0 var(--space-1)', flexShrink: 0 }}
+                      title="Delete document"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Pending uploads */}
+            {pendingDocs.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-gray-600)' }}>Ready to upload</div>
+                {pendingDocs.map((pending, i) => (
+                  <div key={i} style={{ border: '1px dashed var(--color-primary-300)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3)', background: 'var(--color-primary-50)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                      <span style={{ fontSize: '16px' }}>📎</span>
+                      <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: 'var(--color-gray-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pending.file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setPendingDocs(prev => prev.filter((_, j) => j !== i))}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-danger-600)', fontSize: 'var(--text-lg)', lineHeight: 1, padding: '0 var(--space-1)' }}
+                      >&times;</button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 'var(--space-2)' }}>
+                      <input
+                        className="form-input"
+                        style={{ fontSize: 'var(--text-sm)' }}
+                        placeholder="Label (optional)"
+                        value={pending.label}
+                        onChange={e => setPendingDocs(prev => prev.map((p, j) => j === i ? { ...p, label: e.target.value } : p))}
+                      />
+                      <select
+                        className="form-input"
+                        style={{ fontSize: 'var(--text-sm)' }}
+                        value={pending.visibility}
+                        onChange={e => setPendingDocs(prev => prev.map((p, j) => j === i ? { ...p, visibility: e.target.value as ProjectDocumentVisibility } : p))}
+                      >
+                        {ProjectDocumentVisibilityEnum.options.map(v => (
+                          <option key={v} value={v}>{DOCUMENT_VISIBILITY_LABELS[v]}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'space-between', alignItems: 'center' }}>
+              <input
+                ref={docFileInputRef}
+                type="file"
+                accept="application/pdf,.doc,.docx,.xls,.xlsx,image/jpeg,image/png,image/webp"
+                multiple
+                style={{ display: 'none' }}
+                onChange={handleDocFileSelect}
+              />
+              <button type="button" className="btn btn--secondary btn--sm" onClick={() => docFileInputRef.current?.click()}>
+                + Add Files
+              </button>
+              {pendingDocs.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn--primary btn--sm"
+                  onClick={handleUploadPending}
+                  disabled={uploading}
+                >
+                  {uploading ? 'Uploading...' : `Upload ${pendingDocs.length} file${pendingDocs.length > 1 ? 's' : ''}`}
+                </button>
+              )}
+            </div>
+          </div>
         )}
 
         {activeTab === 'streams' && (
