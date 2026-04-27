@@ -510,6 +510,11 @@ export const TaskSchema = z.object({
   description: z.string().optional().nullable(),
   status: z.enum(['Open', 'Completed']).default('Open'),
   assignee_ids: z.array(z.string()).default([]),
+  // Recurrence
+  recurrence_enabled: z.boolean().default(false),
+  recurrence_interval: z.number().int().positive().optional().nullable(),
+  recurrence_unit: z.enum(['hours', 'days', 'weeks', 'months']).optional().nullable(),
+  recurrence_day: z.number().int().optional().nullable(),
   // Read-only populated fields (not sent on create/update)
   assignees: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
   completed_by: z.string().optional().nullable(),

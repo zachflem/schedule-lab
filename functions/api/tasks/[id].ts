@@ -51,15 +51,20 @@ export const onRequest = methodRouter({
     let body: any;
     try { body = await context.request.json(); } catch { return errorResponse('Invalid JSON', 400); }
 
-    const { title, description, assignee_ids } = body;
+    const { title, description, assignee_ids, recurrence_enabled, recurrence_interval, recurrence_unit, recurrence_day } = body;
     if (!title?.trim()) return errorResponse('Task title is required', 422);
 
     const db = getDb(context);
     const timestamp = now();
 
+    const recurEnabled = recurrence_enabled ? 1 : 0;
+    const recurInterval = recurEnabled ? (recurrence_interval ?? null) : null;
+    const recurUnit = recurEnabled ? (recurrence_unit ?? null) : null;
+    const recurDay = recurEnabled ? (recurrence_day ?? null) : null;
+
     const result = await db.prepare(
-      'UPDATE tasks SET title = ?, description = ?, updated_at = ? WHERE id = ?'
-    ).bind(title.trim(), description?.trim() ?? null, timestamp, id).run();
+      'UPDATE tasks SET title = ?, description = ?, updated_at = ?, recurrence_enabled = ?, recurrence_interval = ?, recurrence_unit = ?, recurrence_day = ? WHERE id = ?'
+    ).bind(title.trim(), description?.trim() ?? null, timestamp, recurEnabled, recurInterval, recurUnit, recurDay, id).run();
 
     if (result.meta.changes === 0) return errorResponse('Task not found', 404);
 
@@ -83,7 +88,7 @@ export const onRequest = methodRouter({
     try { body = await context.request.json(); } catch { return errorResponse('Invalid JSON', 400); }
 
     const db = getDb(context);
-    const task = await db.prepare('SELECT id, status FROM tasks WHERE id = ?').bind(id).first<any>();
+    const task = await db.prepare('SELECT * FROM tasks WHERE id = ?').bind(id).first<any>();
     if (!task) return errorResponse('Task not found', 404);
 
     // Operators can only complete tasks assigned to them
@@ -101,6 +106,26 @@ export const onRequest = methodRouter({
       await db.prepare(
         'UPDATE tasks SET status = ?, completed_by = ?, completed_at = ?, updated_at = ? WHERE id = ?'
       ).bind('Completed', user.id, timestamp, timestamp, id).run();
+
+      // If recurring, spawn a fresh open copy for the next cycle
+      if (task.recurrence_enabled) {
+        const newId = generateId();
+        await db.prepare(
+          'INSERT INTO tasks (id, title, description, status, created_by, created_at, updated_at, recurrence_enabled, recurrence_interval, recurrence_unit, recurrence_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        ).bind(newId, task.title, task.description, 'Open', user.id, timestamp, timestamp, 1, task.recurrence_interval, task.recurrence_unit, task.recurrence_day).run();
+
+        const { results: assignments } = await db.prepare(
+          'SELECT personnel_id FROM task_assignments WHERE task_id = ?'
+        ).bind(id).all<{ personnel_id: string }>();
+
+        for (const a of assignments) {
+          await db.prepare(
+            'INSERT OR IGNORE INTO task_assignments (id, task_id, personnel_id, created_at) VALUES (?, ?, ?, ?)'
+          ).bind(generateId(), newId, a.personnel_id, timestamp).run();
+        }
+
+        return jsonResponse({ success: true, new_task_id: newId });
+      }
     } else if (action === 'reopen') {
       if (user.role === 'operator') return errorResponse('Forbidden', 403);
       await db.prepare(

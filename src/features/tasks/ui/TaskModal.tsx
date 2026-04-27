@@ -30,6 +30,11 @@ export function TaskModal({ taskId, onClose, onSaved }: TaskModalProps) {
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
   const [task, setTask] = useState<Task | null>(null);
 
+  const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [recurrenceUnit, setRecurrenceUnit] = useState<'hours' | 'days' | 'weeks' | 'months'>('days');
+  const [recurrenceDay, setRecurrenceDay] = useState<number | null>(null);
+
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [existingFiles, setExistingFiles] = useState<TaskFile[]>([]);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -49,6 +54,10 @@ export function TaskModal({ taskId, onClose, onSaved }: TaskModalProps) {
           setDescription(data.description ?? '');
           setAssigneeIds((data.assignees ?? []).map((a: any) => a.id));
           setExistingFiles(data.files ?? []);
+          setRecurrenceEnabled(!!data.recurrence_enabled);
+          setRecurrenceInterval(data.recurrence_interval ?? 1);
+          setRecurrenceUnit(data.recurrence_unit ?? 'days');
+          setRecurrenceDay(data.recurrence_day ?? null);
         })
         .catch(err => setError(err instanceof Error ? err.message : 'Failed to load task'))
         .finally(() => setLoading(false));
@@ -92,11 +101,19 @@ export function TaskModal({ taskId, onClose, onSaved }: TaskModalProps) {
     try {
       let activeId = taskId;
 
+      const recurrencePayload = recurrenceEnabled ? {
+        recurrence_enabled: true,
+        recurrence_interval: recurrenceInterval,
+        recurrence_unit: recurrenceUnit,
+        recurrence_day: (recurrenceUnit === 'days' || recurrenceUnit === 'months') ? recurrenceDay : null,
+      } : { recurrence_enabled: false };
+
       if (isNew) {
         const { id } = await api.post<{ id: string }>('/tasks', {
           title: title.trim(),
           description: description.trim() || null,
           assignee_ids: assigneeIds,
+          ...recurrencePayload,
         });
         activeId = id;
       } else {
@@ -104,6 +121,7 @@ export function TaskModal({ taskId, onClose, onSaved }: TaskModalProps) {
           title: title.trim(),
           description: description.trim() || null,
           assignee_ids: assigneeIds,
+          ...recurrencePayload,
         });
       }
 
@@ -230,6 +248,90 @@ export function TaskModal({ taskId, onClose, onSaved }: TaskModalProps) {
                   </div>
                 </div>
               </div>
+
+              {/* Recurrence */}
+              {canEdit && (
+                <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
+                  <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Recurrence</h3>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer', fontSize: 'var(--text-sm)' }}>
+                      <input
+                        type="checkbox"
+                        checked={recurrenceEnabled}
+                        onChange={e => setRecurrenceEnabled(e.target.checked)}
+                      />
+                      Repeat this task
+                    </label>
+                  </div>
+                  {recurrenceEnabled && (
+                    <div className="card__body">
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-3)' }}>
+                        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)' }}>Every</span>
+                        <input
+                          type="number"
+                          min={1}
+                          className="form-input"
+                          style={{ width: '72px' }}
+                          value={recurrenceInterval}
+                          onChange={e => setRecurrenceInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                        />
+                        <select
+                          className="form-input"
+                          style={{ width: 'auto' }}
+                          value={recurrenceUnit}
+                          onChange={e => {
+                            setRecurrenceUnit(e.target.value as typeof recurrenceUnit);
+                            setRecurrenceDay(null);
+                          }}
+                        >
+                          <option value="hours">hours</option>
+                          <option value="days">days</option>
+                          <option value="weeks">weeks</option>
+                          <option value="months">months</option>
+                        </select>
+
+                        {recurrenceUnit === 'days' && (
+                          <>
+                            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)' }}>on</span>
+                            <select
+                              className="form-input"
+                              style={{ width: 'auto' }}
+                              value={recurrenceDay ?? ''}
+                              onChange={e => setRecurrenceDay(e.target.value === '' ? null : parseInt(e.target.value))}
+                            >
+                              <option value="">any day</option>
+                              <option value="0">Sunday</option>
+                              <option value="1">Monday</option>
+                              <option value="2">Tuesday</option>
+                              <option value="3">Wednesday</option>
+                              <option value="4">Thursday</option>
+                              <option value="5">Friday</option>
+                              <option value="6">Saturday</option>
+                            </select>
+                          </>
+                        )}
+
+                        {recurrenceUnit === 'months' && (
+                          <>
+                            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)' }}>on day</span>
+                            <select
+                              className="form-input"
+                              style={{ width: 'auto' }}
+                              value={recurrenceDay ?? ''}
+                              onChange={e => setRecurrenceDay(e.target.value === '' ? null : parseInt(e.target.value))}
+                            >
+                              <option value="">any day</option>
+                              {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                                <option key={d} value={d}>{d}</option>
+                              ))}
+                            </select>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Assignees */}
               {canEdit && (

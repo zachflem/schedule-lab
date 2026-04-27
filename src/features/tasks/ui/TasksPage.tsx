@@ -104,6 +104,11 @@ export function TasksPage() {
                       {task.files.length} file{task.files.length !== 1 ? 's' : ''} attached
                     </div>
                   )}
+                  {task.recurrence_enabled && (
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary-600)', marginTop: '2px' }}>
+                      Repeats every {task.recurrence_interval} {task.recurrence_unit}{(task.recurrence_interval ?? 1) !== 1 ? 's' : ''}
+                    </div>
+                  )}
                 </td>
                 <td style={{ padding: 'var(--space-3)' }}>
                   {task.assignees && task.assignees.length > 0 ? (
@@ -211,6 +216,11 @@ export function TasksPage() {
             <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', display: 'flex', gap: 'var(--space-3)' }}>
               {task.created_at && <span>{formatDate(task.created_at)}</span>}
               {task.files && task.files.length > 0 && <span>{task.files.length} file{task.files.length !== 1 ? 's' : ''}</span>}
+              {task.recurrence_enabled && (
+                <span style={{ color: 'var(--color-primary-600)' }}>
+                  Repeats every {task.recurrence_interval} {task.recurrence_unit}{(task.recurrence_interval ?? 1) !== 1 ? 's' : ''}
+                </span>
+              )}
               {task.status === 'Completed' && task.completed_by_name && (
                 <span>Completed by {task.completed_by_name}</span>
               )}

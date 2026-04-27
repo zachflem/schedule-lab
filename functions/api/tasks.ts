@@ -56,16 +56,21 @@ export const onRequest = methodRouter({
     let body: any;
     try { body = await context.request.json(); } catch { return errorResponse('Invalid JSON', 400); }
 
-    const { title, description, assignee_ids } = body;
+    const { title, description, assignee_ids, recurrence_enabled, recurrence_interval, recurrence_unit, recurrence_day } = body;
     if (!title?.trim()) return errorResponse('Task title is required', 422);
 
     const db = getDb(context);
     const id = generateId();
     const timestamp = now();
 
+    const recurEnabled = recurrence_enabled ? 1 : 0;
+    const recurInterval = recurEnabled ? (recurrence_interval ?? null) : null;
+    const recurUnit = recurEnabled ? (recurrence_unit ?? null) : null;
+    const recurDay = recurEnabled ? (recurrence_day ?? null) : null;
+
     await db.prepare(
-      'INSERT INTO tasks (id, title, description, status, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).bind(id, title.trim(), description?.trim() ?? null, 'Open', user.id, timestamp, timestamp).run();
+      'INSERT INTO tasks (id, title, description, status, created_by, created_at, updated_at, recurrence_enabled, recurrence_interval, recurrence_unit, recurrence_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(id, title.trim(), description?.trim() ?? null, 'Open', user.id, timestamp, timestamp, recurEnabled, recurInterval, recurUnit, recurDay).run();
 
     if (Array.isArray(assignee_ids)) {
       for (const personnelId of assignee_ids) {
