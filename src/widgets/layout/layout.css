@@ -147,6 +147,14 @@
   margin: var(--space-2) var(--space-4);
 }
 
+.nav-ops-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border-left: 3px solid var(--color-primary-400);
+  padding-left: var(--space-1);
+}
+
 .main-content {
   flex: 1;
   padding-top: var(--space-4);

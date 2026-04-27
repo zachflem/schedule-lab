@@ -34,63 +34,70 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
         </svg>
       ),
     },
+    { type: 'separator', roles: ['admin', 'dispatcher', 'operator'] },
     {
-      to: '/enquiries',
-      label: 'Enquiries',
-      roles: ['admin', 'dispatcher'],
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          <line x1="9" y1="9" x2="15" y2="9" />
-          <line x1="9" y1="13" x2="15" y2="13" />
-        </svg>
-      ),
-    },
-    {
-      to: '/jobs',
-      label: 'Jobs',
+      type: 'group',
       roles: ['admin', 'dispatcher', 'operator'],
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-      ),
-    },
-    {
-      to: '/schedule',
-      label: 'Schedule',
-      roles: ['admin', 'dispatcher', 'operator'],
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
-          <path d="M8 2v4" />
-          <path d="M16 2v4" />
-          <rect width="18" height="18" x="3" y="4" rx="2" />
-          <path d="M3 10h18" />
-          <path d="M8 14h.01" />
-          <path d="M12 14h.01" />
-          <path d="M16 14h.01" />
-          <path d="M8 18h.01" />
-          <path d="M12 18h.01" />
-          <path d="M16 18h.01" />
-        </svg>
-      ),
-    },
-    {
-      to: '/dockets',
-      label: 'Dockets',
-      roles: ['admin', 'dispatcher', 'operator'],
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-          <line x1="16" y1="13" x2="8" y2="13" />
-          <line x1="16" y1="17" x2="8" y2="17" />
-          <polyline points="10 9 9 9 8 9" />
-        </svg>
-      ),
+      items: [
+        {
+          to: '/enquiries',
+          label: 'Enquiries',
+          roles: ['admin', 'dispatcher'],
+          icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              <line x1="9" y1="9" x2="15" y2="9" />
+              <line x1="9" y1="13" x2="15" y2="13" />
+            </svg>
+          ),
+        },
+        {
+          to: '/jobs',
+          label: 'Jobs',
+          roles: ['admin', 'dispatcher', 'operator'],
+          icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          ),
+        },
+        {
+          to: '/schedule',
+          label: 'Schedule',
+          roles: ['admin', 'dispatcher', 'operator'],
+          icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
+              <path d="M8 2v4" />
+              <path d="M16 2v4" />
+              <rect width="18" height="18" x="3" y="4" rx="2" />
+              <path d="M3 10h18" />
+              <path d="M8 14h.01" />
+              <path d="M12 14h.01" />
+              <path d="M16 14h.01" />
+              <path d="M8 18h.01" />
+              <path d="M12 18h.01" />
+              <path d="M16 18h.01" />
+            </svg>
+          ),
+        },
+        {
+          to: '/dockets',
+          label: 'Dockets',
+          roles: ['admin', 'dispatcher', 'operator'],
+          icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nav-item-icon">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+          ),
+        },
+      ],
     },
     { type: 'separator', roles: ['admin', 'dispatcher'] },
     {
@@ -175,6 +182,26 @@ export function NavMenu({ isOpen, onClose }: NavMenuProps) {
           {filteredItems.map((item, index) => {
             if ('type' in item && item.type === 'separator') {
               return <div key={`sep-${index}`} className="nav-divider" />;
+            }
+            if ('type' in item && item.type === 'group') {
+              const groupItem = item as { type: 'group'; roles: string[]; items: Array<{ to: string; label: string; roles: string[]; icon: any }> };
+              const visibleItems = groupItem.items.filter(i => i.roles.includes(role));
+              if (!visibleItems.length) return null;
+              return (
+                <div key={`group-${index}`} className="nav-ops-group">
+                  {visibleItems.map(navItem => (
+                    <NavLink
+                      key={navItem.to}
+                      to={navItem.to}
+                      className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                      onClick={onClose}
+                    >
+                      {navItem.icon}
+                      <span>{navItem.label}</span>
+                    </NavLink>
+                  ))}
+                </div>
+              );
             }
             const navItem = item as { to: string; label: string; icon: any };
             return (
