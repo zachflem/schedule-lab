@@ -348,9 +348,9 @@ export const ProjectDocumentVisibilityEnum = z.enum(['operator', 'dispatcher', '
 export type ProjectDocumentVisibility = z.infer<typeof ProjectDocumentVisibilityEnum>;
 
 export const DOCUMENT_VISIBILITY_LABELS: Record<ProjectDocumentVisibility, string> = {
-  operator: 'All staff',
-  dispatcher: 'Office & Admin',
-  admin: 'Admin only',
+  operator: 'Operator',
+  dispatcher: 'Dispatcher',
+  admin: 'Admin',
 };
 
 export const ProjectDocumentSchema = z.object({
