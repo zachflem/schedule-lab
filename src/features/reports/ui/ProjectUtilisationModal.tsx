@@ -190,12 +190,7 @@ export function ProjectUtilisationModal({ onClose }: Props) {
       const assets = getResources(job, 'Asset');
       const operators = getResources(job, 'Personnel');
       return job.dockets.map(d => {
-        const { label } = (() => {
-          if (d.docket_status === 'validated' || d.docket_status === 'completed') return { label: d.docket_status, cls: 'badge-ok' };
-          if (d.docket_status === 'draft') return { label: 'draft', cls: 'badge-warn' };
-          if (d.docket_status === 'incomplete') return { label: 'incomplete', cls: 'badge-err' };
-          return { label: d.docket_status, cls: 'badge-gray' };
-        })();
+        const label = d.docket_status;
         const cls = d.docket_status === 'validated' || d.docket_status === 'completed' ? 'badge-ok'
           : d.docket_status === 'draft' ? 'badge-warn'
           : d.docket_status === 'incomplete' ? 'badge-err' : 'badge-gray';
