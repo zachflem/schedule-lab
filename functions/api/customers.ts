@@ -31,6 +31,8 @@ export const onRequest = methodRouter({
         (SELECT COUNT(*) FROM jobs j WHERE j.customer_id = c.id AND j.status_id IN ('Enquiry', 'Quote', 'Quote Sent', 'Quote Accepted')) as enquiry_jobs,
         (SELECT COUNT(*) FROM jobs j WHERE j.customer_id = c.id AND j.status_id IN ('Job Booked', 'Job Scheduled', 'Allocated', 'Site Docket')) as active_jobs,
         (SELECT COUNT(*) FROM jobs j WHERE j.customer_id = c.id AND j.status_id IN ('Completed', 'Invoiced')) as closed_jobs,
+        (SELECT COUNT(*) FROM projects p WHERE p.customer_id = c.id AND p.status = 'Active') as active_projects,
+        (SELECT COUNT(*) FROM projects p WHERE p.customer_id = c.id) as total_projects,
         (
           SELECT json_group_array(json_object(
             'id', cc.id, 'name', cc.name, 'phone', cc.phone,

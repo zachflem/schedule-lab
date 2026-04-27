@@ -141,6 +141,9 @@ export const CustomerSchema = z.object({
   enquiry_jobs: z.number().optional(),
   active_jobs: z.number().optional(),
   closed_jobs: z.number().optional(),
+  // Project Summaries
+  active_projects: z.number().optional(),
+  total_projects: z.number().optional(),
 });
 export type Customer = z.infer<typeof CustomerSchema>;
 

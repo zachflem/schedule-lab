@@ -83,6 +83,7 @@ export function CustomerListPage() {
             <tr style={{ background: 'var(--color-gray-50)', borderBottom: '1px solid var(--color-gray-200)' }}>
               <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Name</th>
               <th style={{ textAlign: 'left', padding: 'var(--space-3)' }}>Primary Contact</th>
+              <th style={{ textAlign: 'center', padding: 'var(--space-3)' }}>Projects</th>
               <th style={{ textAlign: 'center', padding: 'var(--space-3)' }}>Jobs</th>
               <th style={{ textAlign: 'right', padding: 'var(--space-3)' }}>Actions</th>
             </tr>
@@ -93,6 +94,25 @@ export function CustomerListPage() {
                 <td style={{ padding: 'var(--space-3)', fontWeight: 600 }}>{customer.name}</td>
                 <td style={{ padding: 'var(--space-3)', fontSize: 'var(--text-sm)' }}>
                   <ContactCell customer={customer} />
+                </td>
+                <td style={{ padding: 'var(--space-3)', textAlign: 'center' }}>
+                  <button
+                    onClick={() => setProjectsCustomer(customer)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}
+                    title={`${customer.total_projects || 0} total project(s)`}
+                  >
+                    <span style={{
+                      minWidth: '28px', padding: '2px 6px', borderRadius: '4px', fontSize: 'var(--text-xs)', fontWeight: 700,
+                      ...(customer.active_projects ?? 0) > 0
+                        ? { background: 'var(--color-primary-50)', color: 'var(--color-primary-700)', border: '1px solid var(--color-primary-200)' }
+                        : { background: 'var(--color-gray-100)', color: 'var(--color-gray-400)', border: '1px solid var(--color-gray-200)' }
+                    }}>
+                      {customer.active_projects || 0}
+                    </span>
+                    {(customer.total_projects ?? 0) > (customer.active_projects ?? 0) && (
+                      <span style={{ fontSize: '10px', color: 'var(--color-gray-400)' }}>{customer.total_projects} total</span>
+                    )}
+                  </button>
                 </td>
                 <td style={{ padding: 'var(--space-3)', textAlign: 'center' }}>
                   <div style={{ display: 'inline-flex', gap: 'var(--space-2)' }}>
@@ -111,7 +131,7 @@ export function CustomerListPage() {
             ))}
             {customers.length === 0 && (
               <tr>
-                <td colSpan={4} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-gray-400)' }}>No customers found.</td>
+                <td colSpan={5} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-gray-400)' }}>No customers found.</td>
               </tr>
             )}
           </tbody>
@@ -142,7 +162,8 @@ export function CustomerListPage() {
                   <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(customer.id!)}>Edit</button>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                <span title="Active projects" style={{ padding: '2px 8px', borderRadius: '4px', fontSize: 'var(--text-xs)', fontWeight: 700, ...((customer.active_projects ?? 0) > 0 ? { background: 'var(--color-primary-50)', color: 'var(--color-primary-700)', border: '1px solid var(--color-primary-200)' } : { background: 'var(--color-gray-100)', color: 'var(--color-gray-400)', border: '1px solid var(--color-gray-200)' }) }}>P: {customer.active_projects || 0}</span>
                 <span title="Enquiries" style={{ padding: '2px 8px', borderRadius: '4px', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', fontSize: 'var(--text-xs)', fontWeight: 700, border: '1px solid var(--color-danger-100)' }}>E: {customer.enquiry_jobs || 0}</span>
                 <span title="Active" style={{ padding: '2px 8px', borderRadius: '4px', background: 'var(--color-warning-50)', color: 'var(--color-warning-600)', fontSize: 'var(--text-xs)', fontWeight: 700, border: '1px solid var(--color-warning-100)' }}>A: {customer.active_jobs || 0}</span>
                 <span title="Closed" style={{ padding: '2px 8px', borderRadius: '4px', background: 'var(--color-success-50)', color: 'var(--color-success-700)', fontSize: 'var(--text-xs)', fontWeight: 700, border: '1px solid var(--color-success-100)' }}>C: {customer.closed_jobs || 0}</span>
