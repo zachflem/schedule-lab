@@ -34,7 +34,7 @@ export async function checkResourceConflicts(
         AND js.start_time < ?
         AND js.end_time > ?
     `).bind(...assetIds, jobId, endTime, startTime).all();
-    conflicts.push(...(results as ResourceConflict[]));
+    conflicts.push(...(results as unknown as ResourceConflict[]));
   }
 
   if (personnelIds.length > 0) {
@@ -53,7 +53,7 @@ export async function checkResourceConflicts(
         AND js.start_time < ?
         AND js.end_time > ?
     `).bind(...personnelIds, jobId, endTime, startTime).all();
-    conflicts.push(...(results as ResourceConflict[]));
+    conflicts.push(...(results as unknown as ResourceConflict[]));
   }
 
   return conflicts;
