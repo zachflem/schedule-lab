@@ -315,6 +315,17 @@ export type RecurrenceWeekday = z.infer<typeof RecurrenceWeekdayEnum>;
 
 export const RecurrenceUnitEnum = z.enum(['hours','days','weeks','months']);
 
+export const ProjectContactSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, 'Contact name is required'),
+  phone: z.string().max(15, 'Phone must be 15 characters or fewer').optional().nullable(),
+  email: z.string().email('Valid email required').optional().nullable().or(z.literal('')),
+  location: z.string().max(64, 'Location must be 64 characters or fewer').optional().nullable(),
+  role: CustomerContactRoleEnum.optional().nullable(),
+  sort_order: z.number().int().optional(),
+});
+export type ProjectContact = z.infer<typeof ProjectContactSchema>;
+
 export const ProjectSchema = z.object({
   id: z.string().optional(),
   customer_id: z.string().min(1, 'Customer is required'),
@@ -325,6 +336,7 @@ export const ProjectSchema = z.object({
   start_date: isoDate,
   end_date: isoDate,
   po_number: z.string().optional().nullable(),
+  contacts: z.array(ProjectContactSchema).optional().default([]),
 });
 export type Project = z.infer<typeof ProjectSchema>;
 

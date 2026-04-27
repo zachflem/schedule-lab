@@ -226,6 +226,21 @@ CREATE TABLE IF NOT EXISTS projects (
   updated_at                TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- PROJECT CONTACTS
+CREATE TABLE IF NOT EXISTS project_contacts (
+  id          TEXT    PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  project_id  TEXT    NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  name        TEXT    NOT NULL,
+  phone       TEXT    CHECK(phone IS NULL OR length(phone) <= 15),
+  email       TEXT,
+  location    TEXT    CHECK(location IS NULL OR length(location) <= 64),
+  role        TEXT    CHECK(role IS NULL OR role IN ('Project Manager','Site Manager','Site Contact','Billing Contact')),
+  sort_order  INTEGER NOT NULL DEFAULT 0,
+  created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_project_contacts_project_id ON project_contacts(project_id);
+
 -- PROJECT JOB TEMPLATES (Recurring job streams within a project)
 CREATE TABLE IF NOT EXISTS project_job_templates (
   id                        TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),

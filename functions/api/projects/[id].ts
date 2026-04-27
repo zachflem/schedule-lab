@@ -1,5 +1,26 @@
-import { getDb, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../../lib/db';
-import { ProjectSchema } from '../../../src/shared/validation/schemas';
+import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now } from '../../lib/db';
+import { ProjectSchema, type ProjectContact } from '../../../src/shared/validation/schemas';
+
+async function saveContacts(db: any, projectId: string, contacts: ProjectContact[]) {
+  const statements: any[] = [
+    db.prepare('DELETE FROM project_contacts WHERE project_id = ?').bind(projectId),
+  ];
+  for (let i = 0; i < contacts.length; i++) {
+    const c = contacts[i];
+    statements.push(
+      db.prepare(`
+        INSERT INTO project_contacts (id, project_id, name, phone, email, location, role, sort_order, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        generateId(), projectId,
+        c.name,
+        c.phone || null, c.email || null, c.location || null, c.role || null,
+        i, now(), now()
+      )
+    );
+  }
+  await db.batch(statements);
+}
 
 export const onRequest = methodRouter({
   async GET(context) {
@@ -15,13 +36,17 @@ export const onRequest = methodRouter({
 
     if (!project) return errorResponse('Project not found', 404);
 
-    // Fetch related jobs
     const { results: jobs } = await db.prepare(`
       SELECT id, status_id, location, asset_requirement, created_at
       FROM jobs WHERE project_id = ? ORDER BY created_at
     `).bind(id).all();
 
-    return jsonResponse({ ...project, jobs });
+    const { results: contacts } = await db.prepare(`
+      SELECT id, name, phone, email, location, role, sort_order
+      FROM project_contacts WHERE project_id = ? ORDER BY sort_order
+    `).bind(id).all();
+
+    return jsonResponse({ ...project, jobs, contacts });
   },
 
   async PUT(context) {
@@ -38,13 +63,13 @@ export const onRequest = methodRouter({
     const timestamp = now();
 
     await db.prepare(`
-      UPDATE projects SET 
-        customer_id = ?, 
-        name = ?, 
+      UPDATE projects SET
+        customer_id = ?,
+        name = ?,
         description = ?,
-        status = ?, 
-        start_date = ?, 
-        end_date = ?, 
+        status = ?,
+        start_date = ?,
+        end_date = ?,
         po_number = ?,
         updated_at = ?
       WHERE id = ?
@@ -53,6 +78,8 @@ export const onRequest = methodRouter({
       p.start_date, p.end_date, p.po_number ?? null,
       timestamp, id
     ).run();
+
+    await saveContacts(db, id, p.contacts ?? []);
 
     return jsonResponse({ id });
   },

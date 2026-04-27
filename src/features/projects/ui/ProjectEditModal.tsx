@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/shared/lib/api';
-import type { Project, Customer, ProjectJobTemplate } from '@/shared/validation/schemas';
-import { ProjectStatusEnum } from '@/shared/validation/schemas';
+import type { Project, Customer, ProjectJobTemplate, ProjectContact, CustomerContact } from '@/shared/validation/schemas';
+import { ProjectStatusEnum, CustomerContactRoleEnum } from '@/shared/validation/schemas';
 import { ProjectTemplateModal } from './ProjectTemplateModal';
 
 interface ProjectModalProps {
@@ -13,6 +13,14 @@ interface ProjectModalProps {
   onCreate?: (data: Project) => Promise<{ success: boolean; id?: string; error?: string }>;
 }
 
+const emptyContact = (): ProjectContact => ({
+  name: '',
+  phone: '',
+  email: '',
+  location: '',
+  role: null,
+});
+
 export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, onUpdate, onCreate }: ProjectModalProps) {
   const isCreate = mode === 'create';
 
@@ -23,6 +31,7 @@ export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, 
     status: 'Active',
     start_date: new Date().toISOString().split('T')[0],
     end_date: new Date().toISOString().split('T')[0],
+    contacts: [],
   } : {
     customer_id: project.customer_id,
     name: project.name,
@@ -31,14 +40,18 @@ export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, 
     start_date: project.start_date,
     end_date: project.end_date,
     po_number: project.po_number,
+    contacts: project.contacts ?? [],
   });
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [templates, setTemplates] = useState<ProjectJobTemplate[]>([]);
+  const [customerContacts, setCustomerContacts] = useState<CustomerContact[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'settings' | 'streams'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'contacts' | 'streams'>('settings');
   const [editingTemplate, setEditingTemplate] = useState<Partial<ProjectJobTemplate> | null>(null);
+
+  const contacts = (formData.contacts ?? []) as ProjectContact[];
 
   const loadTemplates = async () => {
     if (!project?.id) return;
@@ -50,13 +63,54 @@ export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, 
     }
   };
 
+  const loadCustomerContacts = async (cid: string) => {
+    try {
+      const customer = await api.get<Customer>(`/customers/${cid}`);
+      setCustomerContacts(customer.contacts ?? []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     if (isCreate && !customerId) {
       api.get<Customer[]>('/customers').then(setCustomers).catch(console.error);
     } else if (!isCreate) {
       loadTemplates();
+      if (project?.customer_id) loadCustomerContacts(project.customer_id);
     }
   }, [isCreate, project?.id, customerId]);
+
+  // When customer is selected in create mode, load their contacts
+  useEffect(() => {
+    if (isCreate && formData.customer_id) {
+      loadCustomerContacts(formData.customer_id);
+    }
+  }, [isCreate, formData.customer_id]);
+
+  const addContact = () => {
+    setFormData(p => ({ ...p, contacts: [...contacts, emptyContact()] }));
+  };
+
+  const importContact = (c: CustomerContact) => {
+    const imported: ProjectContact = {
+      name: c.name,
+      phone: c.phone ?? '',
+      email: c.email ?? '',
+      location: c.location ?? '',
+      role: c.role ?? null,
+    };
+    setFormData(p => ({ ...p, contacts: [...contacts, imported] }));
+  };
+
+  const removeContact = (index: number) => {
+    setFormData(p => ({ ...p, contacts: contacts.filter((_, i) => i !== index) }));
+  };
+
+  const updateContact = (index: number, field: keyof ProjectContact, value: string) => {
+    const updated = contacts.map((c, i) => i === index ? { ...c, [field]: value } : c);
+    setFormData(p => ({ ...p, contacts: updated }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +135,10 @@ export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, 
     }
   };
 
-
+  // Contacts not already in the project (by name+email match)
+  const importableContacts = customerContacts.filter(cc =>
+    !contacts.some(pc => pc.name === cc.name && pc.email === cc.email)
+  );
 
   return (
     <div className="modal-overlay">
@@ -98,6 +155,12 @@ export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, 
                 onClick={() => setActiveTab('settings')}
               >
                 Settings
+              </button>
+              <button
+                className={`modal-tab${activeTab === 'contacts' ? ' active' : ''}`}
+                onClick={() => setActiveTab('contacts')}
+              >
+                Contacts {contacts.length > 0 && `(${contacts.length})`}
               </button>
               <button
                 id="tab-streams"
@@ -199,6 +262,17 @@ export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, 
                 />
               </div>
             </div>
+
+            {isCreate && (
+              <ContactsSection
+                contacts={contacts}
+                importableContacts={importableContacts}
+                onAdd={addContact}
+                onImport={importContact}
+                onRemove={removeContact}
+                onUpdate={updateContact}
+              />
+            )}
           </div>
 
           <div className="modal-footer flex justify-end gap-3 border-t pt-4 mt-2">
@@ -208,6 +282,27 @@ export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, 
             </button>
           </div>
         </form>
+        )}
+
+        {activeTab === 'contacts' && (
+          <form onSubmit={handleSubmit}>
+            <div className="modal-body py-4">
+              <ContactsSection
+                contacts={contacts}
+                importableContacts={importableContacts}
+                onAdd={addContact}
+                onImport={importContact}
+                onRemove={removeContact}
+                onUpdate={updateContact}
+              />
+            </div>
+            <div className="modal-footer flex justify-end gap-3 border-t pt-4 mt-2">
+              <button type="button" className="btn btn--secondary" onClick={onClose} disabled={isSubmitting}>Cancel</button>
+              <button type="submit" className="btn btn--primary" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : 'Save Contacts'}
+              </button>
+            </div>
+          </form>
         )}
 
         {activeTab === 'streams' && (
@@ -254,13 +349,10 @@ export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, 
             onClose={() => setEditingTemplate(null)}
             onSave={async (data) => {
               try {
-                // Determine if creating or updating
                 if (editingTemplate.id) {
-                  // Not fully implemented yet, but placeholders
                   await api.put(`/projects/${project.id}/templates/${editingTemplate.id}`, data);
                 } else {
                   await api.post(`/projects/${project.id}/templates`, data);
-                  // Generate right away if the user desires, or just generate behind the scenes
                   await api.post(`/projects/${project.id}/generate-jobs`, {});
                 }
                 loadTemplates();
@@ -272,6 +364,131 @@ export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, 
           />
         )}
       </div>
+    </div>
+  );
+}
+
+interface ContactsSectionProps {
+  contacts: ProjectContact[];
+  importableContacts: CustomerContact[];
+  onAdd: () => void;
+  onImport: (c: CustomerContact) => void;
+  onRemove: (index: number) => void;
+  onUpdate: (index: number, field: keyof ProjectContact, value: string) => void;
+}
+
+function ContactsSection({ contacts, importableContacts, onAdd, onImport, onRemove, onUpdate }: ContactsSectionProps) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>Contacts</h3>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+          {importableContacts.length > 0 && (
+            <select
+              className="form-input"
+              style={{ fontSize: 'var(--text-sm)', padding: '4px 8px', height: 'auto' }}
+              value=""
+              onChange={e => {
+                const idx = parseInt(e.target.value, 10);
+                if (!isNaN(idx)) onImport(importableContacts[idx]);
+              }}
+            >
+              <option value="">+ From customer...</option>
+              {importableContacts.map((c, i) => (
+                <option key={i} value={i}>{c.name}{c.role ? ` (${c.role})` : ''}</option>
+              ))}
+            </select>
+          )}
+          <button type="button" className="btn btn--secondary btn--sm" onClick={onAdd}>
+            + Add Contact
+          </button>
+        </div>
+      </div>
+
+      {contacts.length === 0 ? (
+        <p style={{ color: 'var(--color-gray-400)', fontSize: 'var(--text-sm)', textAlign: 'center', padding: 'var(--space-6) 0' }}>
+          No contacts yet. Add one manually or copy from the customer's contacts.
+        </p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          {contacts.map((contact, index) => (
+            <div
+              key={index}
+              style={{
+                border: '1px solid var(--color-gray-200)',
+                borderRadius: 'var(--radius-md)',
+                padding: 'var(--space-4)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+                <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)' }}>
+                  Contact {index + 1}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onRemove(index)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-danger-600)', fontSize: 'var(--text-sm)', padding: '2px 6px' }}
+                >
+                  Remove
+                </button>
+              </div>
+
+              <div className="form-grid" style={{ gap: 'var(--space-3)' }}>
+                <div className="form-group">
+                  <label className="form-label">Name *</label>
+                  <input
+                    required
+                    className="form-input"
+                    value={contact.name}
+                    onChange={e => onUpdate(index, 'name', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Role</label>
+                  <select
+                    className="form-input"
+                    value={contact.role || ''}
+                    onChange={e => onUpdate(index, 'role', e.target.value)}
+                  >
+                    <option value="">— select role —</option>
+                    {CustomerContactRoleEnum.options.map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Phone</label>
+                  <input
+                    className="form-input"
+                    value={contact.phone || ''}
+                    maxLength={15}
+                    onChange={e => onUpdate(index, 'phone', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Email</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    value={contact.email || ''}
+                    onChange={e => onUpdate(index, 'email', e.target.value)}
+                  />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">Location</label>
+                  <input
+                    className="form-input"
+                    value={contact.location || ''}
+                    maxLength={64}
+                    placeholder="e.g. Head Office, Site B"
+                    onChange={e => onUpdate(index, 'location', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
