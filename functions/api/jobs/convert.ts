@@ -70,11 +70,10 @@ export const onRequest = methodRouter({
     if (!customer_id) {
       customer_id = generateId();
       await db.prepare(`
-        INSERT INTO customers (id, name, site_contact_name, site_contact_email, site_contact_phone, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO customers (id, name, created_at, updated_at)
+        VALUES (?, ?, ?, ?)
       `).bind(
         customer_id, enquiry.customer_name,
-        enquiry.site_contact_name, enquiry.contact_email, enquiry.contact_phone,
         now(), now()
       ).run();
     }
