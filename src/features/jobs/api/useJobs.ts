@@ -2,6 +2,16 @@ import { useState, useCallback } from 'react';
 import { api } from '@/shared/lib/api';
 import type { Job } from '@/shared/validation/schemas';
 
+export interface ResourceConflict {
+  conflict_job_id: string;
+  conflict_job_status: string;
+  conflict_start_time: string;
+  conflict_end_time: string;
+  resource_type: 'Asset' | 'Personnel';
+  resource_id: string;
+  resource_name: string;
+}
+
 export interface JobWithResources extends Job {
   customer_name: string;
   project_name?: string;
@@ -52,25 +62,25 @@ export function useJobs() {
 
   const updateJob = async (id: string, data: Partial<Job>) => {
     try {
-      await api.put(`/jobs/${id}`, data);
+      const result = await api.put<{ id: string; conflicts?: ResourceConflict[] }>(`/jobs/${id}`, data);
       await loadJobs({ include: 'resources' }); // Refresh all with resources
-      return { success: true };
+      return { success: true, conflicts: result.conflicts ?? [] };
     } catch (err: any) {
       setError(err.message || 'Failed to update job');
-      return { success: false, error: err.message };
+      return { success: false, error: err.message, conflicts: [] };
     }
   };
 
   const updateJobSchedule = async (id: string, startTime: string, endTime: string) => {
     try {
-      await api.put(`/jobs/${id}/schedule`, { start_time: startTime, end_time: endTime });
-      setJobs(prev => prev.map(j => 
+      const result = await api.put<{ conflicts?: ResourceConflict[] }>(`/jobs/${id}/schedule`, { start_time: startTime, end_time: endTime });
+      setJobs(prev => prev.map(j =>
         j.id === id ? { ...j, start_time: startTime, end_time: endTime, status_id: 'Job Scheduled' as any } : j
       ));
-      return { success: true };
+      return { success: true, conflicts: result.conflicts ?? [] };
     } catch (err: any) {
       setError(err.message || 'Failed to update schedule');
-      return { success: false, error: err.message };
+      return { success: false, error: err.message, conflicts: [] };
     }
   };
 

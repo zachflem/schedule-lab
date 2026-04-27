@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { api } from '@/shared/lib/api';
 import type { Asset, Personnel, AssetCompliance } from '@/shared/validation/schemas';
 import { JobStatusEnum } from '@/shared/validation/schemas';
-import type { JobWithResources } from '../api/useJobs';
+import type { JobWithResources, ResourceConflict } from '../api/useJobs';
 import { Spinner, ErrorMessage } from '@/shared/ui';
 import { useToast } from '@/shared/lib/toast';
 
@@ -57,7 +57,7 @@ function getPersonnelComplianceWarning(person: Personnel): ComplianceWarning | n
 interface JobEditModalProps {
   job: JobWithResources;
   onClose: () => void;
-  onSave: (id: string, data: any) => Promise<{ success: boolean; error?: string }>;
+  onSave: (id: string, data: any) => Promise<{ success: boolean; conflicts?: ResourceConflict[]; error?: string }>;
   onApplyToFuture?: (projectId: string, data: any) => Promise<{ success: boolean; updated?: number; error?: string }>;
 }
 
@@ -110,6 +110,7 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
   const [assetSearch, setAssetSearch] = useState('');
   const [personnelSearch, setPersonnelSearch] = useState('');
   const [complianceWarning, setComplianceWarning] = useState<ComplianceWarning | null>(null);
+  const [bookingConflicts, setBookingConflicts] = useState<ResourceConflict[] | null>(null);
 
   const isLocked = ['Job Scheduled', 'Allocated', 'Site Docket', 'Completed', 'Invoiced'].includes(job.status_id as string);
 
@@ -236,6 +237,10 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
       const prevStatus = job.status_id;
       const result = await onSave(job.id!, { ...formData, resources });
       if (result.success) {
+        if (result.conflicts && result.conflicts.length > 0) {
+          setBookingConflicts(result.conflicts);
+          return; // Stay open to show the conflict warning; save already succeeded
+        }
         if (formData.status_id === 'Job Scheduled' && prevStatus !== 'Job Scheduled') {
           showToast('Job scheduled — team notified by email');
         }
@@ -593,6 +598,58 @@ export function JobEditModal({ job, onClose, onSave, onApplyToFuture }: JobEditM
                     Assign Anyway
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Conflict Warning Modal */}
+      {bookingConflicts && bookingConflicts.length > 0 && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200 }}>
+          <div className="card" style={{ width: '480px', maxWidth: '95vw' }}>
+            <div className="card__header" style={{ background: 'var(--color-warning-50)', borderBottom: '1px solid var(--color-warning-200)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-warning-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, flexShrink: 0 }}>
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <h3 style={{ color: 'var(--color-warning-800)' }}>Double Booking Warning</h3>
+              </div>
+            </div>
+            <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-700)' }}>
+                The job was saved, but the following resources are already scheduled during this time window:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                {bookingConflicts.map((c, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-2) var(--space-3)', background: 'var(--color-warning-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-warning-200)' }}>
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{c.resource_name}</span>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)', marginLeft: 'var(--space-2)' }}>{c.resource_type}</span>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-600)' }}>
+                        {new Date(c.conflict_start_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        {' – '}
+                        {new Date(c.conflict_end_time).toLocaleString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warning-700)', fontWeight: 600 }}>{c.conflict_job_status}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)' }}>
+                The booking has been saved. Review the schedule to resolve conflicts if needed.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={() => { setBookingConflicts(null); onClose(); }}
+                >
+                  Dismiss
+                </button>
               </div>
             </div>
           </div>

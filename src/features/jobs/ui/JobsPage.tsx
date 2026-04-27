@@ -14,11 +14,13 @@ import { api } from '@/shared/lib/api';
 import { useProjects } from '@/features/projects/api/useProjects';
 import { useState, useMemo } from 'react';
 import { useAuth } from '@/shared/lib/auth';
+import { useToast } from '@/shared/lib/toast';
 
 export function JobsPage() {
   const { user } = useAuth();
   const isAdminOrDispatcher = user?.role === 'admin' || user?.role === 'dispatcher';
   const { jobs, loading, error, loadJobs, createJob, updateJob, updateJobSchedule, removeJobSchedule, applyToFutureJobs } = useJobs();
+  const { showToast } = useToast();
   const { createTemplate } = useProjects();
   const location = useLocation();
   const isScheduleView = location.pathname === '/schedule';
@@ -168,8 +170,12 @@ export function JobsPage() {
               <CalendarView
                 jobs={filteredJobs}
                 resources={filteredResources}
-                onScheduleUpdate={isAdminOrDispatcher ? (jobId, start, end) => {
-                  updateJobSchedule(jobId, start, end);
+                onScheduleUpdate={isAdminOrDispatcher ? async (jobId, start, end) => {
+                  const result = await updateJobSchedule(jobId, start, end);
+                  if (result.conflicts && result.conflicts.length > 0) {
+                    const names = [...new Set(result.conflicts.map(c => c.resource_name))].join(', ');
+                    showToast(`Double booking: ${names} — check schedule`, 'warning');
+                  }
                 } : undefined}
               />
             </div>

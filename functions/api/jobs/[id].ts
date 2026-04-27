@@ -1,6 +1,7 @@
 import { getDb, generateId, jsonResponse, errorResponse, parseBody, methodRouter, now, withRole, getUser } from '../../lib/db';
 import { JobSchema } from '../../../src/shared/validation/schemas';
 import { sendJobScheduledEmail } from '../../lib/emails';
+import { checkResourceConflicts } from '../../lib/conflicts';
 
 export const onRequest = methodRouter({
   GET: withRole(['admin', 'dispatcher', 'operator'], async (context, user) => {
@@ -52,6 +53,15 @@ export const onRequest = methodRouter({
 
     const existing = await db.prepare('SELECT id FROM jobs WHERE id = ?').bind(id).first();
     if (!existing) return errorResponse('Job not found', 404);
+
+    // Fetch existing schedule and resources before the batch mutates them
+    const existingSchedule = await db.prepare(
+      'SELECT start_time, end_time FROM job_schedules WHERE job_id = ?'
+    ).bind(id).first<{ start_time: string; end_time: string }>();
+
+    const { results: existingResources } = await db.prepare(
+      'SELECT resource_type, asset_id, personnel_id FROM job_resources WHERE job_id = ?'
+    ).bind(id).all() as { results: { resource_type: string; asset_id: string | null; personnel_id: string | null }[] };
 
     const body = await context.request.json() as any;
     const result = JobSchema.partial().safeParse(body);
@@ -151,6 +161,21 @@ export const onRequest = methodRouter({
 
     await db.batch(batch);
 
+    // Check for double-booking conflicts
+    const scheduleStart = data.start_time ?? existingSchedule?.start_time;
+    const scheduleEnd   = data.end_time   ?? existingSchedule?.end_time;
+
+    let conflicts: any[] = [];
+    if (scheduleStart && scheduleEnd) {
+      // Use resources from body if provided, otherwise fall back to what was in DB before the update
+      const resourceSource = (body.resources && Array.isArray(body.resources))
+        ? body.resources
+        : existingResources;
+      const assetIds     = resourceSource.filter((r: any) => r.asset_id).map((r: any) => r.asset_id as string);
+      const personnelIds = resourceSource.filter((r: any) => r.personnel_id).map((r: any) => r.personnel_id as string);
+      conflicts = await checkResourceConflicts(db, id, assetIds, personnelIds, scheduleStart, scheduleEnd);
+    }
+
     // Send Job Scheduled notification if status just transitioned to 'Job Scheduled'
     if (data.status_id === 'Job Scheduled') {
       const previousJob = await db.prepare('SELECT status_id FROM jobs WHERE id = ?').bind(id).first<{ status_id: string }>();
@@ -170,7 +195,7 @@ export const onRequest = methodRouter({
       }
     }
 
-    return jsonResponse({ id });
+    return jsonResponse({ id, conflicts });
   }),
 
   DELETE: withRole(['admin', 'dispatcher'], async (context) => {

@@ -1,4 +1,5 @@
 import { getDb, jsonResponse, errorResponse, methodRouter, now } from '../../../lib/db';
+import { checkResourceConflicts } from '../../../lib/conflicts';
 import { z } from 'zod';
 
 const ScheduleRequestSchema = z.object({
@@ -26,7 +27,15 @@ export const onRequest = methodRouter({
     const job = await db.prepare('SELECT id FROM jobs WHERE id = ?').bind(id).first();
     if (!job) return errorResponse('Job not found', 404);
 
-    // 2. Update or Insert Schedule
+    // 2. Fetch current resources before updating schedule
+    const { results: currentResources } = await db.prepare(
+      'SELECT resource_type, asset_id, personnel_id FROM job_resources WHERE job_id = ?'
+    ).bind(id).all() as { results: { resource_type: string; asset_id: string | null; personnel_id: string | null }[] };
+
+    const assetIds = currentResources.filter(r => r.asset_id).map(r => r.asset_id as string);
+    const personnelIds = currentResources.filter(r => r.personnel_id).map(r => r.personnel_id as string);
+
+    // 3. Update or Insert Schedule
     await db.batch([
       // Upsert into job_schedules (Delete existing for this job, then insert)
       db.prepare('DELETE FROM job_schedules WHERE job_id = ?').bind(id),
@@ -34,13 +43,16 @@ export const onRequest = methodRouter({
         INSERT INTO job_schedules (id, job_id, start_time, end_time, created_at)
         VALUES (?, ?, ?, ?, ?)
       `).bind(crypto.randomUUID(), id, start_time, end_time, timestamp),
-      
+
       // Update Job Status
       db.prepare('UPDATE jobs SET status_id = ?, updated_at = ? WHERE id = ?')
         .bind('Job Scheduled', timestamp, id)
     ]);
 
-    return jsonResponse({ success: true, start_time, end_time });
+    // 4. Check for double-booking conflicts
+    const conflicts = await checkResourceConflicts(db, id, assetIds, personnelIds, start_time, end_time);
+
+    return jsonResponse({ success: true, start_time, end_time, conflicts });
   },
 
   async DELETE(context) {
