@@ -4,6 +4,7 @@ import { api } from '@/shared/lib/api';
 export interface DashboardData {
   jobStatusCounts: { status_id: string; count: number }[];
   enquiryStatusCounts: { status: string; count: number }[];
+  docketStatusCounts: { docket_status: string; count: number }[];
   newEnquiries: {
     id: string;
     customer_name: string;

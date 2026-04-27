@@ -21,16 +21,6 @@ const STATUS_COLORS: Record<string, string> = {
   'Cancelled':     '#ef4444',
 };
 
-const PIPELINE_STAGES = [
-  { key: 'Enquiry',       label: 'Enquiry' },
-  { key: 'Quote',         label: 'Quote' },
-  { key: 'Quote Sent',    label: 'Sent' },
-  { key: 'Quote Accepted',label: 'Accepted' },
-  { key: 'Job Booked',    label: 'Booked' },
-  { key: 'Job Scheduled', label: 'Scheduled' },
-  { key: 'Allocated',     label: 'Allocated' },
-  { key: 'Site Docket',   label: 'Docket' },
-];
 
 function formatDate(iso: string | null): { day: string; month: string } {
   if (!iso) return { day: '—', month: '—' };
@@ -55,15 +45,16 @@ function initials(name: string): string {
 }
 
 function StatCard({
-  label, value, sub, variant, icon,
+  label, value, sub, variant, icon, href,
 }: {
   label: string;
   value: number | string;
   sub?: string;
   variant: 'primary' | 'success' | 'warning' | 'danger' | 'purple';
   icon: React.ReactNode;
+  href?: string;
 }) {
-  return (
+  const card = (
     <div className={`stat-card stat-card--${variant}`}>
       <div className="stat-icon">{icon}</div>
       <div className="stat-label">{label}</div>
@@ -71,6 +62,7 @@ function StatCard({
       {sub && <div className="stat-sub">{sub}</div>}
     </div>
   );
+  return href ? <Link to={href} className="stat-card-link">{card}</Link> : card;
 }
 
 export function DashboardPage() {
@@ -99,27 +91,20 @@ export function DashboardPage() {
   // --- Admin/Dispatcher View ---
   const jobCounts = data?.jobStatusCounts ?? [];
   const enqCounts = data?.enquiryStatusCounts ?? [];
+  const docketCounts = data?.docketStatusCounts ?? [];
 
-  const totalActive = jobCounts
-    .filter(j => ['Job Booked', 'Job Scheduled', 'Allocated', 'Site Docket'].includes(j.status_id))
+  const newEnqCount = Number(enqCounts.find(e => e.status === 'New')?.count ?? 0);
+  const totalActiveEnq = enqCounts.reduce((s, e) => s + Number(e.count), 0);
+
+  const bookedCount = Number(jobCounts.find(j => j.status_id === 'Job Booked')?.count ?? 0);
+  const totalUncompleted = jobCounts
+    .filter(j => !['Completed', 'Invoiced', 'Cancelled'].includes(j.status_id))
     .reduce((s, j) => s + Number(j.count), 0);
 
-  const totalPipeline = jobCounts
-    .filter(j => ['Enquiry', 'Quote', 'Quote Sent', 'Quote Accepted'].includes(j.status_id))
-    .reduce((s, j) => s + Number(j.count), 0);
+  const upcomingCount = (data?.upcomingJobs ?? []).length;
 
-  const newEnqCount = enqCounts.find(e => e.status === 'New')?.count ?? 0;
-
-  const todayJobs = (data?.upcomingJobs ?? []).filter(j => {
-    if (!j.start_time) return false;
-    const today = new Date().toISOString().slice(0, 10);
-    return j.start_time.slice(0, 10) === today;
-  }).length;
-
-  const pipelineMax = Math.max(
-    1,
-    ...PIPELINE_STAGES.map(s => Number(jobCounts.find(j => j.status_id === s.key)?.count ?? 0))
-  );
+  const pendingDockets = Number(docketCounts.find(d => d.docket_status === 'completed')?.count ?? 0);
+  const incompleteDockets = Number(docketCounts.find(d => d.docket_status === 'incomplete')?.count ?? 0);
 
   if (loading && !data) return <Spinner />;
 
@@ -137,32 +122,11 @@ export function DashboardPage() {
       {/* ── Stat Cards ───────────────────────────────── */}
       <div className="stats-grid">
         <StatCard
-          label="Active Jobs"
-          value={totalActive}
-          sub="Booked → On Site"
-          variant="primary"
-          icon={
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="In Pipeline"
-          value={totalPipeline}
-          sub="Enquiry → Quote Accepted"
-          variant="purple"
-          icon={
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="New Enquiries"
+          label="Enquiries"
           value={newEnqCount}
-          sub="Awaiting action"
+          sub={`${totalActiveEnq} active enquiries`}
           variant="warning"
+          href="/enquiries"
           icon={
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -170,46 +134,41 @@ export function DashboardPage() {
           }
         />
         <StatCard
-          label="Today's Jobs"
-          value={todayJobs}
-          sub="Scheduled for today"
-          variant="success"
+          label="Jobs"
+          value={bookedCount}
+          sub={`${totalUncompleted} total uncompleted`}
+          variant="primary"
+          href="/jobs"
           icon={
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+              <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
             </svg>
           }
         />
-      </div>
-
-      {/* ── Pipeline Overview ─────────────────────────── */}
-      <div className="dashboard-panel dashboard-panel--full" style={{ marginBottom: 'var(--space-6)' }}>
-        <div className="panel-header">
-          <div className="panel-title">
-            <div className="panel-title-dot" style={{ background: '#8b5cf6' }} />
-            Job Pipeline Overview
-          </div>
-          <Link to="/jobs" className="panel-action">View all jobs →</Link>
-        </div>
-        <div className="panel-body">
-          <div className="pipeline-grid">
-            {PIPELINE_STAGES.map(stage => {
-              const count = Number(jobCounts.find(j => j.status_id === stage.key)?.count ?? 0);
-              const pct = Math.round((count / pipelineMax) * 100);
-              return (
-                <div key={stage.key} className="pipeline-stage">
-                  <div className={`pipeline-count ${count > 0 ? 'pipeline-count--highlight' : ''}`}>
-                    {count}
-                  </div>
-                  <div className="pipeline-bar-wrap">
-                    <div className="pipeline-bar" style={{ width: `${pct}%`, background: STATUS_COLORS[stage.key] }} />
-                  </div>
-                  <div className="pipeline-label">{stage.label}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <StatCard
+          label="Schedule"
+          value={bookedCount}
+          sub={`${upcomingCount} in next 7 days`}
+          variant="purple"
+          href="/schedule"
+          icon={
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="Dockets"
+          value={pendingDockets}
+          sub={incompleteDockets > 0 ? `${incompleteDockets} sent back for revision` : 'All clear'}
+          variant="danger"
+          href="/dockets"
+          icon={
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
+            </svg>
+          }
+        />
       </div>
 
       {/* ── Body Grid ────────────────────────────────── */}

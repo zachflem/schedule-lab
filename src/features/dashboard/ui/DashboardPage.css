@@ -58,6 +58,12 @@
   }
 }
 
+.stat-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
 .stat-card {
   background: white;
   border-radius: var(--radius-xl);

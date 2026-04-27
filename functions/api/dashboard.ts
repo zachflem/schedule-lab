@@ -140,6 +140,13 @@ export const onRequest = async (context: BaseContext): Promise<Response> => {
     LIMIT 10
   `).all();
 
+  // Docket counts by status
+  const { results: docketStatusCounts } = await db.prepare(`
+    SELECT docket_status, COUNT(*) as count
+    FROM site_dockets
+    GROUP BY docket_status
+  `).all() as { results: { docket_status: string; count: number }[] };
+
   // All open tasks (admin/dispatcher see everything)
   const { results: openTasks } = await db.prepare(`
     SELECT
@@ -166,6 +173,7 @@ export const onRequest = async (context: BaseContext): Promise<Response> => {
   return jsonResponse({
     jobStatusCounts,
     enquiryStatusCounts,
+    docketStatusCounts,
     newEnquiries,
     upcomingJobs,
     activeJobs,
