@@ -7,9 +7,11 @@ import { ScheduleMobileView } from './ScheduleMobileView';
 import { JobTable } from './JobTable';
 import { JobEditModal } from './JobEditModal';
 import { NewJobModal } from './NewJobModal';
+import { NewStreamModal } from './NewStreamModal';
 import { Spinner, FilterModal, ErrorMessage } from '@/shared/ui';
 import { JOB_ONLY_STATUSES, type JobStatus } from '@/shared/validation/schemas';
 import { api } from '@/shared/lib/api';
+import { useProjects } from '@/features/projects/api/useProjects';
 import { useState, useMemo } from 'react';
 import { useAuth } from '@/shared/lib/auth';
 
@@ -17,6 +19,7 @@ export function JobsPage() {
   const { user } = useAuth();
   const isAdminOrDispatcher = user?.role === 'admin' || user?.role === 'dispatcher';
   const { jobs, loading, error, loadJobs, createJob, updateJob, updateJobSchedule, removeJobSchedule, applyToFutureJobs } = useJobs();
+  const { createTemplate } = useProjects();
   const location = useLocation();
   const isScheduleView = location.pathname === '/schedule';
   
@@ -25,6 +28,7 @@ export function JobsPage() {
   const [resources, setResources] = useState<{ assets: any[], personnel: any[] }>({ assets: [], personnel: [] });
   const [selectedAssetType, setSelectedAssetType] = useState<string>('All');
   const [showNewJobModal, setShowNewJobModal] = useState(false);
+  const [showNewStreamModal, setShowNewStreamModal] = useState(false);
   const [bucketCollapsed, setBucketCollapsed] = useState(false);
 
   useEffect(() => {
@@ -92,9 +96,14 @@ export function JobsPage() {
           </p>
         </div>
         {!isScheduleView && isAdminOrDispatcher && (
-          <button className="btn btn--primary" onClick={() => setShowNewJobModal(true)}>
-            + New Job
-          </button>
+          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+            <button className="btn btn--secondary" onClick={() => setShowNewStreamModal(true)}>
+              + New Stream
+            </button>
+            <button className="btn btn--primary" onClick={() => setShowNewJobModal(true)}>
+              + New Job
+            </button>
+          </div>
         )}
       </div>
 
@@ -176,6 +185,15 @@ export function JobsPage() {
           jobs={filteredJobs} 
           loading={loading} 
           onEdit={(job) => setEditingJob(job)}
+        />
+      )}
+
+      {showNewStreamModal && (
+        <NewStreamModal
+          onClose={() => setShowNewStreamModal(false)}
+          onCreate={async (projectId, data) => {
+            return await createTemplate(projectId, data);
+          }}
         />
       )}
 

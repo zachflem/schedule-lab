@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/shared/lib/api';
 import type { Customer } from '@/shared/validation/schemas';
+import type { ProjectWithMetadata } from '@/features/projects/api/useProjects';
 import { CustomerEditModal } from '@/features/customers/ui/CustomerEditModal';
 import { ErrorMessage } from '@/shared/ui';
 
@@ -12,12 +13,15 @@ interface NewJobModalProps {
 export function NewJobModal({ onClose, onCreate }: NewJobModalProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [projects, setProjects] = useState<ProjectWithMetadata[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddCustomer, setShowAddCustomer] = useState(false);
 
   const [formData, setFormData] = useState({
     customer_id: '',
+    project_id: '',
     status_id: 'Job Booked',
     job_type: '',
     po_number: '',
@@ -45,6 +49,19 @@ export function NewJobModal({ onClose, onCreate }: NewJobModalProps) {
     refreshCustomers();
   }, []);
 
+  useEffect(() => {
+    if (!formData.customer_id) {
+      setProjects([]);
+      setFormData(prev => ({ ...prev, project_id: '' }));
+      return;
+    }
+    setLoadingProjects(true);
+    api.get<ProjectWithMetadata[]>('/projects', { customer_id: formData.customer_id, status: 'Active' })
+      .then(setProjects)
+      .catch(console.error)
+      .finally(() => setLoadingProjects(false));
+  }, [formData.customer_id]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -58,7 +75,11 @@ export function NewJobModal({ onClose, onCreate }: NewJobModalProps) {
     }
     setIsSubmitting(true);
     setError(null);
-    const result = await onCreate(formData);
+    const payload = {
+      ...formData,
+      project_id: formData.project_id || undefined,
+    };
+    const result = await onCreate(payload);
     if (result.success) {
       onClose();
     } else {
@@ -113,6 +134,23 @@ export function NewJobModal({ onClose, onCreate }: NewJobModalProps) {
                   ))}
                 </select>
               </div>
+
+              {formData.customer_id && !loadingProjects && projects.length > 0 && (
+                <div className="form-group" style={spanFull}>
+                  <label className="form-label">Project</label>
+                  <select
+                    name="project_id"
+                    value={formData.project_id}
+                    onChange={handleChange}
+                    className="form-input"
+                  >
+                    <option value="">No project</option>
+                    {projects.map(p => (
+                      <option key={p.id} value={p.id!}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="form-group">
                 <label className="form-label">Job Type</label>
