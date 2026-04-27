@@ -7,15 +7,17 @@ import { ProjectTemplateModal } from './ProjectTemplateModal';
 interface ProjectModalProps {
   project?: any;
   mode?: 'create' | 'edit';
+  customerId?: string;
   onClose: () => void;
   onUpdate?: (id: string, data: Partial<Project>) => Promise<{ success: boolean; error?: string }>;
   onCreate?: (data: Project) => Promise<{ success: boolean; id?: string; error?: string }>;
 }
 
-export function ProjectEditModal({ project, mode = 'edit', onClose, onUpdate, onCreate }: ProjectModalProps) {
+export function ProjectEditModal({ project, mode = 'edit', customerId, onClose, onUpdate, onCreate }: ProjectModalProps) {
   const isCreate = mode === 'create';
-  
+
   const [formData, setFormData] = useState<Partial<Project>>(isCreate ? {
+    customer_id: customerId,
     name: '',
     description: '',
     status: 'Active',
@@ -49,12 +51,12 @@ export function ProjectEditModal({ project, mode = 'edit', onClose, onUpdate, on
   };
 
   useEffect(() => {
-    if (isCreate) {
+    if (isCreate && !customerId) {
       api.get<Customer[]>('/customers').then(setCustomers).catch(console.error);
-    } else {
+    } else if (!isCreate) {
       loadTemplates();
     }
-  }, [isCreate, project?.id]);
+  }, [isCreate, project?.id, customerId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,7 +119,7 @@ export function ProjectEditModal({ project, mode = 'edit', onClose, onUpdate, on
               </div>
             )}
 
-            {isCreate && (
+            {isCreate && !customerId && (
               <div className="form-group">
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Customer</label>
                 <select

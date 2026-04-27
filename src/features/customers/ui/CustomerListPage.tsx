@@ -3,6 +3,7 @@ import { api } from '@/shared/lib/api';
 import type { Customer } from '@/shared/validation/schemas';
 import { Spinner } from '@/shared/ui';
 import { CustomerEditModal } from './CustomerEditModal';
+import { CustomerProjectsModal } from '../../projects/ui/CustomerProjectsModal';
 
 function ContactCell({ customer }: { customer: Customer }) {
   const contacts = customer.contacts ?? [];
@@ -38,6 +39,7 @@ export function CustomerListPage() {
   const [error, setError] = useState<string | null>(null);
   // null = closed, 'new' = create, string UUID = edit
   const [editingId, setEditingId] = useState<string | 'new' | null>(null);
+  const [projectsCustomer, setProjectsCustomer] = useState<Customer | null>(null);
 
   const fetchCustomers = useCallback(async () => {
     try {
@@ -100,7 +102,10 @@ export function CustomerListPage() {
                   </div>
                 </td>
                 <td style={{ padding: 'var(--space-3)', textAlign: 'right' }}>
-                  <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(customer.id!)}>Edit</button>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+                    <button className="btn btn--secondary btn--sm" onClick={() => setProjectsCustomer(customer)}>Projects</button>
+                    <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(customer.id!)}>Edit</button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -132,7 +137,10 @@ export function CustomerListPage() {
                     </div>
                   )}
                 </div>
-                <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(customer.id!)}>Edit</button>
+                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                  <button className="btn btn--secondary btn--sm" onClick={() => setProjectsCustomer(customer)}>Projects</button>
+                  <button className="btn btn--secondary btn--sm" onClick={() => setEditingId(customer.id!)}>Edit</button>
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                 <span title="Enquiries" style={{ padding: '2px 8px', borderRadius: '4px', background: 'var(--color-danger-50)', color: 'var(--color-danger-700)', fontSize: 'var(--text-xs)', fontWeight: 700, border: '1px solid var(--color-danger-100)' }}>E: {customer.enquiry_jobs || 0}</span>
@@ -149,6 +157,13 @@ export function CustomerListPage() {
           customerId={editingId === 'new' ? null : editingId}
           onClose={() => setEditingId(null)}
           onSaved={handleSaved}
+        />
+      )}
+
+      {projectsCustomer && (
+        <CustomerProjectsModal
+          customer={projectsCustomer}
+          onClose={() => setProjectsCustomer(null)}
         />
       )}
     </div>
