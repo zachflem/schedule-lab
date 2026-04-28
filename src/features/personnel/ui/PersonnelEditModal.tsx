@@ -12,6 +12,11 @@ type ArchivedPersonInfo = {
   archived_at: string;
 };
 
+type DuplicateContactInfo = {
+  emailConflict: { id: string; name: string; email: string } | null;
+  phoneConflict: { id: string; name: string; phone: string } | null;
+};
+
 interface PersonnelEditModalProps {
   personnelId: string | null; // null = new person
   onClose: () => void;
@@ -27,6 +32,7 @@ export function PersonnelEditModal({ personnelId, onClose, onSaved }: PersonnelE
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [archivedUser, setArchivedUser] = useState<ArchivedPersonInfo | null>(null);
+  const [duplicateContact, setDuplicateContact] = useState<DuplicateContactInfo | null>(null);
   const [pendingInviteId, setPendingInviteId] = useState<string | null>(null);
   const [allQualifications, setAllQualifications] = useState<Qualification[]>([]);
   const [formData, setFormData] = useState<Partial<Personnel>>({
@@ -69,7 +75,7 @@ export function PersonnelEditModal({ personnelId, onClose, onSaved }: PersonnelE
     await doSave();
   };
 
-  const doSave = async () => {
+  const doSave = async (forceDuplicate = false) => {
     setSaving(true);
     setError(null);
     try {
@@ -86,10 +92,19 @@ export function PersonnelEditModal({ personnelId, onClose, onSaved }: PersonnelE
 
       let result: { id: string };
       try {
-        result = await api.post<{ id: string }>('/personnel', validated);
+        const endpoint = forceDuplicate ? '/personnel?force_duplicate=true' : '/personnel';
+        result = await api.post<{ id: string }>(endpoint, validated);
       } catch (err) {
         if (err instanceof ApiRequestError && err.status === 409 && (err.body as any)?.code === 'ARCHIVED_USER') {
           setArchivedUser((err.body as any).person);
+          setSaving(false);
+          return;
+        }
+        if (err instanceof ApiRequestError && err.status === 409 && (err.body as any)?.code === 'DUPLICATE_CONTACT') {
+          setDuplicateContact({
+            emailConflict: (err.body as any).emailConflict ?? null,
+            phoneConflict: (err.body as any).phoneConflict ?? null,
+          });
           setSaving(false);
           return;
         }
@@ -129,6 +144,11 @@ export function PersonnelEditModal({ personnelId, onClose, onSaved }: PersonnelE
       setError(err instanceof Error ? err.message : 'Failed to reactivate personnel');
       setSaving(false);
     }
+  };
+
+  const handleConfirmDuplicate = async () => {
+    setDuplicateContact(null);
+    await doSave(true);
   };
 
   const handleArchive = async () => {
@@ -444,6 +464,45 @@ export function PersonnelEditModal({ personnelId, onClose, onSaved }: PersonnelE
                   disabled={saving}
                 >
                   {saving ? 'Archiving...' : 'Archive'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Duplicate email / phone confirmation */}
+        {duplicateContact && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2100 }}>
+            <div className="card" style={{ padding: 'var(--space-6)', maxWidth: '460px', width: '100%', margin: 'var(--space-4)' }}>
+              <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>Duplicate contact details</h2>
+              <p style={{ color: 'var(--color-gray-600)', marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)' }}>
+                The following details are already used by an active person in the system:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginBottom: 'var(--space-6)' }}>
+                {duplicateContact.emailConflict && (
+                  <div style={{ background: 'var(--color-warning-50)', border: '1px solid var(--color-warning-200)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3)', fontSize: 'var(--text-sm)' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--color-warning-700)', marginBottom: 'var(--space-1)' }}>Email address already in use</div>
+                    <div style={{ color: 'var(--color-gray-700)' }}>{duplicateContact.emailConflict.name}</div>
+                    <div style={{ color: 'var(--color-gray-500)' }}>{duplicateContact.emailConflict.email}</div>
+                  </div>
+                )}
+                {duplicateContact.phoneConflict && (
+                  <div style={{ background: 'var(--color-warning-50)', border: '1px solid var(--color-warning-200)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3)', fontSize: 'var(--text-sm)' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--color-warning-700)', marginBottom: 'var(--space-1)' }}>Phone number already in use</div>
+                    <div style={{ color: 'var(--color-gray-700)' }}>{duplicateContact.phoneConflict.name}</div>
+                    <div style={{ color: 'var(--color-gray-500)' }}>{duplicateContact.phoneConflict.phone}</div>
+                  </div>
+                )}
+              </div>
+              <p style={{ color: 'var(--color-gray-600)', marginBottom: 'var(--space-6)', fontSize: 'var(--text-sm)' }}>
+                Please confirm these details are correct before continuing, or go back to update them.
+              </p>
+              <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn--secondary" onClick={() => setDuplicateContact(null)} disabled={saving}>
+                  Go Back
+                </button>
+                <button type="button" className="btn btn--primary" onClick={handleConfirmDuplicate} disabled={saving}>
+                  {saving ? 'Saving...' : 'Confirm & Save'}
                 </button>
               </div>
             </div>

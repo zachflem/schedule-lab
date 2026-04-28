@@ -50,6 +50,30 @@ export const onRequest = methodRouter({
       }
     }
 
+    // Check for active users with the same email or phone (unless caller confirmed)
+    const url = new URL(context.request.url);
+    const forceDuplicate = url.searchParams.get('force_duplicate') === 'true';
+    if (!forceDuplicate) {
+      const conditions: string[] = [];
+      const bindings: string[] = [];
+      if (p.email) { conditions.push('email = ?'); bindings.push(p.email); }
+      if (p.phone) { conditions.push('phone = ?'); bindings.push(p.phone); }
+      if (conditions.length > 0) {
+        const { results } = await db.prepare(
+          `SELECT id, name, email, phone FROM personnel WHERE archived_at IS NULL AND (${conditions.join(' OR ')})`
+        ).bind(...bindings).all();
+        if (results.length > 0) {
+          let emailConflict = null;
+          let phoneConflict = null;
+          for (const row of results) {
+            if (p.email && (row as any).email === p.email) emailConflict = row;
+            if (p.phone && (row as any).phone === p.phone) phoneConflict = row;
+          }
+          return jsonResponse({ code: 'DUPLICATE_CONTACT', emailConflict, phoneConflict }, 409);
+        }
+      }
+    }
+
     await db.prepare(`
       INSERT INTO personnel (id, name, email, phone, can_login, receives_emails, role, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
