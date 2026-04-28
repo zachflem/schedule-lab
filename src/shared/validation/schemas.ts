@@ -77,7 +77,7 @@ export const DocketLineItemSchema = z.object({
 export type DocketLineItem = z.infer<typeof DocketLineItemSchema>;
 
 // ── Docket Status ──────────────────────────────────────
-export const DocketStatusEnum = z.enum(['uncompleted', 'draft', 'completed', 'incomplete', 'validated']);
+export const DocketStatusEnum = z.enum(['uncompleted', 'draft', 'completed', 'incomplete', 'validated', 'invoiced']);
 export type DocketStatus = z.infer<typeof DocketStatusEnum>;
 
 // ── Site Docket (the end-state artefact) ───────────────

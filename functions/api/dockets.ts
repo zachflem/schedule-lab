@@ -48,7 +48,7 @@ export const onRequest = methodRouter({
         LEFT JOIN job_schedules js ON j.id = js.job_id
         LEFT JOIN personnel p ON d.submitted_by = p.id
         WHERE d.job_id IN (${placeholders})
-          AND d.docket_status != 'validated'
+          AND d.docket_status NOT IN ('validated', 'invoiced')
       `).bind(...jobIds).all<any>();
 
       const docketsByJob = new Map<string, any>();

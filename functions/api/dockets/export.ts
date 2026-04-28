@@ -1,22 +1,26 @@
-import { getDb, errorResponse, methodRouter, withRole } from '../../lib/db';
+import { getDb, errorResponse, methodRouter, withRole, now } from '../../lib/db';
 
 /**
  * POST /api/dockets/export
  * Generates a CSV file for the selected validated dockets.
- * Currently supports Xero invoice import format.
+ * Supports 'xero' (Xero invoice import) and 'generic' (configurable column export).
+ *
+ * Body: { ids: string[], format?: 'xero' | 'generic', sections?: string[], markInvoiced?: boolean }
+ *
+ * When markInvoiced is true, all exported dockets are transitioned to 'invoiced' status.
  */
 export const onRequest = methodRouter({
   POST: withRole(['admin', 'dispatcher'], async (context) => {
     const db = getDb(context);
 
-    let body: { ids?: string[]; format?: string };
+    let body: { ids?: string[]; format?: string; sections?: string[]; markInvoiced?: boolean };
     try {
-      body = await context.request.json() as { ids?: string[]; format?: string };
+      body = await context.request.json() as typeof body;
     } catch {
       return errorResponse('Invalid JSON body', 400);
     }
 
-    const { ids, format = 'xero' } = body;
+    const { ids, format = 'xero', sections = ['job_details', 'hours'], markInvoiced = false } = body;
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return errorResponse('At least one docket ID is required', 400);
@@ -26,20 +30,35 @@ export const onRequest = methodRouter({
       return errorResponse('Maximum 200 dockets per export', 400);
     }
 
-    // Fetch Xero account code from settings
+    if (format === 'generic' && sections.length === 0) {
+      return errorResponse('At least one section must be selected for generic export', 400);
+    }
+
+    // Fetch platform settings (Xero account code used by xero format)
     const settings = await db.prepare(
       "SELECT xero_account_code FROM platform_settings WHERE id = 'global'"
     ).first<{ xero_account_code: string | null }>();
     const accountCode = settings?.xero_account_code ?? '';
 
-    // Fetch dockets with job + customer details (only validated)
+    // Fetch dockets with all fields needed by either format (only validated)
     const placeholders = ids.map(() => '?').join(',');
     const { results: dockets } = await db.prepare(`
       SELECT
         d.id,
         d.date,
         d.docket_status,
+        d.time_leave_yard,
+        d.time_arrive_site,
+        d.time_leave_site,
+        d.time_return_yard,
+        d.operator_hours,
+        d.machine_hours,
+        d.break_duration_minutes,
+        d.job_description_actual,
+        d.dispatcher_notes,
         j.po_number,
+        j.location,
+        j.asset_requirement,
         c.name       AS customer_name,
         c.billing_address,
         c.payment_terms_days
@@ -78,18 +97,36 @@ export const onRequest = methodRouter({
     }
 
     // Build CSV
+    const date = new Date().toISOString().split('T')[0];
     let csv: string;
+    let filename: string;
+
     if (format === 'xero') {
       csv = buildXeroCsv(dockets, lineItemsByDocket, accountCode);
+      filename = `dockets-export-xero-${date}.csv`;
+    } else if (format === 'generic') {
+      csv = buildGenericCsv(dockets, lineItemsByDocket, sections);
+      filename = `dockets-export-${date}.csv`;
     } else {
       return errorResponse(`Unsupported export format: ${format}`, 400);
+    }
+
+    // Optionally transition all exported dockets to 'invoiced'
+    if (markInvoiced && dockets.length > 0) {
+      const timestamp = now();
+      const updateStmts = dockets.map(d =>
+        db.prepare(
+          "UPDATE site_dockets SET docket_status = 'invoiced', updated_at = ? WHERE id = ?"
+        ).bind(timestamp, d.id)
+      );
+      await db.batch(updateStmts);
     }
 
     return new Response(csv, {
       status: 200,
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="dockets-export-xero-${new Date().toISOString().split('T')[0]}.csv"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
       },
     });
   }),
@@ -101,8 +138,8 @@ export const onRequest = methodRouter({
  * Xero invoice import CSV format.
  * Reference: https://central.xero.com/s/article/Import-invoices-or-bills-using-a-CSV-file
  *
- * One row per line item. Repeated header fields (ContactName, InvoiceNumber, etc.)
- * only need to be present on the first row of each invoice but we repeat them for clarity.
+ * One row per line item. Repeated header fields only need to be present on the
+ * first row of each invoice but we repeat them for clarity.
  */
 function buildXeroCsv(
   dockets: any[],
@@ -130,7 +167,6 @@ function buildXeroCsv(
     const invoiceNumber = docket.id.toUpperCase().slice(0, 16);
 
     if (items.length === 0) {
-      // Docket with no line items — create a placeholder row
       rows.push([
         csvEscape(docket.customer_name),
         csvEscape(invoiceNumber),
@@ -164,6 +200,97 @@ function buildXeroCsv(
 
   return rows.map(r => r.join(',')).join('\r\n');
 }
+
+// ── Generic configurable CSV builder ─────────────────────────────────────────
+
+const SECTION_HEADERS: Record<string, string[]> = {
+  job_details:  ['DocketID', 'Date', 'CustomerName', 'Location', 'JobBrief', 'PONumber', 'AssetRequirement'],
+  hours:        ['OperatorHours', 'MachineHours', 'BreakMins'],
+  site_times:   ['LeaveYard', 'ArriveSite', 'LeaveSite', 'ReturnYard'],
+  line_items:   ['LineDescription', 'InventoryCode', 'Quantity', 'UnitRate', 'LineTotal'],
+  notes:        ['JobDescription', 'DispatcherNotes'],
+};
+
+function buildGenericCsv(
+  dockets: any[],
+  lineItemsByDocket: Map<string, any[]>,
+  sections: string[],
+): string {
+  const hasLineItems = sections.includes('line_items');
+
+  // Build ordered header from selected sections
+  const headers: string[] = [];
+  for (const section of ['job_details', 'hours', 'site_times', 'line_items', 'notes']) {
+    if (sections.includes(section)) headers.push(...SECTION_HEADERS[section]);
+  }
+
+  const rows: string[][] = [headers];
+
+  for (const docket of dockets) {
+    // Columns that repeat for every row (docket-level data, excluding line_items and notes)
+    const docketCols: string[] = [];
+
+    if (sections.includes('job_details')) {
+      docketCols.push(
+        csvEscape(docket.id),
+        docket.date,
+        csvEscape(docket.customer_name),
+        csvEscape(docket.location ?? ''),
+        csvEscape(docket.job_brief ?? ''),
+        csvEscape(docket.po_number ?? ''),
+        csvEscape(docket.asset_requirement ?? ''),
+      );
+    }
+    if (sections.includes('hours')) {
+      docketCols.push(
+        String(docket.operator_hours ?? ''),
+        String(docket.machine_hours ?? ''),
+        String(docket.break_duration_minutes ?? ''),
+      );
+    }
+    if (sections.includes('site_times')) {
+      docketCols.push(
+        csvEscape(docket.time_leave_yard ?? ''),
+        csvEscape(docket.time_arrive_site ?? ''),
+        csvEscape(docket.time_leave_site ?? ''),
+        csvEscape(docket.time_return_yard ?? ''),
+      );
+    }
+
+    const notesCols: string[] = [];
+    if (sections.includes('notes')) {
+      notesCols.push(
+        csvEscape(docket.job_description_actual ?? ''),
+        csvEscape(docket.dispatcher_notes ?? ''),
+      );
+    }
+
+    if (hasLineItems) {
+      const items = lineItemsByDocket.get(docket.id) ?? [];
+      if (items.length === 0) {
+        // Placeholder row with empty line item columns
+        rows.push([...docketCols, '', '', '', '', '', ...notesCols]);
+      } else {
+        for (const li of items) {
+          const lineCols = [
+            csvEscape(li.description),
+            csvEscape(li.inventory_code ?? ''),
+            String(li.quantity),
+            String(li.unit_rate),
+            String((li.quantity * li.unit_rate).toFixed(2)),
+          ];
+          rows.push([...docketCols, ...lineCols, ...notesCols]);
+        }
+      }
+    } else {
+      rows.push([...docketCols, ...notesCols]);
+    }
+  }
+
+  return rows.map(r => r.join(',')).join('\r\n');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Add N days to a YYYY-MM-DD date string */
 function addDays(dateStr: string, days: number): string {

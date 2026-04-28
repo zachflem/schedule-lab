@@ -192,8 +192,17 @@ export function DocketsPage() {
         <ExportDocketsModal
           docketIds={Array.from(selectedIds)}
           onClose={() => setShowExportModal(false)}
-          onExported={() => {
+          onExported={(markedInvoiced) => {
             setShowExportModal(false);
+            refresh();
+            if (markedInvoiced) {
+              showToast(`${selectedIds.size} docket${selectedIds.size !== 1 ? 's' : ''} marked as invoiced`, 'success');
+              setExportMode(false);
+              setSelectedIds(new Set());
+              setStatusFilter('all');
+            } else {
+              showToast('Export downloaded', 'success');
+            }
           }}
         />
       )}
@@ -287,6 +296,7 @@ function DispatcherFeed({
     { value: 'draft', label: 'In Progress' },
     { value: 'incomplete', label: 'Sent Back' },
     { value: 'validated', label: 'Validated' },
+    { value: 'invoiced', label: 'Invoiced' },
   ];
 
   const activeLabel = tabs.find(t => t.value === statusFilter)?.label ?? 'All Dockets';
@@ -443,6 +453,7 @@ function DispatcherFeed({
                   <td>
                     <span className={`badge ${
                       docket.docket_status === 'validated' ? 'badge--success' :
+                      docket.docket_status === 'invoiced'  ? 'badge--secondary' :
                       docket.docket_status === 'completed' ? 'badge--primary' :
                       docket.docket_status === 'incomplete' ? 'badge--danger' :
                       'badge--warning'
@@ -477,7 +488,7 @@ function DispatcherFeed({
                           style={{ padding: '4px 8px', fontSize: '12px' }}
                           onClick={() => onNavigate(docket.job_id)}
                         >
-                          {docket.docket_status === 'validated' ? 'View' : 'Edit'}
+                          {(docket.docket_status === 'validated' || docket.docket_status === 'invoiced') ? 'View' : 'Edit'}
                         </button>
                       )}
                     </td>
@@ -557,7 +568,7 @@ function DispatcherFeed({
                       href={`/docket?jobId=${docket.job_id}`}
                       className="btn btn--secondary btn--sm"
                     >
-                      {docket.docket_status === 'validated' ? 'View' : 'Edit'}
+                      {(docket.docket_status === 'validated' || docket.docket_status === 'invoiced') ? 'View' : 'Edit'}
                     </a>
                   )}
                 </div>

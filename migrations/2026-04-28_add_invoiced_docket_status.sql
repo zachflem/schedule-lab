@@ -1,0 +1,7 @@
+-- Migration: Add 'invoiced' docket status
+-- The docket_status column uses TEXT with no CHECK constraint, so no schema change is needed.
+-- This file documents the addition of the 'invoiced' status to the application status enum.
+--
+-- 'invoiced' marks dockets that have been exported and issued as invoices to the customer.
+-- Transition: validated → invoiced (triggered by "Download CSV & Mark as INVOICED" export action)
+-- Invoiced dockets are read-only and excluded from the operator feed and export selection.

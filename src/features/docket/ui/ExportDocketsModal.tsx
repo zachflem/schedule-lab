@@ -3,30 +3,62 @@ import { useState } from 'react';
 interface ExportDocketsModalProps {
   docketIds: string[];
   onClose: () => void;
-  onExported: () => void;
+  onExported: (markedInvoiced: boolean) => void;
 }
 
-type AccountingPackage = 'xero';
+type ExportFormat = 'xero' | 'generic';
 
-const PACKAGES: { id: AccountingPackage; label: string; available: boolean }[] = [
-  { id: 'xero', label: 'Xero', available: true },
+const FORMATS: { id: ExportFormat; label: string; description: string }[] = [
+  { id: 'xero',    label: 'Xero',        description: 'Xero invoice import CSV' },
+  { id: 'generic', label: 'Generic CSV', description: 'Customisable CSV with selectable sections' },
 ];
 
 const COMING_SOON = ['MYOB', 'QuickBooks', 'Reckon'];
 
+interface Section { id: string; label: string; description: string }
+
+const SECTIONS: Section[] = [
+  { id: 'job_details', label: 'Job Details',  description: 'Date, customer, location, job brief, PO number' },
+  { id: 'hours',       label: 'Hours',         description: 'Operator hours, machine hours, break duration' },
+  { id: 'site_times',  label: 'Site Times',    description: 'Leave yard, arrive site, leave site, return yard' },
+  { id: 'line_items',  label: 'Line Items',    description: 'Description, inventory code, quantity, unit rate, total' },
+  { id: 'notes',       label: 'Notes',         description: 'Job description and dispatcher notes' },
+];
+
 export function ExportDocketsModal({ docketIds, onClose, onExported }: ExportDocketsModalProps) {
-  const [selectedPackage, setSelectedPackage] = useState<AccountingPackage>('xero');
+  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('xero');
+  const [selectedSections, setSelectedSections] = useState<Set<string>>(
+    new Set(['job_details', 'hours'])
+  );
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleExport = async () => {
+  const toggleSection = (id: string) => {
+    setSelectedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleExport = async (markInvoiced: boolean) => {
+    if (selectedFormat === 'generic' && selectedSections.size === 0) {
+      setError('Select at least one section to include in the export.');
+      return;
+    }
+
     setExporting(true);
     setError(null);
     try {
       const response = await fetch('/api/dockets/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: docketIds, format: selectedPackage }),
+        body: JSON.stringify({
+          ids: docketIds,
+          format: selectedFormat,
+          sections: selectedFormat === 'generic' ? Array.from(selectedSections) : undefined,
+          markInvoiced,
+        }),
       });
 
       if (!response.ok) {
@@ -34,19 +66,18 @@ export function ExportDocketsModal({ docketIds, onClose, onExported }: ExportDoc
         throw new Error(data.error ?? 'Export failed');
       }
 
-      // Trigger file download
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       const date = new Date().toISOString().split('T')[0];
-      a.download = `dockets-export-${selectedPackage}-${date}.csv`;
+      a.download = `dockets-export-${selectedFormat}-${date}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      onExported();
+      onExported(markInvoiced);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Export failed');
       setExporting(false);
@@ -57,11 +88,11 @@ export function ExportDocketsModal({ docketIds, onClose, onExported }: ExportDoc
     <div className="modal-overlay">
       <div
         className="modal-content modal-slide-in"
-        style={{ maxWidth: '480px', width: '100%' }}
+        style={{ maxWidth: '500px', width: '100%' }}
         onClick={e => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>Export to Accounting</h2>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>Export Dockets</h2>
           <button type="button" className="btn-close" onClick={onClose}>&times;</button>
         </div>
 
@@ -76,44 +107,43 @@ export function ExportDocketsModal({ docketIds, onClose, onExported }: ExportDoc
             color: 'var(--color-gray-700)',
           }}>
             <strong>{docketIds.length}</strong> validated docket{docketIds.length !== 1 ? 's' : ''} selected for export.
-            Each docket will be exported as a separate invoice.
           </div>
 
-          {/* Package selection */}
+          {/* Format selection */}
           <div>
             <label className="form-label" style={{ marginBottom: 'var(--space-3)', display: 'block' }}>
-              Accounting Package
+              Export Format
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              {PACKAGES.map(pkg => (
+              {FORMATS.map(fmt => (
                 <label
-                  key={pkg.id}
+                  key={fmt.id}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 'var(--space-3)',
                     padding: 'var(--space-3) var(--space-4)',
-                    border: `1px solid ${selectedPackage === pkg.id ? 'var(--color-primary-400)' : 'var(--color-gray-200)'}`,
+                    border: `1px solid ${selectedFormat === fmt.id ? 'var(--color-primary-400)' : 'var(--color-gray-200)'}`,
                     borderRadius: 'var(--radius-md)',
-                    background: selectedPackage === pkg.id ? 'var(--color-primary-50)' : 'white',
+                    background: selectedFormat === fmt.id ? 'var(--color-primary-50)' : 'white',
                     cursor: 'pointer',
                     transition: 'all 0.15s',
                   }}
                 >
                   <input
                     type="radio"
-                    name="package"
-                    value={pkg.id}
-                    checked={selectedPackage === pkg.id}
-                    onChange={() => setSelectedPackage(pkg.id)}
+                    name="format"
+                    value={fmt.id}
+                    checked={selectedFormat === fmt.id}
+                    onChange={() => setSelectedFormat(fmt.id)}
                     style={{ accentColor: 'var(--color-primary-600)' }}
                   />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--color-gray-900)' }}>
-                      {pkg.label}
+                      {fmt.label}
                     </div>
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)' }}>
-                      Exports as Xero invoice import CSV
+                      {fmt.description}
                     </div>
                   </div>
                   <span style={{
@@ -166,6 +196,51 @@ export function ExportDocketsModal({ docketIds, onClose, onExported }: ExportDoc
             </div>
           </div>
 
+          {/* Generic section picker */}
+          {selectedFormat === 'generic' && (
+            <div>
+              <label className="form-label" style={{ marginBottom: 'var(--space-3)', display: 'block' }}>
+                Sections to include
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                {SECTIONS.map(section => {
+                  const checked = selectedSections.has(section.id);
+                  return (
+                    <label
+                      key={section.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-3)',
+                        padding: 'var(--space-3) var(--space-4)',
+                        border: `1px solid ${checked ? 'var(--color-primary-300)' : 'var(--color-gray-200)'}`,
+                        borderRadius: 'var(--radius-md)',
+                        background: checked ? 'var(--color-primary-50)' : 'white',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleSection(section.id)}
+                        style={{ accentColor: 'var(--color-primary-600)', width: '16px', height: '16px' }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--color-gray-900)' }}>
+                          {section.label}
+                        </div>
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gray-500)' }}>
+                          {section.description}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {error && (
             <div style={{
               padding: 'var(--space-3)',
@@ -186,14 +261,12 @@ export function ExportDocketsModal({ docketIds, onClose, onExported }: ExportDoc
           </button>
           <button
             type="button"
-            className="btn btn--primary"
-            onClick={handleExport}
+            className="btn btn--secondary"
+            onClick={() => handleExport(false)}
             disabled={exporting}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
           >
-            {exporting ? (
-              'Generating...'
-            ) : (
+            {exporting ? 'Generating…' : (
               <>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -201,6 +274,24 @@ export function ExportDocketsModal({ docketIds, onClose, onExported }: ExportDoc
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
                 Download CSV
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => handleExport(true)}
+            disabled={exporting}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
+          >
+            {exporting ? 'Generating…' : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Download CSV & Mark as INVOICED
               </>
             )}
           </button>
